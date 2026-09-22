@@ -57,8 +57,8 @@ function newDraftEvent() {
 // Zeilen wie "08.09.2026 – 58 Pax – 50% Fleisch/ 50% Veggie").
 const CATEGORY_KEYWORDS = [
   { id: 'vorspeise', words: ['vorspeise', 'vorspeisen'] },
-  { id: 'fingerfood', words: ['fingerfood', 'snacks', 'snack'] },
-  { id: 'flying', words: ['flying empfang', 'flying'] },
+  { id: 'fingerfood', words: ['fingerfood', 'snacks', 'snack', 'fingerfood-buffet', 'snackbuffet'] },
+  { id: 'flying', words: ['flying empfang', 'flying', 'empfang'] },
   { id: 'hauptgang', words: ['hauptgang', 'hauptspeise', 'hauptspeisen'] },
   { id: 'beilage-saettigung', words: ['beilage', 'beilagen'] },
   { id: 'sosse', words: ['soße', 'soßen', 'sauce', 'sossen'] },
@@ -69,14 +69,25 @@ function matchCategory(line) {
   const hasColon = /:\s*$/.test(trimmed);
   const low = normalize(trimmed).replace(/:$/, '').trim();
   if (!low || low.length > 40) return null;
+  // Exakte Übereinstimmung (auch ohne Doppelpunkt) ist immer ein Treffer - deckt nackte
+  // Kategoriewörter und feste zusammengesetzte Überschriften wie "Snackbuffet" ab.
   for (const c of CATEGORY_KEYWORDS) {
-    // Exakte Übereinstimmung immer erlaubt (Kompatibilität zu nackten Kategoriewörtern
-    // ohne Doppelpunkt). Zusammengesetzte Überschriften wie "Vorspeisen als Fingerfood:"
-    // nur, wenn sie auch wirklich mit Doppelpunkt enden - sonst wären Abschnittstitel wie
-    // "Fingerfood – Begleitend" (Fließtext-Überschrift, kein Listen-Header) faelschlich Treffer.
-    if (c.words.some(w => low === w || (hasColon && low.startsWith(w)))) return c.id;
+    if (c.words.some(w => low === w)) return c.id;
   }
-  return null;
+  if (!hasColon) return null;
+  // Zusammengesetzte Überschriften mit Doppelpunkt wie "Vorspeisen als Fingerfood:" -
+  // hier gewinnt das Kategoriewort, das am weitesten hinten in der Zeile steht (das "als X"
+  // am Ende beschreibt die tatsächliche Darreichungsform/Kategorie). Ohne Doppelpunkt würden
+  // sonst Fließtext-Überschriften wie "Fingerfood – Begleitend" faelschlich matchen.
+  let best = null, bestPos = -1;
+  for (const c of CATEGORY_KEYWORDS) {
+    for (const w of c.words) {
+      const re = new RegExp('\\b' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
+      const m = low.match(re);
+      if (m && m.index > bestPos) { bestPos = m.index; best = c.id; }
+    }
+  }
+  return best;
 }
 
 // "Gesamtpreis" beendet ein Angebot immer endgueltig (Preistabelle, danach nur noch AGB-Text).
@@ -102,6 +113,15 @@ function isStopLine(line) { return isHardStop(line) || isSoftStop(line); }
 function isBulletLine(line) { return /^[•\-–]\s+/.test(line); }
 function stripBullet(line) { return line.replace(/^[•\-–]\s+/, '').trim(); }
 function looksLikePriceRow(line) { return /\d+[.,]\d{2}\s*€/.test(line); }
+
+// Wiederkehrende Angebots-Floskeln ("Gerne biete ich Ihnen ... Folgende Speisen könnte ich
+// mir gut vorstellen:") stehen typischerweise zwischen Kategorie-Überschrift und der
+// eigentlichen (nackten) Gerichteliste - kein Bullet, aber auch kein Gericht.
+function looksLikeIntroSentence(line) {
+  if (/:\s*$/.test(line)) return true;
+  return /^(gerne|selbstverständlich|wir\s|ich\s|bitte\s|folgende|der preis|in dem preis|für ihre veranstaltung|außerdem|zusätzlich)/i.test(line)
+    || /(biete ich|könnte ich|vorstellen|passe (sie|ich)|geben sie)/i.test(line);
+}
 
 function extractCustomerName(lines, filename) {
   for (const line of lines) {
@@ -144,13 +164,13 @@ function extractEventDate(lines, fullText) {
 }
 
 function extractPersonen(fullText) {
-  let m = fullText.match(/von\s+(\d+)\s*Personen/i);
+  let m = fullText.match(/von\s+(?:ca\.?\s*)?(\d+)\s*Personen/i);
   if (m) return parseInt(m[1], 10);
-  m = fullText.match(/mit\s+(\d+)\s*Personen/i);
+  m = fullText.match(/mit\s+(?:ca\.?\s*)?(\d+)\s*Personen/i);
   if (m) return parseInt(m[1], 10);
   m = fullText.match(/(\d+)\s*Pax/i);
   if (m) return parseInt(m[1], 10);
-  m = fullText.match(/mit\s+(\d+)\s*Erwachsenen/i);
+  m = fullText.match(/mit\s+(?:ca\.?\s*)?(\d+)\s*Erwachsenen/i);
   if (m) return parseInt(m[1], 10);
   return null;
 }
@@ -210,7 +230,7 @@ function scanDishes(lines, catStateRef) {
     }
     // Nackte Zeile ohne Aufzählungspunkt: nur als eigenes Gericht werten, wenn diese Kategorie
     // noch keine "•"/"-"-Punkte benutzt hat (Kompatibilität zum alten, punktlosen Format)
-    if (catStateRef.current !== 'sonstiges' && !sawBulletInCat) {
+    if (catStateRef.current !== 'sonstiges' && !sawBulletInCat && !looksLikeIntroSentence(line)) {
       const d = { id: uid(), name: line, category: catStateRef.current, personen: null };
       dishes.push(d); lastDish = d;
     }
@@ -228,15 +248,23 @@ function isDayHeaderLine(line) {
 function stripBoilerplateLines(rawLines) {
   const counts = new Map();
   rawLines.forEach(l => { if (l && l.length < 80) counts.set(l, (counts.get(l) || 0) + 1); });
-  const noisy = new Set(Array.from(counts.entries()).filter(([, c]) => c >= 3).map(([l]) => l));
+  // Kategorie-Überschriften ("Hauptgang:", "Dessert:", ...) wiederholen sich bei
+  // Mehrtages-Angeboten pro Tag und dürfen trotz Wiederholung nie als Briefkopf/Footer-
+  // Rauschen entfernt werden - sonst verliert jeder Tag seine Kategorie-Zuordnung.
+  const noisy = new Set(Array.from(counts.entries()).filter(([l, c]) => c >= 3 && !matchCategory(l)).map(([l]) => l));
   return rawLines
     .filter(l => !noisy.has(l) && !/^Seite\s+\d+$/i.test(l))
     .filter(l => !/^www\.[^\s]+$/i.test(l));
 }
 
+function repairPdfLigatures(text) {
+  // Manche PDF-Schriftarten liefern "ff" als kaputtes Ligatur-Glyph (z.B. "BuƯet" statt "Buffet").
+  return text.replace(/Ư/g, 'ff').replace(/ư/g, 'ff');
+}
+
 function parseAngebot(text, filename) {
-  const fullText = text;
-  const allLines = stripBoilerplateLines(text.split(/\r?\n/).map(l => l.trim()));
+  const fullText = repairPdfLigatures(text);
+  const allLines = stripBoilerplateLines(fullText.split(/\r?\n/).map(l => l.trim()));
   const personenRe = /(\d+)\s*(pax|person)/i;
 
   const name = extractCustomerName(allLines, filename) || 'Neues Angebot';
