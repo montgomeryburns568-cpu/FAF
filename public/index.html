@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Küchensheet-Generator</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="loginOverlay" class="login-overlay">
+  <form id="loginForm" class="login-card">
+    <h2>Küchensheet-Generator</h2>
+    <p class="hint">Bitte Passwort eingeben.</p>
+    <input type="password" id="loginPassword" placeholder="Passwort" required autofocus>
+    <div class="login-error" id="loginError"></div>
+    <button type="submit" class="btn-primary">Anmelden</button>
+  </form>
+</div>
+
+<div id="appRoot" style="display:none">
+<header class="topbar">
+  <div class="brand">Küchensheet-Generator</div>
+  <nav class="tabs" id="tabnav">
+    <button class="tab-btn active" data-tab="angebot">Angebot</button>
+    <button class="tab-btn" data-tab="kuechensheet">Küchensheet</button>
+    <button class="tab-btn" data-tab="todo">To-Do</button>
+    <button class="tab-btn" data-tab="rezepte">Rezepte</button>
+    <button class="tab-btn" data-tab="regeln">Regeln</button>
+    <button class="tab-btn" data-tab="referenz">Referenz</button>
+    <button class="tab-btn" data-tab="archiv">Archiv</button>
+  </nav>
+  <div class="event-picker">
+    <select id="eventSelect"><option value="">– Neues Angebot –</option></select>
+    <button id="deleteEventBtn" class="btn-ghost" title="Angebot löschen">🗑</button>
+    <button id="logoutBtn" class="btn-ghost" title="Abmelden">Abmelden</button>
+  </div>
+</header>
+
+<main>
+
+<section id="tab-angebot" class="tabpanel active">
+  <div class="grid-2">
+    <div class="card">
+      <h2>Angebot einlesen</h2>
+      <p class="hint">Text einfügen oder .txt-/.pdf-Datei hochladen. Format wie im "Vom Büro bestätigten Angebot": Kunde, Datum, Personen, dann pro Tag Kategorien (Vorspeise/Hauptgang/Beilagen/Dessert) mit Gerichten.</p>
+      <input type="file" id="fileInput" accept=".txt,.pdf">
+      <span class="hint" id="fileImportStatus"></span>
+      <textarea id="angebotText" rows="16" placeholder="Angebotstext hier einfügen..."></textarea>
+      <button id="parseBtn" class="btn-primary">Angebot einlesen</button>
+    </div>
+    <div class="card">
+      <h2>Event-Daten</h2>
+      <div class="field-row">
+        <label>Kunde/Event<input type="text" id="evName" placeholder="z.B. Condor"></label>
+        <label>Personen (gesamt)<input type="number" id="evPersonen" min="1"></label>
+      </div>
+      <label>Notiz (Datum, Abfahrt/Ankunft, etc.)<textarea id="evNotiz" rows="2"></textarea></label>
+      <div id="daysEditor"></div>
+      <button id="addDayBtn" class="btn-ghost">+ Tag hinzufügen</button>
+      <div class="actions-row">
+        <button id="saveEventBtn" class="btn-primary">Event speichern</button>
+        <button id="generateBtn" class="btn-success">Küchensheet &amp; To-Do erzeugen</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tab-kuechensheet" class="tabpanel">
+  <div class="output-toolbar no-print">
+    <h2>Küchensheet</h2>
+    <button id="printKuecheBtn" class="btn-ghost">Drucken / PDF</button>
+  </div>
+  <div id="kuecheOutput" class="output"></div>
+</section>
+
+<section id="tab-todo" class="tabpanel">
+  <div class="output-toolbar no-print">
+    <h2>To-Do-Liste</h2>
+    <button id="printTodoBtn" class="btn-ghost">Drucken / PDF</button>
+  </div>
+  <div id="todoOutput" class="output"></div>
+</section>
+
+<section id="tab-rezepte" class="tabpanel">
+  <div class="grid-2">
+    <div class="card">
+      <div class="output-toolbar">
+        <h2>Rezept-Datenbank</h2>
+        <button id="newRecipeBtn" class="btn-primary">+ Neues Rezept</button>
+      </div>
+      <input type="text" id="recipeSearch" placeholder="Suchen...">
+      <div id="recipeList" class="recipe-list"></div>
+    </div>
+    <div class="card">
+      <h2 id="recipeFormTitle">Rezept</h2>
+      <form id="recipeForm">
+        <label>Name<input type="text" id="rName" required></label>
+        <div class="actions-row" style="margin:-4px 0 10px">
+          <button type="button" id="aiSuggestBtn" class="btn-ghost">✨ KI-Vorschlag für diesen Namen</button>
+          <span class="hint" id="aiSuggestStatus"></span>
+        </div>
+        <div class="field-row">
+          <label>Kategorie
+            <select id="rCategory"></select>
+          </label>
+          <label>Temperatur/Methode<input type="text" id="rTemp" placeholder="z.B. 180°C"></label>
+        </div>
+        <div class="field-row">
+          <label>Referenz-Typ
+            <select id="rRefType">
+              <option value="portionen">Portionen</option>
+              <option value="menge">Menge (Gesamt)</option>
+              <option value="formel">Nur Formel/Komposition</option>
+            </select>
+          </label>
+          <label id="rRefValueWrap">Referenz-Wert<input type="number" id="rRefValue" step="any"></label>
+          <label id="rRefUnitWrap">Einheit<input type="text" id="rRefUnit" placeholder="g / l / kg"></label>
+        </div>
+        <h3>Portionsstufen (optional – z.B. Kokotten/Platten statt Gramm-Skalierung)</h3>
+        <p class="hint" style="margin-top:-4px">Falls gesetzt, wird die Personenzahl auf diese festen Größen aufgeteilt (z.B. große/mittlere/kleine Kokotte) statt linear in Gramm hochzuskalieren. Leer lassen für normale Gramm-Skalierung.</p>
+        <div id="stufenRows"></div>
+        <button type="button" id="addStufeBtn" class="btn-ghost">+ Portionsstufe</button>
+        <h3 style="margin-top:14px">Zutaten</h3>
+        <div id="ingredientRows"></div>
+        <button type="button" id="addIngredientBtn" class="btn-ghost">+ Zutat</button>
+        <label>Zubereitung / To-Do<textarea id="rSteps" rows="4"></textarea></label>
+        <div class="actions-row">
+          <button type="submit" class="btn-primary">Speichern</button>
+          <button type="button" id="deleteRecipeBtn" class="btn-danger">Löschen</button>
+          <button type="button" id="clearRecipeFormBtn" class="btn-ghost">Neu / Leeren</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<section id="tab-regeln" class="tabpanel">
+  <div class="card">
+    <h2>Kalkulationsregeln</h2>
+    <p class="hint">Diese Werte steuern die Formel-Berechnung für Gerichte ohne hinterlegtes Rezept.</p>
+    <div id="rulesForm" class="rules-grid"></div>
+    <button id="saveRulesBtn" class="btn-primary">Regeln speichern</button>
+    <button id="resetRulesBtn" class="btn-ghost">Zurücksetzen auf Standard</button>
+  </div>
+</section>
+
+<section id="tab-referenz" class="tabpanel">
+  <div class="card">
+    <h2>Referenzwerte</h2>
+    <div id="referenzOutput"></div>
+  </div>
+</section>
+
+<section id="tab-archiv" class="tabpanel">
+  <div class="grid-2">
+    <div class="card">
+      <h2>Angebot ins Archiv hochladen</h2>
+      <p class="hint">PDF hochladen – Kunde, Datum, Gerichte werden vorausgefüllt, Preise trägst du danach ein. Original-PDF bleibt gespeichert und abrufbar.</p>
+      <input type="file" id="archivFileInput" accept=".pdf">
+      <span class="hint" id="archivImportStatus"></span>
+      <div id="archivDraftForm" style="display:none; margin-top:14px">
+        <div class="field-row">
+          <label>Kunde<input type="text" id="adKunde"></label>
+          <label>Datum<input type="text" id="adDatum" placeholder="z.B. 07.09.2026"></label>
+        </div>
+        <div class="field-row">
+          <label>Personen<input type="number" id="adPersonen" min="0"></label>
+          <label>Gesamtpreis (€)<input type="number" id="adGesamtpreis" step="0.01" min="0"></label>
+        </div>
+        <h3>Gerichte</h3>
+        <div id="adDishRows"></div>
+        <button type="button" id="adAddDishBtn" class="btn-ghost">+ Gericht</button>
+        <div class="actions-row">
+          <button type="button" id="adSaveBtn" class="btn-primary">Ins Archiv speichern</button>
+          <button type="button" id="adCancelBtn" class="btn-ghost">Verwerfen</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Auswertung</h2>
+      <div id="archivAnalytics"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:18px">
+    <div class="output-toolbar">
+      <h2>Archivierte Angebote</h2>
+      <input type="text" id="archivSearch" placeholder="Suchen (Kunde, Gericht)..." style="max-width:260px">
+    </div>
+    <div id="archivList"></div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<script src="seed-data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

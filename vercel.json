@@ -1,0 +1,10 @@
+{
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/server" }
+  ],
+  "functions": {
+    "api/server.js": {
+      "includeFiles": "node_modules/pdf-parse/dist/**"
+    }
+  }
+}
