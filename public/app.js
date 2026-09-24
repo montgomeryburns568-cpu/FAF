@@ -1049,6 +1049,48 @@ function computeBestellmenge(neededAmount, neededUnit, packAmount, packUnit) {
   return Math.ceil(neededBase / packBase);
 }
 
+// Rezeptzutaten heißen meist generisch ("Zwiebel", "Knoblauch"), während die aus den
+// Selgros-Bestell-PDFs importierten Katalogeinträge die vollen Handelsnamen tragen
+// ("Gemüsezwiebeln 25kg", "Knoblauch geschält frisch 1kg") - ein exakter Namensabgleich
+// trifft daher fast nie. Als Fallback wird deshalb, wie bei der Rezeptzuordnung im
+// Küchensheet, über gemeinsame markante Wörter das plausibelste Katalogprodukt gesucht.
+function findArtikelForIngredient(ingredientName, artikelzuordnung) {
+  const key = normalize(ingredientName);
+  if (artikelzuordnung[key]) return { entry: artikelzuordnung[key], confirmed: true };
+  const n = key;
+  if (!n) return null;
+  // Pass 1: eine der beiden Namen steckt komplett im anderen, an einer Wortgrenze beginnend
+  // ("Zwiebel" am Wortanfang von "Zwiebeln" erlaubt Mehrzahl-Endungen) - aber NICHT mitten im
+  // Wort, sonst würde z.B. "Salz" faelschlich in "geSALZen" gefunden.
+  const escapeRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const startsAtWordBoundary = (needle, haystack) => new RegExp('\\b' + escapeRe(needle)).test(haystack);
+  let bestSubstr = null;
+  Object.values(artikelzuordnung).forEach(entry => {
+    if (!entry.name) return;
+    const en = normalize(entry.name);
+    if (startsAtWordBoundary(n, en) || startsAtWordBoundary(en, n)) {
+      if (!bestSubstr || en.length < normalize(bestSubstr.name).length) bestSubstr = entry;
+    }
+  });
+  if (bestSubstr) return { entry: bestSubstr, confirmed: false };
+  // Pass 2: strengerer Fuzzy-Fallback - ALLE markanten Wörter der Zutat müssen im
+  // Produktnamen vorkommen (nicht nur ein Teil), um zufällige Treffer über generische
+  // Wörter wie "Gemüse" zu vermeiden.
+  const words = significantWords(ingredientName);
+  if (!words.length) return null;
+  let best = null;
+  Object.values(artikelzuordnung).forEach(entry => {
+    if (!entry.name) return;
+    const prodWords = significantWords(entry.name);
+    if (!prodWords.length) return;
+    if (words.every(w => prodWords.includes(w))) {
+      if (!best || entry.name.length < best.name.length) best = entry;
+    }
+  });
+  if (best) return { entry: best, confirmed: false };
+  return null;
+}
+
 function renderEinkaufsliste() {
   const out = document.getElementById('einkaufslisteOutput');
   document.getElementById('einkaufslisteBestellliste').style.display = 'none';
@@ -1062,24 +1104,27 @@ function renderEinkaufsliste() {
   if (!totals.length) { out.innerHTML = '<p class="hint">Keine Zutaten gefunden.</p>'; return; }
 
   let html = `<table class="summary-table"><thead><tr>
-    <th>Zutat</th><th>Benötigt</th><th>Selgros Art.-Nr.</th><th>Packung</th><th>Bestellmenge</th><th>Aufnehmen</th>
+    <th>Zutat</th><th>Benötigt (aggregiert aus allen Gerichten)</th><th>Selgros Art.-Nr.</th><th>Packung</th><th>Bestellmenge</th><th>Aufnehmen</th>
   </tr></thead><tbody>`;
   totals.forEach(i => {
     const key = normalize(i.name);
-    const z = state.artikelzuordnung[key] || {};
+    const match = findArtikelForIngredient(i.name, state.artikelzuordnung);
+    const z = (match && match.entry) || {};
+    const suggested = !!(match && !match.confirmed);
     const autoQty = computeBestellmenge(i.amount, i.unit, z.packAmount, z.packUnit);
     const qty = z.qty != null ? z.qty : autoQty;
-    html += `<tr data-key="${key}" data-needed-amount="${i.amount}" data-needed-unit="${i.unit}">
+    html += `<tr data-key="${key}" data-needed-amount="${i.amount}" data-needed-unit="${i.unit}" class="${suggested ? 'ez-suggested' : ''}">
       <td>${i.name}</td>
       <td>${fmtAmount(i.amount)} ${i.unit}</td>
-      <td><input type="text" class="ez-artnr" value="${z.artNr || ''}" placeholder="Art.-Nr."></td>
+      <td><input type="text" class="ez-artnr" value="${z.artNr || ''}" placeholder="Art.-Nr.">${suggested ? `<div class="hint">Vorschlag: ${z.name}</div>` : ''}</td>
       <td><input type="number" step="any" class="ez-packamount" value="${z.packAmount ?? ''}" placeholder="Menge" style="width:70px">
           <input type="text" class="ez-packunit" value="${z.packUnit || ''}" placeholder="Einheit" style="width:60px"></td>
       <td><input type="number" step="1" min="0" class="ez-qty" value="${qty ?? ''}" placeholder="?"></td>
       <td style="text-align:center"><input type="checkbox" class="ez-include" ${z.exclude ? '' : 'checked'}></td>
     </tr>`;
   });
-  html += `</tbody></table>`;
+  html += `</tbody></table>
+  <p class="hint">Orange markierte Zeilen sind automatische Vorschläge (per Wortabgleich aus euren Selgros-Bestellungen) und noch nicht bestätigt. Beim Ändern/Speichern einer Zeile wird die Zuordnung fest für diese Zutat gemerkt.</p>`;
   out.innerHTML = html;
 }
 
