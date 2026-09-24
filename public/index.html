@@ -25,6 +25,7 @@
     <button class="tab-btn active" data-tab="angebot">Angebot</button>
     <button class="tab-btn" data-tab="kuechensheet">Küchensheet</button>
     <button class="tab-btn" data-tab="todo">To-Do</button>
+    <button class="tab-btn" data-tab="einkaufsliste">Einkaufsliste</button>
     <button class="tab-btn" data-tab="rezepte">Rezepte</button>
     <button class="tab-btn" data-tab="regeln">Regeln</button>
     <button class="tab-btn" data-tab="referenz">Referenz</button>
@@ -80,6 +81,23 @@
     <button id="printTodoBtn" class="btn-ghost">Drucken / PDF</button>
   </div>
   <div id="todoOutput" class="output"></div>
+</section>
+
+<section id="tab-einkaufsliste" class="tabpanel">
+  <div class="card">
+    <h2>Einkaufsliste</h2>
+    <p class="hint">Aggregierter Wareneinsatz des aktuellen Angebots, mit Zuordnung zu Selgros-Artikelnummern. Einmal zugeordnete Artikel merkt sich die App für künftige Angebote.</p>
+    <div id="einkaufslisteOutput"></div>
+    <div class="actions-row">
+      <button id="fillSelgrosCartBtn" class="btn-success">Bestellliste für Selgros-Warenkorb erzeugen</button>
+    </div>
+    <p class="hint" id="einkaufslisteWarnHint" style="display:none; color:var(--danger); margin-top:10px">⚠️ Es wird NIE automatisch bestellt – die Bestellliste befüllt nur den Warenkorb bei Selgros, abgesendet wird nichts.</p>
+    <div id="einkaufslisteBestellliste" style="display:none; margin-top:14px">
+      <h3>Bestellliste (Art.-Nr. ; Menge ; Zutat)</h3>
+      <textarea id="bestelllisteText" rows="10" readonly></textarea>
+      <p class="hint">Diese Liste im laufenden Claude-Gespräch teilen ("fülle den Selgros-Warenkorb mit dieser Liste") – Claude trägt die Artikel dann im Browser in den Warenkorb ein, bestellt aber nichts ab.</p>
+    </div>
+  </div>
 </section>
 
 <section id="tab-rezepte" class="tabpanel">

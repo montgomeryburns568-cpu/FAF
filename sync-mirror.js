@@ -60,7 +60,7 @@ async function main() {
   const cookie = extractCookie(loginResp.headers.get('set-cookie'));
   if (!cookie) throw new Error('Kein Auth-Cookie erhalten.');
 
-  for (const name of ['recipes', 'rules', 'events', 'archiv']) {
+  for (const name of ['recipes', 'rules', 'events', 'archiv', 'artikelzuordnung']) {
     const resp = await fetch(`${MIRROR_URL}/api/${name}`, { headers: { cookie } });
     if (!resp.ok) throw new Error(`Abruf von ${name} fehlgeschlagen: ${resp.status}`);
     const data = await resp.json();
@@ -81,7 +81,7 @@ async function main() {
     pdfCount++;
   }
 
-  console.log(`[${new Date().toISOString()}] Spiegelung erfolgreich: recipes, rules, events, archiv aktualisiert in ${DATA_DIR} (${pdfCount} neue PDF(s) heruntergeladen)`);
+  console.log(`[${new Date().toISOString()}] Spiegelung erfolgreich: recipes, rules, events, archiv, artikelzuordnung aktualisiert in ${DATA_DIR} (${pdfCount} neue PDF(s) heruntergeladen)`);
 }
 
 main().catch(err => {

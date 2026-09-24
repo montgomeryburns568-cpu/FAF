@@ -110,6 +110,13 @@ app.put('/api/rules', requireAuth, async (req, res) => {
   res.json(req.body);
 });
 
+// --- Selgros-Artikelzuordnung (Zutat -> Art.-Nr. + Verpackungsgroesse) ---
+app.get('/api/artikelzuordnung', requireAuth, async (req, res) => res.json(await store.getArtikelzuordnung()));
+app.put('/api/artikelzuordnung', requireAuth, async (req, res) => {
+  await store.setArtikelzuordnung(req.body);
+  res.json(req.body);
+});
+
 // --- events ---
 app.get('/api/events', requireAuth, async (req, res) => res.json(await store.getEvents()));
 

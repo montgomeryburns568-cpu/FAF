@@ -36,6 +36,7 @@ const FILES = {
   rules: path.join(DATA_DIR, 'rules.json'),
   events: path.join(DATA_DIR, 'events.json'),
   archiv: path.join(DATA_DIR, 'archiv.json'),
+  artikelzuordnung: path.join(DATA_DIR, 'artikelzuordnung.json'),
 };
 
 function ensureFile(file, defaultValue) {
@@ -66,6 +67,7 @@ function initLocal() {
   ensureFile(FILES.rules, DEFAULT_RULES);
   ensureFile(FILES.events, []);
   ensureFile(FILES.archiv, []);
+  ensureFile(FILES.artikelzuordnung, {});
 }
 
 async function init() {
@@ -74,6 +76,7 @@ async function init() {
     await kvGetOrInit('rules', DEFAULT_RULES);
     await kvGetOrInit('events', []);
     await kvGetOrInit('archiv', []);
+    await kvGetOrInit('artikelzuordnung', {});
   } else {
     initLocal();
   }
@@ -90,4 +93,6 @@ module.exports = {
   async setEvents(data) { if (useKV) { await kvSet('events', data); } else { writeJSON(FILES.events, data); } },
   async getArchiv() { return useKV ? kvGetOrInit('archiv', []) : readJSON(FILES.archiv); },
   async setArchiv(data) { if (useKV) { await kvSet('archiv', data); } else { writeJSON(FILES.archiv, data); } },
+  async getArtikelzuordnung() { return useKV ? kvGetOrInit('artikelzuordnung', {}) : readJSON(FILES.artikelzuordnung); },
+  async setArtikelzuordnung(data) { if (useKV) { await kvSet('artikelzuordnung', data); } else { writeJSON(FILES.artikelzuordnung, data); } },
 };

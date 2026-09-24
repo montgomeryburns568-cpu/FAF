@@ -35,10 +35,11 @@ const API = {
 };
 
 async function loadState() {
-  const [recipes, rules, events, archiv] = await Promise.all([
+  const [recipes, rules, events, archiv, artikelzuordnung] = await Promise.all([
     API.get('/api/recipes'), API.get('/api/rules'), API.get('/api/events'), API.get('/api/archiv'),
+    API.get('/api/artikelzuordnung'),
   ]);
-  return { recipes, rules, events, archiv, currentEventId: getCurrentEventId() };
+  return { recipes, rules, events, archiv, artikelzuordnung, currentEventId: getCurrentEventId() };
 }
 
 let state = null;
@@ -650,7 +651,9 @@ function switchTab(tab) {
 }
 document.getElementById('tabnav').addEventListener('click', e => {
   const btn = e.target.closest('.tab-btn');
-  if (btn) switchTab(btn.dataset.tab);
+  if (!btn) return;
+  switchTab(btn.dataset.tab);
+  if (btn.dataset.tab === 'einkaufsliste') renderEinkaufsliste();
 });
 
 // ---------- Angebot tab: editor rendering ----------
@@ -926,6 +929,7 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
   if (!(await persistEvent())) return;
   renderKueche();
   renderTodo();
+  renderEinkaufsliste();
   switchTab('kuechensheet');
 });
 
@@ -958,7 +962,7 @@ function renderKueche() {
   const ingredientTotals = aggregateIngredients(computed);
   if (ingredientTotals.length) {
     html += `<h3>Wareneinsatz-Übersicht (aggregiert)</h3><table class="summary-table"><thead><tr><th>Zutat</th><th>Menge</th></tr></thead><tbody>`;
-    ingredientTotals.forEach(i => { html += `<tr><td>${i.name}</td><td>${i.amounts}</td></tr>`; });
+    ingredientTotals.forEach(i => { html += `<tr><td>${i.name}</td><td>${fmtAmount(i.amount)} ${i.unit}</td></tr>`; });
     html += `</tbody></table>`;
   }
 
@@ -1022,9 +1026,103 @@ function aggregateIngredients(computed) {
   }));
   return Object.entries(map).map(([key, amount]) => {
     const [name, unit] = key.split('||');
-    return { name, amounts: `${fmtAmount(amount)} ${unit}` };
+    return { name, unit, amount };
   }).sort((a, b) => a.name.localeCompare(b.name));
 }
+
+// ---------- Einkaufsliste (Wareneinsatz -> Selgros-Artikelzuordnung) ----------
+// Grobe Umrechnung in eine gemeinsame Basiseinheit, um benötigte Menge und
+// Selgros-Packungsgröße vergleichbar zu machen. Nicht-physikalische Rezeptmaße
+// (EL, TL, Prise, Portion, ...) lassen sich nicht automatisch umrechnen - dort
+// muss die Bestellmenge manuell eingetragen werden.
+function toBaseUnit(unit, amount) {
+  const u = (unit || '').toLowerCase();
+  if (u === 'g' || u === 'ml') return amount;
+  if (u === 'kg' || u === 'l' || u === 'L') return amount * 1000;
+  if (u === 'stk' || u === 'stück' || u === 'stueck') return amount;
+  return null;
+}
+function computeBestellmenge(neededAmount, neededUnit, packAmount, packUnit) {
+  const neededBase = toBaseUnit(neededUnit, neededAmount);
+  const packBase = toBaseUnit(packUnit, packAmount);
+  if (neededBase == null || packBase == null || !packBase) return null;
+  return Math.ceil(neededBase / packBase);
+}
+
+function renderEinkaufsliste() {
+  const out = document.getElementById('einkaufslisteOutput');
+  document.getElementById('einkaufslisteBestellliste').style.display = 'none';
+  document.getElementById('einkaufslisteWarnHint').style.display = 'none';
+  if (!draftEvent || !draftEvent.days || draftEvent.days.length === 0) {
+    out.innerHTML = '<div class="empty-state">⚠️ Noch kein Angebot verarbeitet. Erzeuge zuerst ein Küchensheet im Tab "Angebot".</div>';
+    return;
+  }
+  const computed = computeEvent(draftEvent, state.recipes, state.rules);
+  const totals = aggregateIngredients(computed);
+  if (!totals.length) { out.innerHTML = '<p class="hint">Keine Zutaten gefunden.</p>'; return; }
+
+  let html = `<table class="summary-table"><thead><tr>
+    <th>Zutat</th><th>Benötigt</th><th>Selgros Art.-Nr.</th><th>Packung</th><th>Bestellmenge</th><th>Aufnehmen</th>
+  </tr></thead><tbody>`;
+  totals.forEach(i => {
+    const key = normalize(i.name);
+    const z = state.artikelzuordnung[key] || {};
+    const autoQty = computeBestellmenge(i.amount, i.unit, z.packAmount, z.packUnit);
+    const qty = z.qty != null ? z.qty : autoQty;
+    html += `<tr data-key="${key}" data-needed-amount="${i.amount}" data-needed-unit="${i.unit}">
+      <td>${i.name}</td>
+      <td>${fmtAmount(i.amount)} ${i.unit}</td>
+      <td><input type="text" class="ez-artnr" value="${z.artNr || ''}" placeholder="Art.-Nr."></td>
+      <td><input type="number" step="any" class="ez-packamount" value="${z.packAmount ?? ''}" placeholder="Menge" style="width:70px">
+          <input type="text" class="ez-packunit" value="${z.packUnit || ''}" placeholder="Einheit" style="width:60px"></td>
+      <td><input type="number" step="1" min="0" class="ez-qty" value="${qty ?? ''}" placeholder="?"></td>
+      <td style="text-align:center"><input type="checkbox" class="ez-include" ${z.exclude ? '' : 'checked'}></td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  out.innerHTML = html;
+}
+
+async function saveEinkaufslisteRow(row) {
+  const key = row.dataset.key;
+  const name = row.children[0].textContent;
+  const artNr = row.querySelector('.ez-artnr').value.trim();
+  const packAmount = parseFloat(row.querySelector('.ez-packamount').value) || null;
+  const packUnit = row.querySelector('.ez-packunit').value.trim();
+  const qtyVal = row.querySelector('.ez-qty').value;
+  const qty = qtyVal ? parseInt(qtyVal, 10) : null;
+  const exclude = !row.querySelector('.ez-include').checked;
+  state.artikelzuordnung[key] = { name, artNr, packAmount, packUnit, qty, exclude };
+  state.artikelzuordnung = await API.send('PUT', '/api/artikelzuordnung', state.artikelzuordnung);
+}
+
+document.getElementById('einkaufslisteOutput').addEventListener('change', async (e) => {
+  const row = e.target.closest('tr');
+  if (!row) return;
+  if (e.target.classList.contains('ez-artnr') || e.target.classList.contains('ez-packamount') || e.target.classList.contains('ez-packunit')) {
+    const packAmount = parseFloat(row.querySelector('.ez-packamount').value) || null;
+    const packUnit = row.querySelector('.ez-packunit').value.trim();
+    const autoQty = computeBestellmenge(parseFloat(row.dataset.neededAmount), row.dataset.neededUnit, packAmount, packUnit);
+    if (autoQty != null) row.querySelector('.ez-qty').value = autoQty;
+  }
+  await saveEinkaufslisteRow(row);
+});
+
+document.getElementById('fillSelgrosCartBtn').addEventListener('click', () => {
+  const rows = Array.from(document.querySelectorAll('#einkaufslisteOutput tr[data-key]'));
+  const lines = [];
+  rows.forEach(row => {
+    const included = row.querySelector('.ez-include').checked;
+    const artNr = row.querySelector('.ez-artnr').value.trim();
+    const qty = parseInt(row.querySelector('.ez-qty').value, 10);
+    const name = row.children[0].textContent;
+    if (included && artNr && qty > 0) lines.push(`${artNr};${qty};${name}`);
+  });
+  document.getElementById('bestelllisteText').value = lines.join('\n');
+  document.getElementById('einkaufslisteWarnHint').style.display = 'block';
+  document.getElementById('einkaufslisteBestellliste').style.display = lines.length ? 'block' : 'none';
+  if (!lines.length) alert('Keine Artikel mit Art.-Nr. und Bestellmenge ausgewählt (Häkchen, Art.-Nr. und Menge > 0 prüfen).');
+});
 
 document.getElementById('kuecheOutput').addEventListener('input', e => {
   const card = e.target.closest('.dish-card');
