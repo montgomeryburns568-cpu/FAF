@@ -213,14 +213,25 @@ app.post('/api/parse-pdf', requireAuth, express.raw({ type: '*/*', limit: '15mb'
 // --- Angebots-Archiv ---
 async function extractPdfText(buffer) {
   const { PDFParse } = require('pdf-parse');
+  const { buildTableBlock, looksLikeWochenplan } = require('./pdf-tables');
   const parser = new PDFParse({ data: buffer });
   const result = await parser.getText();
-  await parser.destroy();
-  return result.text
+  let text = result.text
     .split('\n')
     .filter(line => !/^--\s*\d+\s+of\s+\d+\s*--$/.test(line.trim()))
     .join('\n')
     .replace(/\n{3,}/g, '\n\n');
+  // Wochenpläne: Tabellenstruktur (Spalten = Wochentage) als zusätzlichen Textblock anhängen
+  if (looksLikeWochenplan(text)) {
+    try {
+      const block = buildTableBlock(await parser.getTable());
+      if (block) text += '\n\n' + block;
+    } catch (err) {
+      console.error('Tabellen-Extraktion fehlgeschlagen:', err.message);
+    }
+  }
+  await parser.destroy();
+  return text;
 }
 
 app.post('/api/archiv/upload', requireAuth, express.raw({ type: '*/*', limit: '15mb' }), async (req, res) => {

@@ -45,309 +45,6 @@ async function loadState() {
 let state = null;
 let draftEvent = null; // event currently being edited in the Angebot tab
 
-// ---------- default draft ----------
-function newDraftEvent() {
-  return { id: uid(), name: '', personen: null, notiz: '', days: [], todoChecks: {} };
-}
-
-// ---------- parser ----------
-// Erkennt sowohl das interne "vom Büro bestätigte" Format (nackte Datumszeilen,
-// nackte Kategoriewörter, ein Gericht pro Zeile) als auch echte Kunden-Angebote
-// von Licata Catering / Forks & Friends (Fließtext mit Grußzeile, Datum in Sätzen
-// wie "Veranstaltung am X", Aufzählungspunkte "•"/"-", mehrtägige Angebote mit
-// Zeilen wie "08.09.2026 – 58 Pax – 50% Fleisch/ 50% Veggie").
-const CATEGORY_KEYWORDS = [
-  { id: 'vorspeise', words: ['vorspeise', 'vorspeisen'] },
-  { id: 'fingerfood', words: ['fingerfood', 'snacks', 'snack', 'fingerfood-buffet', 'snackbuffet'] },
-  { id: 'flying', words: ['flying empfang', 'flying', 'empfang'] },
-  { id: 'hauptgang', words: ['hauptgang', 'hauptspeise', 'hauptspeisen'] },
-  { id: 'beilage-saettigung', words: ['beilage', 'beilagen'] },
-  { id: 'sosse', words: ['soße', 'soßen', 'sauce', 'sossen'] },
-  { id: 'dessert', words: ['dessert', 'desserts', 'nachspeise'] },
-];
-function matchCategory(line) {
-  const trimmed = line.trim();
-  const hasColon = /:\s*$/.test(trimmed);
-  const low = normalize(trimmed).replace(/:$/, '').trim();
-  if (!low || low.length > 40) return null;
-  // Exakte Übereinstimmung (auch ohne Doppelpunkt) ist immer ein Treffer - deckt nackte
-  // Kategoriewörter und feste zusammengesetzte Überschriften wie "Snackbuffet" ab.
-  for (const c of CATEGORY_KEYWORDS) {
-    if (c.words.some(w => low === w)) return c.id;
-  }
-  if (!hasColon) return null;
-  // Zusammengesetzte Überschriften mit Doppelpunkt wie "Vorspeisen als Fingerfood:" -
-  // hier gewinnt das Kategoriewort, das am weitesten hinten in der Zeile steht (das "als X"
-  // am Ende beschreibt die tatsächliche Darreichungsform/Kategorie). Ohne Doppelpunkt würden
-  // sonst Fließtext-Überschriften wie "Fingerfood – Begleitend" faelschlich matchen.
-  let best = null, bestPos = -1;
-  for (const c of CATEGORY_KEYWORDS) {
-    for (const w of c.words) {
-      const re = new RegExp('\\b' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
-      const m = low.match(re);
-      if (m && m.index > bestPos) { bestPos = m.index; best = c.id; }
-    }
-  }
-  return best;
-}
-
-// "Gesamtpreis" beendet ein Angebot immer endgueltig (Preistabelle, danach nur noch AGB-Text).
-const HARD_STOPWORDS = ['gesamtpreis'];
-// Diese Abschnitte enthalten keine Kuechen-relevanten Gerichte, koennen aber MITTEN im
-// Dokument zwischen zwei echten Speise-Abschnitten stehen (z.B. "Transportkosten" vor
-// "Fingerfood"). Deshalb nur ueberspringen, nicht das gesamte Parsing abbrechen.
-const SOFT_STOPWORDS = [
-  'transportkosten', 'getranke', 'getränke', 'servicepersonal', 'zusatzliches equipment',
-  'zusätzliches equipment', 'ablauf', 'zahlungsbedingungen', 'anlieferung',
-  'anpassung der personenanzahl', 'mitternachtssnack', 'warum sie sich fur uns entscheiden sollten',
-  'warum sie sich für uns entscheiden sollten', 'kaffeepause-buffet', 'kaffeepause', 'equipment',
-  'ablauf/ absprachen', 'ablauf & logistik',
-];
-function matchStopword(line, list) {
-  const low = normalize(line).replace(/[:–-]\s*$/, '').trim();
-  if (!low) return false;
-  return list.some(w => low === w || low.startsWith(w));
-}
-function isHardStop(line) { return matchStopword(line, HARD_STOPWORDS); }
-function isSoftStop(line) { return matchStopword(line, SOFT_STOPWORDS); }
-function isStopLine(line) { return isHardStop(line) || isSoftStop(line); }
-function isBulletLine(line) { return /^[•\-–]\s+/.test(line); }
-function stripBullet(line) { return line.replace(/^[•\-–]\s+/, '').trim(); }
-function looksLikePriceRow(line) { return /\d+[.,]\d{2}\s*€/.test(line); }
-
-// Wiederkehrende Angebots-Floskeln ("Gerne biete ich Ihnen ... Folgende Speisen könnte ich
-// mir gut vorstellen:") stehen typischerweise zwischen Kategorie-Überschrift und der
-// eigentlichen (nackten) Gerichteliste - kein Bullet, aber auch kein Gericht.
-function looksLikeIntroSentence(line) {
-  if (/:\s*$/.test(line)) return true;
-  return /^(gerne|selbstverständlich|wir\s|ich\s|bitte\s|folgende|der preis|in dem preis|für ihre veranstaltung|außerdem|zusätzlich)/i.test(line)
-    || /(biete ich|könnte ich|vorstellen|passe (sie|ich)|geben sie)/i.test(line);
-}
-
-function extractCustomerName(lines, filename) {
-  for (const line of lines) {
-    const m = line.match(/^(?:Hallo|Guten Tag)\s+([^,]{2,40}),\s*$/i);
-    if (m && m[1].trim()) return m[1].trim();
-  }
-  for (let i = 0; i < Math.min(lines.length, 25); i++) {
-    const line = lines[i];
-    if (/^\d{4,5}\s+[A-ZÄÖÜ]/.test(line)) {
-      for (let j = i - 1; j >= Math.max(0, i - 3); j--) {
-        const cand = lines[j];
-        if (!cand) continue;
-        if (/^[A-ZÄÖÜ][\wäöüßÄÖÜ.-]*(\s+[A-ZÄÖÜ0-9][\wäöüßÄÖÜ.-]*){0,3}$/.test(cand) &&
-            !/\d{4,}/.test(cand) && !/:/.test(cand) && cand.length < 45 &&
-            !/straße|str\.|allee|weg|platz|ring/i.test(cand)) {
-          return cand.trim();
-        }
-      }
-      break;
-    }
-  }
-  if (filename) {
-    let n = filename.replace(/\.pdf$/i, '');
-    n = n.replace(/^(angebot|küchensheet|kuechensheet|auftragsbestaetigung|curtis_angebot)[-_\s]*/i, '');
-    n = n.replace(/[-_]?\s*\d{1,2}[.\/]\s*[-–]?\s*\d{0,2}[.\/]?\d{2,4}.*/, '');
-    n = n.replace(/[_]/g, ' ').replace(/\s{2,}/g, ' ').trim();
-    if (n) return n;
-  }
-  return '';
-}
-
-function extractEventDate(lines, fullText) {
-  for (const line of lines) {
-    const m = line.match(/(?:Veranstaltung|Feier)\s+am\s+([\d.\s–-]+\d{2,4})/i) ||
-      line.match(/^Angebot\s+für.*\s+am\s+([\d.\s–-]+\d{2,4})/i);
-    if (m) return m[1].trim();
-  }
-  const m2 = fullText.match(/(?<!Datum:\s{0,20})(\d{1,2}\.(?:\s?[–-]\s?\d{1,2}\.)?\d{1,2}\.\d{2,4})/);
-  return m2 ? m2[1].trim() : '';
-}
-
-function extractPersonen(fullText) {
-  let m = fullText.match(/von\s+(?:ca\.?\s*)?(\d+)\s*Personen/i);
-  if (m) return parseInt(m[1], 10);
-  m = fullText.match(/mit\s+(?:ca\.?\s*)?(\d+)\s*Personen/i);
-  if (m) return parseInt(m[1], 10);
-  m = fullText.match(/(\d+)\s*Pax/i);
-  if (m) return parseInt(m[1], 10);
-  m = fullText.match(/mit\s+(?:ca\.?\s*)?(\d+)\s*Erwachsenen/i);
-  if (m) return parseInt(m[1], 10);
-  return null;
-}
-
-function parseGermanNumber(s) { return parseFloat(s.replace(/\./g, '').replace(',', '.')); }
-function extractTotalPrice(fullText) {
-  const lines = fullText.split(/\r?\n/);
-  let found = null;
-  for (const line of lines) {
-    if (/gesamtpreis/i.test(line)) {
-      const m = line.match(/([\d.]+,\d{2})\s*€/);
-      if (m) found = parseGermanNumber(m[1]);
-    }
-  }
-  return found;
-}
-
-function extractLogistikNotiz(fullText) {
-  const parts = [];
-  let m = fullText.match(/Anlieferung\s+um\s+([\d:]+\s*Uhr)/i);
-  if (m) parts.push('Anlieferung: ' + m[1]);
-  m = fullText.match(/Abholung\s+am\s+([\d.]+)\s+ab\s+([\d:]+\s*Uhr)/i);
-  if (m) parts.push('Abholung: ' + m[1] + ' ab ' + m[2]);
-  else { m = fullText.match(/Abholung\s+.*?ab\s+([\d:]+\s*Uhr)/i); if (m) parts.push('Abholung ab ' + m[1]); }
-  return parts.join(' · ');
-}
-
-function scanDishes(lines, catStateRef) {
-  const dishes = [];
-  let lastDish = null;
-  let sawBulletInCat = false;
-  let suppressed = false;
-  for (const raw of lines) {
-    const line = raw.trim();
-    if (!line) { lastDish = null; continue; } // Leerzeile beendet jede Fortsetzungskette
-    if (isHardStop(line)) { catStateRef.ended = true; break; }
-    if (isSoftStop(line)) { suppressed = true; catStateRef.current = 'sonstiges'; lastDish = null; sawBulletInCat = false; continue; }
-    const catId = matchCategory(line);
-    if (catId) { catStateRef.current = catId; suppressed = false; lastDish = null; sawBulletInCat = false; continue; }
-    if (suppressed) continue; // in einem Nicht-Speisen-Abschnitt (Getränke/Transport/...): ignorieren, bis die naechste echte Kategorie kommt
-    if (isBulletLine(line)) {
-      const nm = stripBullet(line);
-      if (nm) { const d = { id: uid(), name: nm, category: catStateRef.current, personen: null }; dishes.push(d); lastDish = d; sawBulletInCat = true; }
-      continue;
-    }
-    if (looksLikePriceRow(line)) { lastDish = null; continue; }
-    // Kurze Zeile direkt nach einem Aufzählungspunkt (kein Satzende, keine Leerzeile
-    // dazwischen) = umgebrochene Fortsetzung. Lange, satzartige Zeilen sind dagegen meist
-    // Fließtext, der nach der Liste weitergeht (z.B. "Der Preis für das Buffet...").
-    // Nur relevant innerhalb einer "•"/"-"-Liste: bei nacktem Format (keine Aufzählungspunkte
-    // ueberhaupt) ist jede Zeile ein eigenes Gericht, sonst wuerden mehrere Gerichte ohne
-    // Bullet faelschlich zu einem verschmelzen.
-    if (lastDish && sawBulletInCat) {
-      const looksLikeContinuation = line.length < 60 && !/[.!?]\s*$/.test(line);
-      if (looksLikeContinuation) { lastDish.name += ' ' + line; continue; }
-      lastDish = null;
-    }
-    // Nackte Zeile ohne Aufzählungspunkt: nur als eigenes Gericht werten, wenn diese Kategorie
-    // noch keine "•"/"-"-Punkte benutzt hat (Kompatibilität zum alten, punktlosen Format)
-    if (catStateRef.current !== 'sonstiges' && !sawBulletInCat && !looksLikeIntroSentence(line)) {
-      const d = { id: uid(), name: line, category: catStateRef.current, personen: null };
-      dishes.push(d); lastDish = d;
-    }
-  }
-  return dishes;
-}
-
-function isDayHeaderLine(line) {
-  return /^(\d{1,2})\.(\d{1,2})\.(\d{2,4})/.test(line) && line.length < 100 && !/uhr|datum:/i.test(line);
-}
-
-// Kopf-/Fußzeilen (Briefkopf, "Seite N", Adresszeilen), die sich auf jeder PDF-Seite
-// wiederholen, verfälschen sonst Gerichte-Erkennung (haengen sich an das letzte Gericht).
-// Generisch erkannt: kurze Zeilen, die 3+ mal identisch im Dokument vorkommen.
-function stripBoilerplateLines(rawLines) {
-  const counts = new Map();
-  rawLines.forEach(l => { if (l && l.length < 80) counts.set(l, (counts.get(l) || 0) + 1); });
-  // Kategorie-Überschriften ("Hauptgang:", "Dessert:", ...) wiederholen sich bei
-  // Mehrtages-Angeboten pro Tag und dürfen trotz Wiederholung nie als Briefkopf/Footer-
-  // Rauschen entfernt werden - sonst verliert jeder Tag seine Kategorie-Zuordnung.
-  const noisy = new Set(Array.from(counts.entries()).filter(([l, c]) => c >= 3 && !matchCategory(l)).map(([l]) => l));
-  return rawLines
-    .filter(l => !noisy.has(l) && !/^Seite\s+\d+$/i.test(l))
-    .filter(l => !/^www\.[^\s]+$/i.test(l));
-}
-
-function repairPdfLigatures(text) {
-  // Manche PDF-Schriftarten liefern "ff" als kaputtes Ligatur-Glyph (z.B. "BuƯet" statt "Buffet").
-  return text.replace(/Ư/g, 'ff').replace(/ư/g, 'ff');
-}
-
-function parseAngebot(text, filename) {
-  const fullText = repairPdfLigatures(text);
-  const allLines = stripBoilerplateLines(fullText.split(/\r?\n/).map(l => l.trim()));
-  const personenRe = /(\d+)\s*(pax|person)/i;
-
-  const name = extractCustomerName(allLines, filename) || 'Neues Angebot';
-  const personen = extractPersonen(fullText);
-  const eventDate = extractEventDate(allLines, fullText);
-  const notiz = extractLogistikNotiz(fullText);
-
-  // Preistabellen & Fließtext am Ende (Transportkosten/Gesamtpreis/...) enthalten oft
-  // dieselben Datumsangaben nochmal - daher nur bis zum Ende des Menü-Abschnitts scannen.
-  let menuEnd = allLines.length;
-  for (let i = 0; i < allLines.length; i++) { if (isHardStop(allLines[i])) { menuEnd = i; break; } }
-  const lines = allLines.slice(0, menuEnd);
-
-  const dayHeaderLines = lines.filter(isDayHeaderLine);
-  let days = [];
-
-  if (dayHeaderLines.length > 0) {
-    let currentDay = null;
-    let currentLines = [];
-    const catStateRef = { current: 'sonstiges', ended: false };
-    function flush() {
-      if (currentDay && currentLines.length) {
-        currentDay.dishes = scanDishes(currentLines, catStateRef);
-      }
-    }
-    for (const line of lines) {
-      if (isDayHeaderLine(line)) {
-        flush();
-        const pm = line.match(personenRe);
-        currentDay = { id: uid(), date: line, personen: pm ? parseInt(pm[1], 10) : null, dishes: [] };
-        days.push(currentDay);
-        currentLines = [];
-        catStateRef.current = 'sonstiges';
-        catStateRef.ended = false;
-        continue;
-      }
-      if (currentDay && !catStateRef.ended) currentLines.push(line);
-    }
-    flush();
-  } else {
-    const catStateRef = { current: 'sonstiges', ended: false };
-    const dishes = scanDishes(lines, catStateRef);
-    if (dishes.length) {
-      days = [{ id: uid(), date: eventDate, personen: null, dishes }];
-    }
-  }
-
-  days.forEach(d => d.dishes.forEach(dish => {
-    if (dish.category === 'hauptgang' && /pfanne/i.test(dish.name)) {
-      dish.category = 'pfanne';
-      dish.pfanneComponents = defaultPfanneComponents('2komp', state.rules, dish.name);
-    }
-    // Brotauswahl zaehlt nicht zu den Vorspeisen und bekommt daher keinen Anteil an deren
-    // Personen-Aufteilung ab - eigene Kategorie mit eigener Formel (1 Brot / 10 Personen).
-    if (/brotauswahl/i.test(dish.name)) {
-      dish.category = 'brot';
-    }
-  }));
-
-  const event = newDraftEvent();
-  event.name = name;
-  event.personen = personen || null;
-  event.notiz = notiz;
-  event.days = days;
-  autoSplitAllDays(event);
-  return event;
-}
-
-function autoSplitAllDays(event) {
-  for (const day of event.days) autoSplitDay(day, day.personen || event.personen || 0);
-}
-function splitGroupOf(catId) { return catId === 'pfanne' ? 'hauptgang' : catId; }
-function autoSplitDay(day, totalPersonen) {
-  const byCategory = {};
-  for (const d of day.dishes) { const g = splitGroupOf(d.category); (byCategory[g] = byCategory[g] || []).push(d); }
-  for (const catId in byCategory) {
-    const dishes = byCategory[catId];
-    const base = Math.floor(totalPersonen / dishes.length);
-    let remainder = totalPersonen - base * dishes.length;
-    dishes.forEach((d, i) => { d.personen = base + (i < remainder ? 1 : 0); });
-  }
-}
 
 // ---------- calculation engine ----------
 const NAME_MATCH_STOPWORDS = new Set(['mit', 'und', 'ein', 'eine', 'einer', 'der', 'die', 'das', 'im', 'in', 'auf', 'für', 'vom', 'vor', 'bei', 'als', 'nach', 'aus', 'wahlweise']);
@@ -427,42 +124,6 @@ function defaultGarMethod(catId) {
   return 'keiner';
 }
 
-const SAETTIGUNG_KEYWORDS = [
-  { re: /reis/i, name: 'Reis' },
-  { re: /schupfnudel/i, name: 'Schupfnudeln' },
-  { re: /kartoffel/i, name: 'Kartoffeln' },
-  { re: /nudel|pasta|penne|spaghetti|fusilli/i, name: 'Nudeln' },
-  { re: /couscous/i, name: 'Couscous' },
-  { re: /quinoa/i, name: 'Quinoa' },
-  { re: /bulgur/i, name: 'Bulgur' },
-];
-function guessSaettigungName(dishName) {
-  if (!dishName) return 'Sättigungsbeilage';
-  const hit = SAETTIGUNG_KEYWORDS.find(k => k.re.test(dishName));
-  return hit ? hit.name : 'Sättigungsbeilage';
-}
-
-// "Gemüse" wird in den Rezepten fast immer als gebratenes Zucchini/Auberginen/Paprika-Gemüse
-// verstanden - NICHT die separate "Gemüseauswahl" (TK-Gemüsebeilage, ein eigenes Gericht).
-// Eindeutiger Name verhindert, dass die Rezeptsuche die beiden verwechselt.
-const DEFAULT_PFANNE_GEMUESE_NAME = 'Gebratenes Gemüse (Zucchini, Aubergine, Paprika)';
-
-function defaultPfanneComponents(mode, rules, dishName) {
-  const saettigungName = guessSaettigungName(dishName);
-  if (mode === '3komp') {
-    const [a, b, c] = rules.pfanne3KompSplit || DEFAULT_RULES.pfanne3KompSplit;
-    return [
-      { id: uid(), name: 'Hauptteil', role: 'hauptteil', splitPercent: a, garMethod: 'standard' },
-      { id: uid(), name: saettigungName, role: 'saettigung', splitPercent: b, garMethod: 'garzuwachs' },
-      { id: uid(), name: DEFAULT_PFANNE_GEMUESE_NAME, role: 'gemuese', splitPercent: c, garMethod: 'standard' },
-    ];
-  }
-  const [a, b] = rules.pfanne2KompSplit || DEFAULT_RULES.pfanne2KompSplit;
-  return [
-    { id: uid(), name: DEFAULT_PFANNE_GEMUESE_NAME, role: 'gemuese', splitPercent: a, garMethod: 'standard' },
-    { id: uid(), name: saettigungName, role: 'saettigung', splitPercent: b, garMethod: 'garzuwachs' },
-  ];
-}
 
 function computePfanneComponent(comp, P, pfannenGramm, recipes, rules) {
   const garFactor = comp.garMethod === 'schmoren' ? rules.garverlustSchmoren
@@ -514,6 +175,7 @@ function computeDish(dish, recipes, rules) {
 
   const result = {
     id: dish.id, name: dish.name, category: dish.category, personen: P,
+    allergene: dish.allergene || '',
     garMethod, garFactor, recipe: recipe ? recipe.id : null,
     formula: '', totalLabel: '', ingredients: [], steps: '', temp: '', missing: false, missingHint: '',
   };
@@ -541,7 +203,8 @@ function computeDish(dish, recipes, rules) {
   }
 
   if (role === 'fingerfood' || role === 'flying') {
-    const teilePerPerson = role === 'flying' ? rules.flyingTeilePerPerson : rules.fingerfoodTeilePerPerson;
+    // "Ich würde gerne mit 4 Fingerfood-Teilen pro Person rechnen" aus dem Angebot hat Vorrang
+    const teilePerPerson = dish.teilePerPerson || (role === 'flying' ? rules.flyingTeilePerPerson : rules.fingerfoodTeilePerPerson);
     let totalTeile = P * teilePerPerson;
     if (dish.multiplikator) totalTeile = totalTeile * dish.multiplikator;
     const ffMatch = FINGERFOOD_TEIL_TABLE.find(f => normalize(dish.name).includes(normalize(f.name)) || normalize(f.name).includes(normalize(dish.name)));
@@ -824,16 +487,30 @@ document.getElementById('addDayBtn').addEventListener('click', () => {
 });
 
 document.getElementById('evName').addEventListener('input', e => draftEvent.name = e.target.value);
-document.getElementById('evPersonen').addEventListener('input', e => draftEvent.personen = e.target.value ? parseInt(e.target.value, 10) : null);
+document.getElementById('evPersonen').addEventListener('input', e => {
+  draftEvent.personen = e.target.value ? parseInt(e.target.value, 10) : null;
+  // Wochenpläne enthalten keine Personenzahl: sobald sie eingetragen wird und noch kein
+  // Gericht eine Personenzahl hat, wird automatisch auf die Gerichte verteilt.
+  const dishes = (draftEvent.days || []).flatMap(d => d.dishes);
+  if (draftEvent.personen && dishes.length && dishes.every(d => !d.personen)) {
+    autoSplitAllDays(draftEvent);
+    renderDaysEditor();
+  }
+});
 document.getElementById('evNotiz').addEventListener('input', e => draftEvent.notiz = e.target.value);
 
 let lastUploadedFilename = '';
 document.getElementById('parseBtn').addEventListener('click', () => {
   const text = document.getElementById('angebotText').value;
   if (!text.trim()) return;
-  draftEvent = parseAngebot(text, lastUploadedFilename);
+  draftEvent = parseDocument(text, lastUploadedFilename);
+  const hint = draftEvent.parseHinweis;
+  delete draftEvent.parseHinweis;
   renderEventFields();
   renderDaysEditor();
+  const statusEl = document.getElementById('fileImportStatus');
+  statusEl.textContent = hint ? '⚠️ ' + hint : '';
+  statusEl.style.color = hint ? 'var(--danger)' : '';
 });
 document.getElementById('fileInput').addEventListener('change', async e => {
   const file = e.target.files[0];
@@ -914,7 +591,7 @@ document.getElementById('saveEventBtn').addEventListener('click', async () => {
 document.getElementById('generateBtn').addEventListener('click', async () => {
   const rawText = document.getElementById('angebotText').value;
   if ((!draftEvent.days || draftEvent.days.length === 0) && rawText.trim()) {
-    const parsed = parseAngebot(rawText, lastUploadedFilename);
+    const parsed = parseDocument(rawText, lastUploadedFilename);
     draftEvent.name = draftEvent.name || parsed.name;
     draftEvent.personen = draftEvent.personen || parsed.personen;
     draftEvent.notiz = draftEvent.notiz || parsed.notiz;
@@ -973,7 +650,7 @@ function renderDishCard(d, dayId) {
   const cat = catById(d.category);
   let html = `<div class="dish-card ${d.missing ? 'missing' : ''}" data-day-id="${dayId}" data-dish-id="${d.id}">`;
   html += `<div class="dish-title"><span>${d.name || '(ohne Namen)'}</span><span>${d.totalLabel || ''}</span></div>`;
-  html += `<div class="dish-meta">${d.personen} Personen${d.temp ? ' · ' + d.temp : ''}</div>`;
+  html += `<div class="dish-meta">${d.personen} Personen${d.temp ? ' · ' + d.temp : ''}${d.allergene ? ' · Allergene: ' + d.allergene : ''}</div>`;
 
   if (d.isPfanne) {
     d.components.forEach(c => { html += renderComponentBlock(c); });
@@ -1531,7 +1208,7 @@ document.getElementById('archivFileInput').addEventListener('change', async e =>
     if (r.status === 401) { showLogin(); throw new Error('Nicht angemeldet.'); }
     if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
     const result = await r.json();
-    const parsed = parseAngebot(result.text, result.filename);
+    const parsed = parseDocument(result.text, result.filename);
     const dishMap = new Map();
     parsed.days.forEach(day => day.dishes.forEach(d => { if (d.name && !dishMap.has(normalize(d.name))) dishMap.set(normalize(d.name), { name: d.name, price: null }); }));
     archivDraft = {
