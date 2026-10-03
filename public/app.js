@@ -1,3 +1,14 @@
+// ---------- Hell/Dunkel-Schalter ----------
+(function () {
+  const btn = document.getElementById('themeToggle');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('ks_theme', next); } catch (e) {}
+  });
+})();
+
 // ---------- utilities ----------
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 function round2(n) { return Math.round(n * 100) / 100; }

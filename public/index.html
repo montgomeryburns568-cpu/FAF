@@ -5,11 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Küchensheet-Generator</title>
 <link rel="stylesheet" href="style.css">
+<script>
+  // Theme vor dem ersten Rendern setzen (gespeicherte Wahl, sonst Systemeinstellung)
+  (function () {
+    var t = null;
+    try { t = localStorage.getItem('ks_theme'); } catch (e) {}
+    if (!t) t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
 </head>
 <body>
 
 <div id="loginOverlay" class="login-overlay">
   <form id="loginForm" class="login-card">
+    <div class="brand-logos login-logos">
+      <img src="logo-licata.png" alt="Licata">
+      <span class="logo-sep"></span>
+      <img src="logo-forks-and-friends.png" alt="Forks and Friends">
+    </div>
     <h2>Küchensheet-Generator</h2>
     <p class="hint">Bitte Passwort eingeben.</p>
     <input type="password" id="loginPassword" placeholder="Passwort" required autofocus>
@@ -20,7 +34,12 @@
 
 <div id="appRoot" style="display:none">
 <header class="topbar">
-  <div class="brand">Küchensheet-Generator</div>
+  <div class="brand-logos">
+    <img src="logo-licata.png" alt="Licata">
+    <span class="logo-sep"></span>
+    <img src="logo-forks-and-friends.png" alt="Forks and Friends">
+    <span class="brand-title">Küchensheet-Generator</span>
+  </div>
   <nav class="tabs" id="tabnav">
     <button class="tab-btn active" data-tab="angebot">Angebot</button>
     <button class="tab-btn" data-tab="kuechensheet">Küchensheet</button>
@@ -34,6 +53,7 @@
   <div class="event-picker">
     <select id="eventSelect"><option value="">– Neues Angebot –</option></select>
     <button id="deleteEventBtn" class="btn-ghost" title="Angebot löschen">🗑</button>
+    <button id="themeToggle" class="btn-ghost theme-toggle" title="Hell/Dunkel umschalten" type="button">◐</button>
     <button id="logoutBtn" class="btn-ghost" title="Abmelden">Abmelden</button>
   </div>
 </header>
