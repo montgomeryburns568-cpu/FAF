@@ -30,7 +30,10 @@ const KatalogTodo = (function () {
       const name = names[c.id] || c.name;
       return {
         id: c.id, name, rolle: (g && g.rolle) || c.rolle, gruppe: (g && g.gruppe) || c.gruppe,
-        gar: c.gar, todo: todos[c.id] != null ? todos[c.id] : (c.todo || ''),
+        gar: c.gar,
+        todoUser: todos[c.id] != null && String(todos[c.id]).trim() !== '' ? String(todos[c.id]).trim() : '',  // im Katalog bearbeitet
+        todoBase: c.todo || '', quelle: c.quelle || '',     // Nutzer-Text oder Standardrezept aus dem Katalog
+        zutaten: c.zutaten || null, rezept: c.rezept || null,
       };
     }).filter(c => c.rolle !== 'E');
     byId = Object.fromEntries(eff.map(c => [c.id, c]));
@@ -123,18 +126,32 @@ const KatalogTodo = (function () {
     return null;
   }
 
-  // Rezept aus der Rezepte-Datenbank für eine Komponente (falls vorhanden): Zutaten auf die Menge skalieren
-  function rezeptZutaten(comp, grams, P, share, recipes, findRecipe, unitToGrams) {
-    const recipe = findRecipe(comp.name, recipes);
-    if (!recipe) return null;
-    let scale = null;
-    if (recipe.referenceUnit.type === 'portionen') scale = (P * share) / recipe.referenceUnit.value;
-    else if (recipe.referenceUnit.type === 'menge') { const ref = unitToGrams(recipe.referenceUnit.unit, recipe.referenceUnit.value); if (ref && grams) scale = grams / ref; }
-    if (scale == null) return { zutaten: [], steps: recipe.steps || '', temp: recipe.temp || '' };
-    return {
-      zutaten: recipe.ingredients.map(i => ({ name: i.name, amount: Math.round(i.amount * scale * 100) / 100, unit: i.unit })),
-      steps: recipe.steps || '', temp: recipe.temp || '',
-    };
+  // Zutaten + Zubereitung einer Komponente: 1. Rezept aus der Rezepte-Datenbank (Zuordnung im Katalog),
+  // 2. sonst das Standardrezept des Katalogs (Zutaten für 200 g/ml, auf die benötigte Menge hochgerechnet)
+  function zutatenFuer(comp, grams, P, share, recipes, unitToGrams) {
+    const recipe = comp.rezept ? recipes.find(r => r.name === comp.rezept) : null;
+    if (recipe) {
+      let scale = null;
+      if (recipe.referenceUnit.type === 'portionen') scale = (P * share) / recipe.referenceUnit.value;
+      else if (recipe.referenceUnit.type === 'menge') { const ref = unitToGrams(recipe.referenceUnit.unit, recipe.referenceUnit.value); if (ref && grams) scale = grams / ref; }
+      return {
+        art: 'rezept', name: recipe.name, steps: (recipe.steps || '').trim(), temp: recipe.temp || '',
+        zutaten: scale == null ? [] : recipe.ingredients.map(i => ({ name: i.name, amount: i.amount * scale, unit: i.unit })),
+      };
+    }
+    if (comp.zutaten) {
+      const scale = grams != null ? grams / 200 : null;
+      // Gewürze, Lorbeer, Kräuterzweige usw. wachsen nicht linear mit der Menge
+      const gewuerz = /nelke|lorbeer|wacholder|piment|zweig|thymian|rosmarin|salbei|knoblauch/i;
+      return {
+        art: 'standard', name: '', steps: '', temp: '',
+        zutaten: scale == null ? [] : comp.zutaten.filter(z => z.amount != null).map(z => {
+          const f = (gewuerz.test(z.name) || /^(Zehe|Zehen|Zweig|Zweige|Blatt)$/i.test(z.unit)) ? Math.max(1, Math.sqrt(scale)) : scale;
+          return { name: z.name, amount: z.amount * f, unit: z.unit };
+        }),
+      };
+    }
+    return null;
   }
 
   // Hauptfunktion: Komponentenliste mit Menge + To-Dos für ein Gericht des Angebots
@@ -159,12 +176,18 @@ const KatalogTodo = (function () {
         grams = roh * factor;
         formel = `${P} × ${num(ref.g)} ${ref.unit}${share < 1 ? ' × ' + num(share) : ''}${garMethod && factor !== 1 ? ' × ' + num(factor) + ' (' + GAR_LABEL[garMethod] + ')' : ''}`;
       }
-      const rez = grams != null || ref == null ? rezeptZutaten(c, grams, P, share, recipes, findRecipe, unitToGrams) : null;
+      const rez = zutatenFuer(c, grams, P, share, recipes, unitToGrams);
+      // To-Do-Text: im Katalog bearbeiteter Text > eigener Katalogtext > Zubereitung des Rezepts > Standardzubereitung
+      let todo = '', todoQuelle = '';
+      if (c.todoUser) { todo = c.todoUser; todoQuelle = 'Speisenkatalog'; }
+      else if (c.quelle === 'Nutzer' && c.todoBase) { todo = c.todoBase; todoQuelle = 'Speisenkatalog'; }
+      else if (rez && rez.art === 'rezept' && rez.steps) { todo = rez.steps; todoQuelle = 'Rezept „' + rez.name + '“'; }
+      else if (c.todoBase) { todo = c.todoBase; todoQuelle = 'Standardrezept (Vorschlag)'; }
       return {
         id: c.id, name: c.name, rolle: c.rolle, gruppe: c.gruppe,
         refLabel: ref ? ref.label : '', garMethod, grams, unit: ref ? ref.unit : 'g',
         menge: grams != null ? fmtMenge(grams, ref.unit) : '', formel,
-        todo: (c.todo || '').trim(), rezept: rez,
+        todo, todoQuelle, rezept: rez && rez.art === 'rezept' ? rez.name : '', zutaten: rez ? rez.zutaten : [], temp: rez ? rez.temp : '',
       };
     });
     return { komponenten: liste, rest: [...new Set(rest)].slice(0, 6) };

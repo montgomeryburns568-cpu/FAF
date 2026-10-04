@@ -304,6 +304,36 @@ for (const [key, c] of comps) {
   c.kuechen = [...c.kuechen];
 }
 
+// ---------- Standardrezepte (rezepte-*.js): Zutaten für 200 g/ml + kurze Zubereitung je Komponente ----------
+function parseZutaten(z) {
+  return z.split(';').map(x => x.trim()).filter(Boolean).map(x => {
+    const m = x.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|kg|ml|l|EL|TL|Stk|Prise|Bund|Zehe|Zehen|Pck|Blatt|Scheibe|Scheiben|Zweig|Zweige|Spritzer)?$/i);
+    if (!m) { console.log('Zutat nicht lesbar:', x); return { name: x, amount: null, unit: '' }; }
+    return { name: m[1].trim(), amount: parseFloat(m[2].replace(',', '.')), unit: m[3] || '' };
+  });
+}
+const rezeptMap = new Map();
+for (const f of fs.readdirSync(DIR).filter(f => /^rezepte-.*\.js$/.test(f)).sort()) {
+  for (const e of require(path.join(DIR, f))) for (const n of e.names) if (!rezeptMap.has(norm(n))) rezeptMap.set(norm(n), { ...e, datei: f });
+}
+const zuordnung = fs.existsSync(path.join(DIR, 'rezept-zuordnung.json')) ? JSON.parse(fs.readFileSync(path.join(DIR, 'rezept-zuordnung.json'), 'utf8')) : {};
+const ohneRezept = [];
+for (const c of comps.values()) {
+  const e = rezeptMap.get(norm(c.name));
+  c.referenzMenge = 200;
+  c.rezeptName = zuordnung[c.role + '|' + c.name] || null;
+  if (e) {
+    c.zutaten = parseZutaten(e.z);
+    c.standardSchritte = e.s;
+    if (!c.todo) { c.todo = e.s; c.todoQuelle = 'Standardrezept'; } else c.todoQuelle = 'Nutzer';
+  } else {
+    if (c.todo) c.todoQuelle = 'Nutzer';
+    if (!c.rezeptName) ohneRezept.push(c.role + ' | ' + c.name + ' (' + c.gruppe + ')');
+  }
+}
+fs.writeFileSync(path.join(DIR, 'rezepte-fehlt.txt'), ohneRezept.sort().join('\n') + '\n', 'utf8');
+console.log('Komponenten ohne Zubereitung/Rezept:', ohneRezept.length, '(Liste: rezepte-fehlt.txt)');
+
 // ---------- Fingerfood: alles was "im Glas", "auf Deckel", "Weckglas", "auf Löffel" ... ist ----------
 const FF_MARK = /\bglas\b|weckglas|ff-glas|deckel|auf loffel/;
 function ffGroup(cs, name) {
@@ -355,6 +385,7 @@ const out = {
   komponenten: [...comps.values()].map(c => ({
     id: c.id, name: c.name, rolle: c.role, sammlung: c.sammlung, gruppe: c.gruppe,
     tags: c.tags, allergene: c.flags.allergene, garMethodVorschlag: c.gar, todo: c.todo,
+    todoQuelle: c.todoQuelle || '', referenzMenge: c.referenzMenge, zutaten: c.zutaten || null, rezeptName: c.rezeptName,
     veg: !!c.flags.vegetarisch, vegan: !!c.flags.vegan, fisch: FISH.test(norm(c.name)),
     quelle: c.quelle || 'auto', kuechen: c.kuechen, anzahlGerichte: c.anzahlGerichte,
   })),
@@ -367,7 +398,7 @@ const tpl = fs.readFileSync(path.join(DIR, 'katalog-template.html'), 'utf8');
 const html = tpl.replace('/*__DB__*/null', () => JSON.stringify(out));
 fs.writeFileSync(path.join(DIR, 'speisenkatalog.html'), html, 'utf8');
 // Schlanke Komponentenliste für den Küchensheet-Generator (To-Do-Erkennung): Name, Art, Gruppe, Garmethode, To-Do-Text
-const slim = out.komponenten.map(c => ({ id: c.id, name: c.name, rolle: c.rolle, gruppe: c.gruppe, gar: c.garMethodVorschlag || null, todo: c.todo || '' }));
+const slim = out.komponenten.map(c => ({ id: c.id, name: c.name, rolle: c.rolle, gruppe: c.gruppe, gar: c.garMethodVorschlag || null, todo: c.todo || '', quelle: c.todoQuelle || '', zutaten: c.zutaten || null, rezept: c.rezeptName || null }));
 // Aliase: so wie ein Gericht im Katalog geschrieben ist (z. B. "Tortelloni gefüllt mit Spinat und Ricotta"), wenn es vom Komponentennamen abweicht
 const aliasSet = new Map();
 const compNameById = new Map(out.komponenten.map(c => [c.id, c]));

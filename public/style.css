@@ -203,6 +203,7 @@ button {
 .todo-menge { font-size: 14px; }
 .todo-comp-gar { font-size: 11px; padding: 1px 4px; max-width: 220px; }
 .todo-steps { margin-top: 4px; white-space: pre-line; font-size: 13px; }
+.todo-zutaten { margin-top: 4px; font-size: 12.5px; line-height: 1.5; }
 
 .recipe-list { max-height: 560px; overflow-y: auto; margin-top: 10px; }
 .recipe-item { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; cursor: pointer; display: flex; justify-content: space-between; }

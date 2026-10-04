@@ -1,0 +1,35 @@
+// Standardrezepte Desserts – Bezugsmenge 200 g fertige Creme/Dessert.
+const R = [];
+const add = (names, z, s) => R.push({ names: [].concat(names), z, s });
+
+add(['Hafermilchreis'], 'Milchreis 40 g; Hafermilch 160 ml; Zucker 15 g; Vanille 1 Prise; Salz 1 Prise', 'Reis mit Hafermilch, Zucker und Vanille aufkochen, bei kleiner Hitze 30 Min. quellen lassen, rühren, abkühlen.');
+add(['Bayrische Creme'], 'Milch 100 ml; Sahne 100 ml; Eigelb 2 Stk; Zucker 30 g; Gelatine 3 Blatt; Vanille 1 Prise', 'Eigelb mit Zucker und Milch zur Rose abziehen, Gelatine einrühren, abkühlen, geschlagene Sahne unterheben, 4 Std. kühlen.');
+add(['American Cheesecakecreme', 'Blueberry-Cheesecakecreme', 'Strawberry-Cheesecakecreme', 'Lemon-Cheesecakecreme', 'Mascarpone-Cheesecakecreme', 'Mini American Cheesecake', 'Ube-Cheesecake'], 'Frischkäse 100 g; Sahne 60 ml; Puderzucker 25 g; Zitronensaft 5 ml; Vanille 1 Prise', 'Frischkäse mit Zucker und Zitrone glatt rühren, geschlagene Sahne unterheben, auf Keksboden schichten, 3 Std. kühlen.');
+add(['Mousse au Chocolat', 'Schokoladenmousse'], 'Zartbitterschokolade 70 g; Sahne 100 ml; Eier 1 Stk; Zucker 10 g', 'Schokolade schmelzen, Eigelb einrühren, Eiweiß mit Zucker steif schlagen, Sahne schlagen, beides unterheben, 4 Std. kühlen.');
+add('Grießflammerie', 'Milch 170 ml; Weichweizengrieß 20 g; Zucker 20 g; Vanille 1 Prise; Ei 0.5 Stk', 'Milch mit Zucker aufkochen, Grieß einrühren, 3 Min. quellen, Eigelb einrühren, Eischnee unterheben, kalt stellen.');
+add(['Schoko-Cookie-Tiramisu', 'Tiramisu', 'Matcha-Tiramisu'], 'Mascarpone 90 g; Sahne 40 ml; Eier 1 Stk; Zucker 20 g; Löffelbiskuits 30 g; Espresso 40 ml; Kakao 3 g', 'Eigelb mit Zucker aufschlagen, Mascarpone unterrühren, Eischnee und Sahne unterheben, Biskuits in Espresso tauchen, schichten, 4 Std. kühlen, mit Kakao bestäuben.');
+add('Kefir-Mousse', 'Kefir 100 g; Sahne 80 ml; Zucker 20 g; Gelatine 2 Blatt; Vanille 1 Prise', 'Kefir mit Zucker und aufgelöster Gelatine verrühren, geschlagene Sahne unterheben, kühlen.');
+add('Dunkle Schokoladen-Tarte', 'Zartbitterschokolade 80 g; Sahne 70 ml; Butter 15 g; Ei 0.5 Stk; Mürbeteig 40 g', 'Mürbeteigboden blind backen, Ganache aus Schokolade, Sahne und Butter einfüllen, Ei einrühren, bei 150 °C 15 Min. stocken lassen.');
+add('Panna Cotta', 'Sahne 150 ml; Milch 30 ml; Zucker 20 g; Gelatine 2 Blatt; Vanille 1 Prise', 'Sahne mit Zucker und Vanille erhitzen, Gelatine auflösen, in Gläser füllen, 4 Std. kühlen.');
+add('Kaffee-Panna Cotta', 'Sahne 150 ml; Milch 30 ml; Zucker 20 g; Espresso 20 ml; Gelatine 2 Blatt', 'Sahne mit Zucker und Kaffee erhitzen, Gelatine auflösen, in Gläser füllen, 4 Std. kühlen.');
+add(['Exotischer Fruchtsalat', 'Obstsalat'], 'Früchte (gemischt) 180 g; Zitronensaft 10 ml; Zucker/Honig 8 g; Minze 1 g', 'Früchte klein schneiden, mit Zitronensaft und Honig marinieren, 20 Min. ziehen lassen.');
+add('Gestockte Haselnusscreme', 'Milch 120 ml; Sahne 40 ml; Haselnussmus 25 g; Eigelb 1 Stk; Zucker 15 g; Speisestärke 6 g', 'Milch mit Haselnussmus erhitzen, Eigelb mit Zucker und Stärke einrühren, kurz aufkochen, abkühlen.');
+add(['Haselnussküchlein'], 'Haselnüsse (gemahlen) 60 g; Butter 40 g; Zucker 40 g; Eier 1 Stk; Mehl 25 g; Backpulver 1 g', 'Butter mit Zucker und Eiern schaumig rühren, Nüsse und Mehl unterheben, in Förmchen bei 180 °C 18 Min. backen.');
+add('Karamellisierte Pfirsiche', 'Pfirsiche 170 g; Zucker 25 g; Butter 10 g; Vanille 1 Prise', 'Zucker karamellisieren, Butter und Pfirsichspalten zugeben, 3 Min. schwenken.');
+add('Kokos-Grießcreme', 'Kokosmilch 120 ml; Milch 50 ml; Grieß 20 g; Zucker 20 g; Vanille 1 Prise', 'Flüssigkeit mit Zucker aufkochen, Grieß einrühren, 3 Min. quellen, abkühlen.');
+add('Lebkuchenmousse', 'Sahne 100 ml; Lebkuchengewürz 1 g; Weiße Schokolade 50 g; Lebkuchen 30 g', 'Weiße Schokolade mit wenig Sahne schmelzen, Gewürz und Lebkuchenbrösel einrühren, geschlagene Sahne unterheben, kühlen.');
+add(['Mascarpone-Schmandcreme', 'Mascarponecreme', 'Quarkcreme', 'Joghurtcreme', 'Limetten-Joghurtcreme'], 'Mascarpone/Quark 90 g; Schmand/Joghurt 60 g; Puderzucker 25 g; Zitronensaft 5 ml; Vanille 1 Prise', 'Alles glatt rühren, abschmecken, kalt stellen.');
+add(['Crème Brûlée'], 'Sahne 140 ml; Milch 30 ml; Eigelb 2 Stk; Zucker 25 g; Vanille 1 Prise; Zucker zum Karamellisieren 10 g', 'Eigelb mit Zucker verrühren, heiße Sahne-Milch-Vanille einrühren, im Wasserbad bei 150 °C 40 Min. stocken lassen, kühlen, mit Zucker karamellisieren.');
+add('Pochierte Spekulatiuscreme', 'Sahne 100 ml; Milch 50 ml; Spekulatius 30 g; Eigelb 1 Stk; Zucker 10 g', 'Spekulatius in warmer Sahne-Milch ziehen lassen, mit Eigelb binden, kühlen.');
+add('Rote Grütze', 'Rote Früchte 130 g; Fruchtsaft 60 ml; Zucker 20 g; Speisestärke 8 g', 'Saft mit Zucker aufkochen, Stärke einrühren, Früchte zugeben, aufkochen, kalt stellen; mit Vanillesoße servieren.');
+add(['Schokopudding'], 'Milch 160 ml; Zartbitterschokolade 25 g; Zucker 15 g; Speisestärke 12 g; Kakao 5 g', 'Milch mit Kakao, Zucker und Stärke aufkochen, Schokolade einrühren, abfüllen, abkühlen.');
+add(['Haselnusspudding', 'Vanillepudding', 'Kokos-Vanillepudding', 'Karamellpudding', 'Zimtpudding'], 'Milch 170 ml; Zucker 18 g; Speisestärke 12 g; Vanille 1 Prise; Geschmack (Haselnuss/Kokos/Karamell/Zimt) 15 g', 'Milch mit Zucker, Stärke und Geschmack unter Rühren aufkochen, abfüllen, Folie aufdrücken, abkühlen.');
+add(['Vanillecreme'], 'Milch 150 ml; Sahne 40 ml; Eigelb 2 Stk; Zucker 25 g; Vanille 1 Prise; Speisestärke 8 g', 'Milch mit Vanille erhitzen, Eigelb mit Zucker und Stärke einrühren, aufkochen, Folie aufdrücken, kalt stellen.');
+add(['Vegane Schokoküchlein', 'Vegane Schokomuffins', 'Vegane Vanillemuffins', 'Vegane Zitronenküchlein'], 'Mehl 70 g; Zucker 45 g; Pflanzenmilch 60 ml; Öl 25 ml; Backpulver 3 g; Kakao/Zitrone 10 g', 'Trockene und flüssige Zutaten getrennt mischen, kurz verrühren, in Förmchen bei 180 °C 20 Min. backen.');
+add(['Blechkuchen', 'Mini-Blechkuchen'], 'Mehl 70 g; Zucker 45 g; Butter 40 g; Eier 1 Stk; Backpulver 3 g; Belag 60 g', 'Rührteig anrühren, aufs Blech streichen, belegen, bei 180 °C 25 Min. backen, in Stücke schneiden.');
+add(['Applecrumble'], 'Äpfel 120 g; Mehl 30 g; Butter 20 g; Zucker 20 g; Zimt 1 Prise', 'Äpfel würfeln und zuckern, Streusel aus Mehl, Butter, Zucker kneten, aufstreuen, bei 190 °C 30 Min. backen.');
+add(['Brownie'], 'Zartbitterschokolade 60 g; Butter 50 g; Zucker 50 g; Eier 1 Stk; Mehl 25 g', 'Schokolade mit Butter schmelzen, Zucker und Ei einrühren, Mehl unterheben, bei 170 °C 20 Min. backen (innen weich).');
+add(['Kokoscreme', 'Kokosnusscreme'], 'Kokosmilch 120 ml; Sahne 50 ml; Zucker 20 g; Gelatine 2 Blatt', 'Kokosmilch mit Zucker erhitzen, Gelatine auflösen, geschlagene Sahne unterheben, kühlen.');
+add('Florida Key Lime Pie', 'Limettensaft 40 ml; Gezuckerte Kondensmilch 90 g; Eigelb 1 Stk; Keksboden 30 g', 'Eigelb mit Kondensmilch und Limettensaft verrühren, auf Keksboden füllen, bei 160 °C 12 Min. backen, kühlen.');
+add('Vanille-Porridge', 'Haferflocken 40 g; Milch 160 ml; Zucker 10 g; Vanille 1 Prise', 'Haferflocken mit Milch und Vanille 5 Min. köcheln, abkühlen.');
+module.exports = R;

@@ -412,6 +412,8 @@ function compHtml(c, uses) {
     <span class="meta"> · in ${n} Gericht${n === 1 ? '' : 'en'}${c.garMethodVorschlag ? ' · Gar-Vorschlag: ' + esc(c.garMethodVorschlag) : ''}${c.kuechen.length ? ' · ' + esc(c.kuechen.join(', ')) : ''}</span>
     ${tagsBlock(ctags(c), 'c:' + c.id)}
     ${c.allergene.length ? `<div class="al">Allergene (Hinweis): ${esc(c.allergene.join(', '))}</div>` : ''}
+    ${c.zutaten ? `<div class="meta">Zutaten für ${c.referenzMenge} g/ml: ${c.zutaten.map(z => (z.amount != null ? String(z.amount).replace('.', ',') + (z.unit ? ' ' + z.unit : '') + ' ' : '') + esc(z.name)).join(', ')}</div>` : ''}
+    ${c.todoQuelle === 'Standardrezept' && TODOS[c.id] == null ? '<div class="meta">Zubereitung: Standardrezept (Vorschlag) – bitte prüfen und bei Bedarf anpassen.</div>' : ''}
     <textarea data-todo="${c.id}" placeholder="To-Do-Schritte hier eintragen …">${esc(todoOf(c))}</textarea></div>`;
 }
 function matchesDish(e) {

@@ -6,3 +6,4 @@ _test_extracts/
 *.log
 speisenkatalog/speisenkatalog.html
 speisenkatalog/speisendatenbank.json
+speisenkatalog/rezepte-fehlt.txt

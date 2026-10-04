@@ -979,6 +979,21 @@ function renderTodo() {
 }
 function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m])); }
 
+// Zutatenmenge lesbar: g -> kg, ml -> l, sinnvoll gerundet
+function fmtZutat(i) {
+  let a = i.amount, u = i.unit || '';
+  if (a == null || isNaN(a)) return i.name;
+  if (/^(Prise|Spritzer)$/i.test(u)) return i.name + ' nach Geschmack';
+  // Löffelmengen ab ca. 3 Stück als Gramm/Milliliter angeben (1 EL ≈ 15, 1 TL ≈ 5)
+  if (/^EL$/i.test(u) && a >= 3) { a *= 15; u = 'g/ml'; }
+  else if (/^TL$/i.test(u) && a >= 6) { a *= 5; u = 'g/ml'; }
+  if (/^(Stk|Zehe|Zehen|Zweig|Zweige|Blatt|Scheibe|Scheiben|Bund|Pck)$/i.test(u)) a = Math.ceil(a - 0.001);   // Stückzahlen aufrunden
+  if (u === 'g' && a >= 1000) { a /= 1000; u = 'kg'; }
+  else if (u === 'ml' && a >= 1000) { a /= 1000; u = 'l'; }
+  const shown = a >= 100 ? Math.round(a) : a >= 10 ? Math.round(a * 10) / 10 : Math.round(a * 100) / 100;
+  return `${String(shown).replace('.', ',')}${u ? ' ' + u : ''} ${i.name}`;
+}
+
 // Gericht mit erkannten Speisenkatalog-Komponenten: je Komponente Menge (aus den Referenzdaten) + To-Dos
 const KOMP_ROLE_LABEL = { H: 'Hauptkomponente', S: 'Soße', B: 'Beilage', G: 'Gemüse' };
 function renderKomponentenTodo(d, day) {
@@ -993,9 +1008,9 @@ function renderKomponentenTodo(d, day) {
       <div class="todo-text">
         <div class="todo-komp-head">${k.menge ? '<strong class="todo-menge">' + escHtml(k.menge) + '</strong> ' : ''}<strong>${escHtml(k.name)}</strong> <span class="hint">(${KOMP_ROLE_LABEL[k.rolle] || ''}${k.refLabel ? '' : ''})</span>${gar}</div>
         ${k.formel ? `<div class="todo-formula">${escHtml(k.formel)}</div>` : ''}
-        ${k.rezept && k.rezept.zutaten.length ? `<ul class="ingredient-list">${k.rezept.zutaten.map(i => `<li>${fmtAmount(i.amount)} ${escHtml(i.unit)} ${escHtml(i.name)}</li>`).join('')}</ul>` : ''}
-        ${k.todo ? `<div class="todo-steps">${escHtml(k.todo)}</div>`
-          : (k.rezept && k.rezept.steps ? `<div class="todo-steps">${escHtml(k.rezept.steps)}</div>` : '<div class="todo-steps hint">Noch kein To-Do im Speisenkatalog hinterlegt.</div>')}
+        ${k.zutaten && k.zutaten.length ? `<div class="todo-zutaten"><span class="hint">Zutaten${k.menge ? ' für ' + escHtml(k.menge) : ''}:</span> ${k.zutaten.map(i => escHtml(fmtZutat(i))).join(' · ')}</div>` : ''}
+        ${k.todo ? `<div class="todo-steps">${escHtml(k.todo)}${k.temp ? ' (' + escHtml(k.temp) + ')' : ''}</div><div class="hint no-print" style="font-size:11px">Quelle: ${escHtml(k.todoQuelle)}</div>`
+          : '<div class="todo-steps hint">Noch kein To-Do im Speisenkatalog hinterlegt.</div>'}
       </div>
     </div>`;
   });
