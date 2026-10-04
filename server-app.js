@@ -117,6 +117,22 @@ app.put('/api/artikelzuordnung', requireAuth, async (req, res) => {
   res.json(req.body);
 });
 
+// --- Speisenkatalog (Seite + Änderungsstand) ---
+app.get('/api/speisenkatalog/page', requireAuth, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.type('html').send(require('./speisenkatalog/katalog-html.js'));
+});
+app.get('/api/speisenkatalog/state', requireAuth, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(await store.getSpeisenkatalog());
+});
+app.put('/api/speisenkatalog/state', requireAuth, async (req, res) => {
+  const b = req.body;
+  if (!b || typeof b !== 'object' || !b.daten || typeof b.daten !== 'object') return res.status(400).json({ error: 'Ungültiger Stand.' });
+  await store.setSpeisenkatalog({ updated: b.updated || new Date().toISOString(), daten: b.daten });
+  res.json({ ok: true });
+});
+
 // --- events ---
 app.get('/api/events', requireAuth, async (req, res) => res.json(await store.getEvents()));
 

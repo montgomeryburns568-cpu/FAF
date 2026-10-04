@@ -37,6 +37,7 @@ const FILES = {
   events: path.join(DATA_DIR, 'events.json'),
   archiv: path.join(DATA_DIR, 'archiv.json'),
   artikelzuordnung: path.join(DATA_DIR, 'artikelzuordnung.json'),
+  speisenkatalog: path.join(DATA_DIR, 'speisenkatalog.json'),
 };
 
 function ensureFile(file, defaultValue) {
@@ -68,6 +69,7 @@ function initLocal() {
   ensureFile(FILES.events, []);
   ensureFile(FILES.archiv, []);
   ensureFile(FILES.artikelzuordnung, {});
+  ensureFile(FILES.speisenkatalog, {});
 }
 
 async function init() {
@@ -77,6 +79,7 @@ async function init() {
     await kvGetOrInit('events', []);
     await kvGetOrInit('archiv', []);
     await kvGetOrInit('artikelzuordnung', {});
+    await kvGetOrInit('speisenkatalog', {});
   } else {
     initLocal();
   }
@@ -95,4 +98,7 @@ module.exports = {
   async setArchiv(data) { if (useKV) { await kvSet('archiv', data); } else { writeJSON(FILES.archiv, data); } },
   async getArtikelzuordnung() { return useKV ? kvGetOrInit('artikelzuordnung', {}) : readJSON(FILES.artikelzuordnung); },
   async setArtikelzuordnung(data) { if (useKV) { await kvSet('artikelzuordnung', data); } else { writeJSON(FILES.artikelzuordnung, data); } },
+  // Änderungsstand des Speisenkatalogs (Austausch, Tags, To-Dos, Labels ...) – der Katalog selbst liegt als Datei im Repo
+  async getSpeisenkatalog() { return useKV ? kvGetOrInit('speisenkatalog', {}) : readJSON(FILES.speisenkatalog); },
+  async setSpeisenkatalog(data) { if (useKV) { await kvSet('speisenkatalog', data); } else { writeJSON(FILES.speisenkatalog, data); } },
 };

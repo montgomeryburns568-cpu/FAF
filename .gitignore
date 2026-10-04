@@ -4,3 +4,5 @@ node_modules/
 data/
 _test_extracts/
 *.log
+speisenkatalog/speisenkatalog.html
+speisenkatalog/speisendatenbank.json

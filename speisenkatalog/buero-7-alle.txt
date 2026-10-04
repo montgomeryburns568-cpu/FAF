@@ -1,0 +1,3 @@
+@gang Hauptgang
+@infer
+[[H:Putengeschnetzeltes]], [[S:Currysauce|Currysoße]], [[B:Jasminreis]], [[G:gemischtes Gemüse|Gemischtes Gemüse]]

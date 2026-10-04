@@ -1,0 +1,296 @@
+# Rohdaten der Speisendatenbank.
+# Markierung wie im Beispielbild:  [[H:...]] Hauptkomponente (gelb)   [[S:...]] Soße (türkis)
+#   [[B:...]] Beilage (Kartoffeln = blau, Reis/Nudeln/Getreide = dunkelblau, automatisch)
+#   [[G:...]] Gemüse (hellgrün)   [[E:...]] Extra/Topping/Dip (dunkel)
+# Optional: [[R:Text im Satz|Kanonischer Name]]  (z. B. [[G:gegrilltem Maiskolben|Gegrillter Maiskolben]])
+# Zeilen mit "## Küche" setzen die Küche für alle folgenden Gerichte.
+# Hinter " ;; " können Zusatz-Tags für das Gericht stehen.
+
+## Klassisch
+[[H:Gegrillte Hähnchenbrust]] [[S:Orangen-Mandelsoße]] mit [[B:Rosmarinkartoffeln]] und [[E:Kräuterbutter]]
+Knuspriges [[H:Hähnchen-Schnitzel]] mit [[B:Rosmarinkartoffeln]], [[G:Brokkoli]] und [[S:Rahmsoße]]
+[[H:Hähnchen Geschnetzeltes]] in [[S:Dijon-Senf-Soße]] mit [[B:Butternudeln]] und [[G:Honig-Karotten]]
+[[H:Hühner Fricassee]] mit [[B:Reis]] und [[G:Erbsen]]
+[[H:Gegrillte Poulardenbrust]] in [[S:Orangen-Mandelsoße]] mit [[B:Mediterranem Reis|Mediterraner Reis]] und [[G:Lauch-Rahmgemüse]]
+## Indisch
+[[H:Butter Chicken]] mit [[B:Basmatireis]] und [[G:Spinat]]
+## Asiatisch
+[[H:Chicken Teriyaki]] mit [[B:schwarzem Reis|Schwarzer Reis]] und [[G:Prinzessin Bohnen|Prinzessbohnen]]
+## Amerikanisch
+[[H:Buffalo Wings]] mit leicht pikanter [[S:BBQ Marinade|BBQ-Marinade]] und [[G:gegrilltem Maiskolben|Gegrillter Maiskolben]]
+## Klassisch
+[[H:Coq au Vin]] mit [[S:Rotweinjus]] und [[B:geröstetem Kartoffelgemüse|Röstkartoffeln]]
+
+## Klassisch
+[[H:Gebratene Hähnchenkeule]] mit [[S:Bratensoße]], [[B:Kartoffelpüree]] und [[G:Rotkohl]]
+[[H:Backhendl]] mit [[B:Petersilienkartoffeln]] und [[G:Gurkensalat]]
+[[H:Hähnchenbrust im Speckmantel]] mit [[S:Champignonrahmsoße]], [[B:Bandnudeln]] und [[G:Prinzessbohnen]]
+[[H:Gefüllte Hähnchenbrust]] mit [[S:Weißweinsoße]], [[B:Kartoffelgratin]] und [[G:Brokkoli]]
+[[H:Hähnchen Cordon bleu]] mit [[B:Pommes frites]] und [[G:Karotten-Erbsen-Gemüse]]
+[[H:Hähnchenbrustfilet gebraten]] mit [[S:Pilzrahmsoße]], [[B:Spätzle]] und [[G:Rahmspinat]]
+[[H:Gegrillte Hähnchenschenkel]] mit [[S:Kräutersoße]], [[B:Ofenkartoffeln]] und [[G:Zucchini]]
+[[H:Hähnchen Stroganoff]] mit [[B:Butterspätzle]] und [[G:Gurken-Dill-Gemüse]]
+[[H:Hähnchen Saltimbocca]] mit [[S:Salbei-Weißweinsoße]], [[B:Rosmarinkartoffeln]] und [[G:Brokkoli]]
+[[H:Hähnchenbrust Jäger Art]] mit [[S:Jägersoße]], [[B:Spätzle]] und [[G:Erbsen und Möhren|Karotten-Erbsen-Gemüse]]
+[[H:Hähnchen-Gyros]] mit [[S:Tzatziki]], [[B:Reis]] und [[G:Krautsalat]]
+[[H:Hähnchen Parmigiana]] mit [[S:Tomatensoße]], [[B:Spaghetti]] und [[E:Parmesanspäne]]
+[[H:Hähnchen-Frikadelle]] mit [[S:Senfsoße]], [[B:Salzkartoffeln]] und [[G:Rosenkohl]]
+## Mediterran
+[[H:Gegrillte Hähnchenbrust]] mit [[S:Zitronen-Kapern-Soße]], [[B:Mediterranem Reis|Mediterraner Reis]] und [[G:Mediterranem Ofengemüse|Mediterranes Ofengemüse]]
+[[H:Hähnchen Piccata]] mit [[S:Zitronensoße]], [[B:Tagliatelle]] und [[G:Gebratenem Gemüse|Gebratenes Gemüse (Zucchini, Aubergine, Paprika)]]
+[[H:Hähnchen Cacciatore]] in [[S:Tomaten-Oliven-Soße]] mit [[B:Polenta]] und [[G:Paprikagemüse]]
+[[H:Gegrillte Hähnchenbrust]] mit [[S:Pesto-Rahmsoße]], [[B:Penne]] und [[G:Cherrytomaten]]
+[[H:Hähnchenspieße]] mit [[S:Joghurt-Minz-Dip]], [[B:Couscous]] und [[G:Gegrilltem Gemüse|Gebratenes Gemüse (Zucchini, Aubergine, Paprika)]]
+[[H:Hähnchenbrust Toskana]] mit [[S:Gorgonzolasoße]], [[B:Gnocchi]] und [[G:Spinat]]
+[[H:Zitronenhähnchen]] mit [[S:Thymianjus]], [[B:Drillinge]] und [[G:Fenchel]]
+## Orientalisch
+[[H:Hähnchen Tajine]] mit [[B:Couscous]] und [[G:Karotten-Kichererbsen-Gemüse]]
+[[H:Hähnchen Kebab]] mit [[S:Knoblauchsoße]], [[B:Bulgur]] und [[G:Orientalischem Gemüse|Orientalisches Ofengemüse]]
+## Indisch
+[[H:Hähnchen Tikka Masala]] mit [[B:Basmatireis]] und [[G:Blumenkohl]]
+[[H:Hähnchen Korma]] in [[S:Mandel-Kokos-Soße]] mit [[B:Jasminreis]] und [[G:Spinat]]
+[[H:Tandoori Hähnchen]] mit [[S:Minz-Joghurt-Dip]], [[B:Basmatireis]] und [[G:Gemüse-Curry]]
+## Asiatisch
+[[H:Hähnchen Süß-Sauer]] mit [[B:Jasminreis]] und [[G:Wokgemüse]]
+[[H:Hähnchen Kung Pao]] mit [[B:Duftreis]] und [[G:Pak Choi]]
+[[H:Hähnchen Thai Curry]] in [[S:Kokos-Currysoße]] mit [[B:Jasminreis]] und [[G:Prinzessbohnen]]
+[[H:Hähnchen Satay]] mit [[S:Erdnusssoße]], [[B:Reis]] und [[G:Gurkensalat]]
+## Amerikanisch
+[[H:Chicken Nuggets]] mit [[S:Sweet-Chili-Soße]] und [[B:Wedges]]
+[[H:Pulled Chicken]] mit [[S:BBQ-Soße]], [[B:Süßkartoffelpüree]] und [[G:Krautsalat]]
+
+## Klassisch
+[[H:Putenschnitzel]] mit [[S:Champignonrahmsoße]], [[B:Kroketten]] und [[G:Erbsen]]
+[[H:Putengeschnetzeltes]] in [[S:Paprikarahmsoße]] mit [[B:Butterspätzle]] und [[G:Brokkoli]]
+[[H:Putenmedaillons]] in [[S:Steinpilzsauce]] mit [[B:Serviettenknödel]] und [[G:Rosenkohl]]
+[[H:Gefüllte Putenbrust]] in [[S:Senfsoße]],[[B:Kartoffelgratin]] und [[G:Prinzessbohnen]]
+## Mediterran
+[[H:Putensaltimbocca]] mit [[S:Salbei-Weißweinsoße]], [[B:Tagliatelle]] und [[G:Zucchini]]
+[[H:Putenröllchen]] mit [[S:Tomatensoße]], [[B:Polenta]] und [[G:Mediterranem Ofengemüse|Mediterranes Ofengemüse]]
+## Asiatisch
+[[H:Putenstreifen]] mit [[S:Hoisinsoße]], [[B:Basmatireis]] und [[G:Wokgemüse]]
+## Orientalisch
+[[H:Putenspieße]] mit [[S:Joghurt-Minz-Dip]], [[B:Bulgur]] und [[G:Paprikagemüse]]
+## Klassisch
+[[H:Gebratene Entenbrust]] mit [[S:Orangensoße]], [[B:Kartoffelknödel]] und [[G:Blaukraut]]
+[[H:Barbarie-Entenbrust]] mit [[S:Portweinjus]], [[B:Kartoffelgratin]] und [[G:Honig-Karotten]]
+[[H:Knusprige Entenkeule]] mit [[S:Bratensoße]], [[B:Semmelknödel]] und [[G:Apfelrotkohl]]
+[[H:Gänsekeule]] mit [[S:Rotweinjus]], [[B:Kartoffelklöße]] und [[G:Rotkohl]]
+## Asiatisch
+[[H:Knusprige Ente]] mit [[S:Hoisinsoße]], [[B:Jasminreis]] und [[G:Pak Choi]]
+## Klassisch
+[[H:Poulardenbrust]] in [[S:Orange Mandel Soße|Orangen-Mandelsoße]] mit [[B:Kräuterkartoffeln]] und [[G:Prinzessbohnen]]
+
+## Klassisch
+[[H:Rinderbraten]] mit [[S:Rotweinjus]], [[B:Kartoffelklöße]] und [[G:Rotkohl]]
+[[H:Sauerbraten]] mit [[S:Rosinensoße]], [[B:Kartoffelknödel]] und [[G:Apfelrotkohl]]
+[[H:Rinderrouladen]] mit [[S:Rotweinsoße]], [[B:Salzkartoffeln]] und [[G:Rotkohl]]
+[[H:Rindergulasch]] mit [[B:Butterspätzle]] und [[G:Paprikagemüse]]
+[[H:Tafelspitz]] mit [[S:Meerrettichsoße]], [[B:Petersilienkartoffeln]] und [[G:Wurzelgemüse]]
+[[H:Tafelspitz]] mit [[S:Frankfurter Grüne Soße]] und [[B:Salzkartoffeln]]
+[[H:Rinderbraten Hausfrauen Art]] mit [[S:Bratensoße]], [[B:Kartoffelpüree]] und [[G:Erbsen und Möhren|Karotten-Erbsen-Gemüse]]
+[[H:Rinderhackbraten]] mit [[S:Bratensoße]], [[B:Kartoffelstampf]] und [[G:Pastinaken-Möhren-Stampf]]
+[[H:Geschmorte Rinderbäckchen]] in [[S:Rotweinjus]] mit [[B:Kartoffelpüree]] und [[G:Wurzelgemüse]]
+[[H:Rinderschmorbraten]] in [[S:Burgundersoße]] mit [[B:Spätzle]] und [[G:Rosenkohl]]
+[[H:Rinderfilet]] mit [[S:Pfeffersoße]], [[B:Kartoffelgratin]] und [[G:Prinzessbohnen im Speckmantel|Prinzessbohnen]]
+[[H:Rinderfilet]] mit [[S:Rotweinjus]], [[B:Herzoginkartoffeln]] und [[G:Spargel]]
+[[H:Roastbeef]] mit [[S:Remouladensoße]], [[B:Bratkartoffeln]] und [[E:Cornichons]]
+[[H:Rumpsteak]] mit [[E:Kräuterbutter]], [[B:Pommes frites]] und [[G:Grillgemüse]]
+[[H:Rinderhüftsteak]] mit [[S:Pfeffersoße]], [[B:Ofenkartoffeln]] und [[G:Brokkoli]]
+[[H:Rindersteak]] mit [[S:Champignonrahmsoße]], [[B:Kroketten]] und [[G:Prinzessbohnen]]
+[[H:Frikadellen]] mit [[S:Senfsoße]], [[B:Kartoffelsalat]] und [[G:Gurkensalat]]
+[[H:Hackfleischbällchen]] in [[S:Tomatensoße]] mit [[B:Spaghetti]] und [[E:Parmesanspäne]]
+[[H:Königsberger Klopse]] in [[S:Kapernsoße]] mit [[B:Salzkartoffeln]] und [[G:Rote Bete]]
+[[H:Rindergeschnetzeltes Stroganoff]] mit [[B:Butternudeln]] und [[G:Gewürzgurken-Gemüse]]
+## Mediterran
+[[H:Rinderfilet]] mit [[S:Balsamico-Jus]], [[B:Rosmarinkartoffeln]] und [[G:Mediterranem Ofengemüse|Mediterranes Ofengemüse]]
+[[H:Saltimbocca vom Rind]] mit [[S:Weißweinsoße]], [[B:Tagliatelle]] und [[G:Zucchini]]
+[[H:Rinderrouladen italienische Art]] mit [[S:Tomatensoße]], [[B:Polenta]] und [[G:Gebratenem Gemüse|Gebratenes Gemüse (Zucchini, Aubergine, Paprika)]]
+[[H:Ossobuco]] mit [[S:Gremolata-Jus]], [[B:Risotto]] und [[G:Karotten]]
+[[H:Bistecca]] mit [[S:Rucola-Pesto]], [[B:Rosmarinkartoffeln]] und [[G:Cherrytomaten]]
+[[H:Rindercarpaccio]] mit [[E:Parmesanspäne]] und [[E:Pinienkerne]]
+## Orientalisch
+[[H:Rinder-Kofta]] mit [[S:Joghurt-Minz-Dip]], [[B:Bulgur]] und [[G:Auberginengemüse]]
+[[H:Rindfleisch Tajine]] mit [[B:Couscous]] und [[G:Aprikosen-Gemüse]]
+## Asiatisch
+[[H:Rindfleisch Teriyaki]] mit [[B:Jasminreis]] und [[G:Pak Choi]]
+[[H:Rindfleisch mit Brokkoli]] in [[S:Austernsoße]] mit [[B:Duftreis]]
+## Amerikanisch
+[[H:Pulled Beef]] mit [[S:BBQ-Soße]], [[B:Wedges]] und [[G:Krautsalat]]
+[[H:Beef Burger]] mit [[S:Burgersoße]] und [[B:Pommes frites]]
+[[H:Chili con Carne]] mit [[B:Reis]] und [[E:Schmand]]
+[[H:Rinder-Brisket]] mit [[S:Whiskey-BBQ-Soße]], [[B:Ofenkartoffeln]] und [[G:Gegrilltem Maiskolben|Gegrillter Maiskolben]]
+
+## Klassisch
+[[H:Kalbsrahmgeschnetzeltes]] mit [[B:Butterspätzle]] und [[G:Erbsen]]
+[[H:Wiener Schnitzel]] mit [[B:Petersilienkartoffeln]] und [[E:Preiselbeeren]]
+[[H:Kalbsbraten]] mit [[S:Bratensoße]], [[B:Kartoffelgratin]] und [[G:Prinzessbohnen]]
+[[H:Kalbsrücken]] mit [[S:Madeirasoße]], [[B:Herzoginkartoffeln]] und [[G:Spargel]]
+[[H:Kalbsleber]] mit [[S:Zwiebelsoße]], [[B:Kartoffelpüree]] und [[G:Apfelspalten|Apfelgemüse]]
+[[H:Kalbsfrikadelle]] mit [[S:Kapernsoße]], [[B:Salzkartoffeln]] und [[G:Erbsen]]
+## Mediterran
+[[H:Kalbsschnitzel italienische Art]] mit [[S:Tomaten-Champignon-Soße]], [[B:Tagliatelle]] und [[G:Zucchini]]
+[[H:Kalbs-Saltimbocca]] mit [[S:Salbei-Weißweinsoße]], [[B:Risotto]] und [[G:Spinat]]
+[[H:Vitello Tonato]] mit [[S:Thunfischsoße]] und [[E:Kapern]]
+[[H:Kalbsmedaillons]] mit [[S:Marsalasoße]], [[B:Rosmarinkartoffeln]] und [[G:Brokkoli]]
+
+## Klassisch
+[[H:Lammkeule]] mit [[S:Rosmarinjus]], [[B:Kartoffelgratin]] und [[G:Prinzessbohnen]]
+[[H:Lammbraten]] mit [[S:Thymianjus]], [[B:Röstkartoffeln]] und [[G:Ratatouille]]
+[[H:Lammkarree]] mit [[S:Rotweinjus]], [[B:Kartoffelgratin]] und [[G:Prinzessbohnen]]
+[[H:Lammhaxe]] in [[S:Rotweinsoße]] mit [[B:Kartoffelpüree]] und [[G:Wurzelgemüse]]
+[[H:Lammgulasch]] mit [[B:Butternudeln]] und [[G:Paprikagemüse]]
+## Mediterran
+[[H:Lammkarree]] mit [[E:Kräuterkruste]], [[B:Rosmarinkartoffeln]] und [[G:Mediterranem Ofengemüse|Mediterranes Ofengemüse]]
+[[H:Lammkoteletts]] mit [[S:Minzjoghurt]], [[B:Ofenkartoffeln]] und [[G:Gegrilltem Gemüse|Gebratenes Gemüse (Zucchini, Aubergine, Paprika)]]
+[[H:Lamm-Souvlaki]] mit [[S:Tzatziki]], [[B:Reis]] und [[G:Griechischem Salat|Griechischer Salat]]
+[[H:Lammkeule geschmort]] in [[S:Tomaten-Rotwein-Soße]] mit [[B:Polenta]] und [[G:Gebratenem Gemüse|Gebratenes Gemüse (Zucchini, Aubergine, Paprika)]]
+## Orientalisch
+[[H:Lamm Tajine]] mit [[B:Couscous]] und [[G:Aprikosen-Gemüse]]
+[[H:Lamm-Kofta]] mit [[S:Joghurt-Minz-Dip]], [[B:Bulgur]] und [[G:Auberginengemüse]]
+## Indisch
+[[H:Lamm Rogan Josh]] mit [[B:Basmatireis]] und [[G:Spinat]]
+
+## Klassisch
+[[H:Schweineschnitzel]] mit [[S:Jägersoße]], [[B:Pommes frites]] und [[G:Erbsen]]
+[[H:Schweinebraten]] mit [[S:Bratensoße]], [[B:Kartoffelknödel]] und [[G:Blaukraut]]
+[[H:Schweinenacken gebraten]] mit [[S:Zwiebelsoße]], [[B:Salzkartoffeln]] und [[G:Sauerkraut]]
+[[H:Schweinemedaillons]] in [[S:Champignonrahmsoße]] mit [[B:Butterspätzle]] und [[G:Brokkoli]]
+[[H:Schweinefilet im Speckmantel]] mit [[S:Pfeffersoße]], [[B:Kartoffelgratin]] und [[G:Prinzessbohnen]]
+[[H:Schweinelachs]] mit [[S:Bratensoße]], [[B:Kartoffelpüree]] und [[G:Rotkohl]]
+[[H:Schweinegeschnetzeltes Zürcher Art]] mit [[B:Rösti]] und [[G:Erbsen]]
+[[H:Rahmschnitzel]] mit [[S:Champignonrahmsoße]], [[B:Kroketten]] und [[G:Karotten-Erbsen-Gemüse]]
+[[H:Schweinehaxe]] mit [[S:Dunkelbiersoße]], [[B:Kartoffelknödel]] und [[G:Sauerkraut]]
+[[H:Schäufele]] mit [[S:Bratensoße]], [[B:Kartoffelsalat]] und [[G:Krautsalat]]
+[[H:Kassler]] mit [[B:Kartoffelpüree]] und [[G:Sauerkraut]]
+[[H:Bratwurst]] mit [[B:Kartoffelpüree]] und [[G:Sauerkraut]]
+[[H:Rippchen]] mit [[S:BBQ-Soße]], [[B:Wedges]] und [[G:Krautsalat]]
+[[H:Leberkäse]] mit [[B:Bratkartoffeln]] und [[E:Spiegelei]]
+[[H:Gulaschsuppe vom Schwein]] mit [[B:Baguette]]
+[[H:Schweinemedaillons]] mit [[S:Gorgonzolasoße]], [[B:Spätzle]] und [[G:Spinat]]
+[[H:Gefüllte Schweinerolle]] mit [[S:Bratensoße]], [[B:Kartoffelklöße]] und [[G:Rotkohl]]
+[[H:Panierter Schweinenacken]] mit [[E:Zitronenspalte]], [[B:Pommes frites]] und [[G:Gurkensalat]]
+## Mediterran
+[[H:Saltimbocca vom Schwein]] mit [[S:Weißweinsoße]], [[B:Tagliatelle]] und [[G:Zucchini]]
+[[H:Porchetta]] mit [[S:Kräuterjus]], [[B:Rosmarinkartoffeln]] und [[G:Fenchel]]
+[[H:Schweinefilet]] mit [[S:Balsamico-Jus]], [[B:Polenta]] und [[G:Mediterranem Ofengemüse|Mediterranes Ofengemüse]]
+[[H:Schweinemedaillons]] in [[S:Tomaten-Oliven-Soße]] mit [[B:Penne]] und [[G:Paprikagemüse]]
+## Asiatisch
+[[H:Schweinefleisch Süß-Sauer]] mit [[B:Duftreis]] und [[G:Wokgemüse]]
+[[H:Schweinefleisch Chop Suey]] mit [[B:Reis]] und [[G:Chinakohl-Gemüse]]
+## Amerikanisch
+[[H:Pulled Pork]] mit [[S:BBQ-Soße]], [[B:Wedges]] und [[G:Krautsalat]]
+[[H:Spare Ribs]] mit [[S:Honig-BBQ-Soße]], [[B:Ofenkartoffeln]] und [[G:Gegrilltem Maiskolben|Gegrillter Maiskolben]]
+[[H:Schweinenacken vom Grill]] mit [[S:Chimichurri]], [[B:Wedges]] und [[G:Gegrilltem Gemüse|Gebratenes Gemüse (Zucchini, Aubergine, Paprika)]]
+
+## Klassisch
+[[H:Gebratenes Zanderfilet]] in [[S:Weißweinsoße]] mit [[B:Salzkartoffeln]] und [[G:Blattspinat]]
+[[H:Lachsfilet]] in [[S:Dillsoße]] mit [[B:Petersilienkartoffeln]] und [[G:Brokkoli]]
+[[H:Seelachsfilet]] in [[S:Senfsoße]] mit [[B:Kartoffelpüree]] und [[G:Rahmwirsing]]
+[[H:Backfisch]] mit [[S:Remouladensoße]], [[B:Kartoffelsalat]] und [[G:Gurkensalat]]
+[[H:Kabeljaufilet]] in [[S:Senf-Dill-Soße]] mit [[B:Salzkartoffeln]] und [[G:Wurzelgemüse]]
+[[H:Gebratener Lachs]] mit [[S:Zitronenbutter]], [[B:Reis]] und [[G:Prinzessbohnen]]
+[[H:Forelle Müllerin]] mit [[S:Zitronenbutter]], [[B:Petersilienkartoffeln]] und [[G:Gurkensalat]]
+[[H:Matjesfilet]] mit [[S:Sahne-Apfel-Soße]] und [[B:Pellkartoffeln]]
+[[H:Fischfrikadelle]] mit [[S:Remouladensoße]], [[B:Kartoffelsalat]] und [[G:Erbsen]]
+[[H:Pangasiusfilet]] in [[S:Kräutersoße]] mit [[B:Reis]] und [[G:Karotten-Erbsen-Gemüse]]
+[[H:Tilapiafilet]] in [[S:Weißweinsoße]] mit [[B:Salzkartoffeln]] und [[G:Brokkoli]]
+[[H:Fischstäbchen]] mit [[B:Kartoffelpüree]] und [[G:Erbsen]]
+## Mediterran
+[[H:Doradenfilet]] mit [[S:Zitronen-Kapern-Soße]], [[B:Rosmarinkartoffeln]] und [[G:Mediterranem Ofengemüse|Mediterranes Ofengemüse]]
+[[H:Wolfsbarsch]] mit [[S:Safransoße]], [[B:Risotto]] und [[G:Fenchel]]
+[[H:Thunfischsteak]] mit [[S:Salsa verde]], [[B:Drillinge]] und [[G:Cherrytomaten]]
+[[H:Lachsfilet]] mit [[S:Pesto-Rahmsoße]], [[B:Tagliatelle]] und [[G:Zucchini]]
+[[H:Kabeljau]] in [[S:Tomaten-Oliven-Soße]] mit [[B:Polenta]] und [[G:Gebratenem Gemüse|Gebratenes Gemüse (Zucchini, Aubergine, Paprika)]]
+[[H:Tilapiafilet]] in [[S:Provinzialer Sauce|Provenzalische Soße]] mit [[B:Rosmarinkartoffeln]] und [[G:Paprikagemüse]]
+[[H:Pangasius]] mit [[S:Zitronensoße]], [[B:Couscous]] und [[G:Gegrilltem Gemüse|Gebratenes Gemüse (Zucchini, Aubergine, Paprika)]]
+[[H:Seeteufel]] mit [[S:Safransoße]], [[B:Risotto]] und [[G:Spargel]]
+[[H:Lachs-Spieße]] mit [[S:Zitronen-Dill-Dip]], [[B:Couscous]] und [[G:Gurkensalat]]
+## Asiatisch
+[[H:Lachs Teriyaki]] mit [[B:Jasminreis]] und [[G:Pak Choi]]
+[[H:Thunfisch Poké Bowl]] mit [[B:Sushireis]] und [[G:Edamame]]
+[[H:Fisch Thai Curry]] in [[S:Kokos-Currysoße]] mit [[B:Jasminreis]] und [[G:Prinzessbohnen]]
+## Indisch
+[[H:Fisch Curry]] in [[S:Kokos-Currysoße]] mit [[B:Basmatireis]] und [[G:Spinat]]
+## Klassisch
+[[H:Garnelen]] in [[S:Knoblauchöl]] mit [[B:Baguette]] und [[G:Blattsalat]]
+[[H:Gebratene Garnelen]] mit [[S:Chili-Knoblauch-Soße]], [[B:Reis]] und [[G:Wokgemüse]]
+[[H:Garnelenspieße]] mit [[S:Zitronen-Dill-Dip]], [[B:Couscous]] und [[G:Gurkensalat]]
+[[H:Scampi]] in [[S:Weißwein-Knoblauch-Soße]] mit [[B:Tagliatelle]] und [[G:Cherrytomaten]]
+[[H:Muscheln]] in [[S:Weißweinsoße]] mit [[B:Baguette]] und [[G:Lauchgemüse]]
+[[H:Calamari]] mit [[S:Aioli]], [[B:Pommes frites]] und [[G:Blattsalat]]
+[[H:Meeresfrüchte-Paella]] mit [[G:Paprika]] und [[E:Zitrone]]
+[[H:Garnelen Thai Curry]] in [[S:Kokos-Currysoße]] mit [[B:Jasminreis]] und [[G:Pak Choi]]
+[[H:Gambas]] mit [[S:Knoblauchöl]], [[B:Reis]] und [[G:Gegrilltem Gemüse|Gebratenes Gemüse (Zucchini, Aubergine, Paprika)]]
+[[H:Spaghetti alle Vongole]] in [[S:Weißwein-Knoblauch-Soße]]
+
+## Klassisch
+[[H:Gemüselasagne]] mit [[S:Béchamelsoße]] und [[E:Parmesanspäne]]
+[[H:Käsespätzle]] mit [[E:Röstzwiebeln]] und [[G:Blattsalat]]
+[[H:Spinat-Ricotta-Cannelloni]] in [[S:Tomatensoße]]
+[[H:Gemüse-Frikadelle]] mit [[S:Kräutersoße]], [[B:Kartoffelpüree]] und [[G:Brokkoli]]
+[[H:Kartoffel-Spinat-Gratin]] mit [[G:Gemischtem Salat|Blattsalat]]
+[[H:Serviettenknödel]] mit [[S:Champignonrahmsoße]] und [[G:Rotkohl]]
+[[H:Schupfnudeln]] mit [[S:Sauerkraut-Rahm]] und [[E:Röstzwiebeln]]
+[[H:Gemüseschnitzel]] mit [[S:Rahmsoße]], [[B:Salzkartoffeln]] und [[G:Brokkoli]]
+[[H:Reibekuchen]] mit [[S:Apfelmus]] und [[G:Blattsalat]]
+[[H:Kaiserschmarrn]] mit [[S:Zwetschgenröster]]
+[[H:Gefüllte Paprika]] mit [[S:Tomatensoße]] und [[B:Reis]]
+[[H:Kürbis-Risotto]] mit [[E:Parmesanspäne]]
+## Mediterran
+[[H:Mediterrane Gemüselasagne]] mit [[S:Tomatensoße]] und [[E:Mozzarella]]
+[[H:Auberginen-Parmigiana]] mit [[S:Tomatensoße]] und [[G:Rucola]]
+[[H:Gnocchi]] in [[S:Gorgonzolasoße]] mit [[G:Spinat]]
+[[H:Ravioli]] mit [[S:Salbeibutter]] und [[E:Parmesanspäne]]
+[[H:Pasta]] mit [[S:Pomodoro]] und [[E:Parmesanspäne]]
+[[H:Penne Arrabbiata]] mit [[S:Arrabbiata]] und [[E:Parmesanspäne]]
+[[H:Spaghetti Aglio e Olio]] mit [[S:Knoblauchöl]] und [[E:Peperoncini]]
+[[H:Tagliatelle]] mit [[S:Pesto-Rahmsoße]] und [[G:Cherrytomaten]]
+[[H:Gefüllte Zucchini]] mit [[S:Tomatensoße]] und [[B:Couscous]]
+[[H:Risotto]] mit [[G:Pilzen|Pilzgemüse]] und [[E:Parmesanspäne]]
+[[H:Spinat-Ricotta-Tortelloni]] mit [[S:Basilikumsoße]] und [[E:Pinienkerne]]
+[[H:Halloumi]] mit [[S:Joghurt-Minz-Dip]], [[B:Bulgur]] und [[G:Gegrilltem Gemüse|Gebratenes Gemüse (Zucchini, Aubergine, Paprika)]]
+[[H:Panierter Hirtenkäse]] mit [[S:Tzatziki]], [[B:Ofenkartoffeln]] und [[G:Griechischem Salat|Griechischer Salat]]
+[[H:Gefüllte Auberginen]] mit [[S:Tomatensoße]] und [[B:Reis]]
+[[H:Ofenkartoffel]] mit [[S:Kräuterquark]] und [[G:Blattsalat]]
+[[H:Pizza Margherita]] mit [[G:Rucola]]
+## Orientalisch
+[[H:Falafel]] mit [[S:Hummus]], [[B:Bulgur]] und [[G:Orientalischem Salat|Orientalischer Salat]]
+[[H:Gemüse-Tajine]] mit [[B:Couscous]] und [[G:Kichererbsen-Gemüse]]
+[[H:Shakshuka]] mit [[B:Fladenbrot]] und [[E:Feta]]
+[[H:Gefüllte Weinblätter]] mit [[S:Joghurt-Minz-Dip]] und [[B:Reis]]
+## Indisch
+[[H:Linsen-Dal]] mit [[B:Basmatireis]] und [[G:Spinat]]
+[[H:Kichererbsen-Curry]] mit [[B:Basmatireis]] und [[G:Blumenkohl]]
+[[H:Paneer Tikka Masala]] mit [[B:Basmatireis]] und [[G:Spinat]]
+[[H:Gemüse-Curry]] in [[S:Kokos-Currysoße]] mit [[B:Basmatireis]]
+## Asiatisch
+[[H:Gebratener Tofu]] mit [[S:Erdnusssoße]], [[B:Jasminreis]] und [[G:Wokgemüse]]
+[[H:Gemüse-Frühlingsrollen]] mit [[S:Sweet-Chili-Soße]] und [[B:Glasnudeln]]
+[[H:Gebratene Nudeln]] mit [[G:Wokgemüse]] und [[S:Sojasoße]]
+[[H:Gyoza]] mit [[S:Sojasoße]] und [[G:Pak Choi]]
+## Mexikanisch
+[[H:Bohnen-Chili]] mit [[B:Reis]] und [[E:Schmand]]
+[[H:Gemüse-Burrito]] mit [[S:Salsa]] und [[E:Guacamole]]
+[[H:Veggie-Tacos]] mit [[S:Salsa]] und [[E:Guacamole]]
+## Vegan
+[[H:Veganes Gemüse-Curry]] in [[S:Kokos-Currysoße]] mit [[B:Basmatireis]]
+[[H:Vegane Linsen-Bolognese]] mit [[B:Spaghetti]] und [[G:Zucchini]]
+[[H:Veganes Chili sin Carne]] mit [[B:Reis]] und [[E:Guacamole]]
+[[H:Vegane Bratwurst]] mit [[B:Kartoffelpüree]] und [[G:Sauerkraut]]
+[[H:Vegane Burger-Patty]] mit [[S:Burgersoße]] und [[B:Wedges]]
+[[H:Gebackener Blumenkohl]] mit [[S:Tahini-Soße]], [[B:Couscous]] und [[G:Orientalischem Gemüse|Orientalisches Ofengemüse]]
+[[H:Kichererbsen-Spinat-Curry]] mit [[B:Jasminreis]] und [[G:Spinat]]
+[[H:Vegane Lasagne]] mit [[S:Tomatensoße]] und [[G:Spinat]]
+[[H:Veganes Kürbis-Risotto]] mit [[G:Kürbis]]
+[[H:Süßkartoffel-Curry]] in [[S:Erdnusssoße]] mit [[B:Basmatireis]]
+[[H:Gefüllte Paprika vegan]] mit [[S:Tomatensoße]] und [[B:Quinoa]]
+[[H:Vegane Gemüse-Pfanne]] mit [[B:Reis]] und [[S:Sojasoße]]
+[[H:Falafel]] mit [[S:Hummus]], [[B:Quinoa]] und [[G:Gurkensalat]]
+[[H:Veganes Gulasch]] mit [[B:Salzkartoffeln]] und [[G:Paprikagemüse]]
+[[H:Linsen-Eintopf]] mit [[B:Baguette]] und [[G:Wurzelgemüse]]
+[[H:Vegane Pasta]] mit [[S:Pomodoro]] und [[G:Gebratenem Gemüse|Gebratenes Gemüse (Zucchini, Aubergine, Paprika)]]
+[[H:Tofu-Geschnetzeltes]] mit [[S:Sojasoße]], [[B:Basmatireis]] und [[G:Wokgemüse]]
+[[H:Veganes Pad Thai]] mit [[S:Erdnusssoße]] und [[G:Pak Choi]]
+[[H:Gemüse-Paella]] mit [[G:Paprika]] und [[E:Zitrone]]
+[[H:Vegane Frühlingsrollen]] mit [[S:Sweet-Chili-Soße]] und [[B:Glasnudeln]]

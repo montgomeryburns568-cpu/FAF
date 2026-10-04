@@ -323,11 +323,26 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.querySelectorAll('.tabpanel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tab));
 }
+// Speisenkatalog: eigene Seite (vom Server, nur mit Anmeldung), läuft im Rahmen und speichert ihren Stand auf dem Server
+let katalogLoaded = false;
+async function loadKatalog() {
+  if (katalogLoaded) return;
+  const frame = document.getElementById('katalogFrame');
+  try {
+    const r = await fetch('/api/speisenkatalog/page', { credentials: 'same-origin' });
+    if (!r.ok) throw new Error('Status ' + r.status);
+    frame.srcdoc = await r.text();
+    katalogLoaded = true;
+  } catch (err) {
+    frame.srcdoc = '<p style="font-family:sans-serif;padding:20px">Der Speisenkatalog konnte nicht geladen werden (' + String(err.message).replace(/[<&]/g, '') + '). Bitte Seite neu laden.</p>';
+  }
+}
 document.getElementById('tabnav').addEventListener('click', e => {
   const btn = e.target.closest('.tab-btn');
   if (!btn) return;
   switchTab(btn.dataset.tab);
   if (btn.dataset.tab === 'einkaufsliste') renderEinkaufsliste();
+  if (btn.dataset.tab === 'speisenkatalog') loadKatalog();
 });
 
 // ---------- Angebot tab: editor rendering ----------

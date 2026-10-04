@@ -1,0 +1,53 @@
+@gang Dessert
+@infer
+[[H:Hafermilchreis]], [[S:Schattenmorellen]], Glas
+[[H:Bayrische Creme]], [[S:Pflaumenkompott]], Glas
+[[H:American Cheesecakecreme]], [[E:Crumble]], Glas
+[[H:Mousse au Chocolat]], Glas
+[[H:Grießflammerie]], [[S:Fruchtpüree]], Glas
+[[H:Schoko-Cookie Tiramisu|Schoko-Cookie-Tiramisu]]
+[[H:Activia-Kefir-Mousse|Kefir-Mousse]] mit [[E:Pfirsich]], [[E:Estragon]] und knusprigem [[E:Hafercrumble]]
+[[H:Alpro-Skyr-Panna-Cotta|Skyr-Panna-Cotta]] mit [[E:Aprikose]] und gerösteten [[E:Mandeln|Geröstete Mandeln]]
+[[H:American Cheesecakecreme]] mit [[E:Crumble]] im Glas
+[[H:Bayrische Creme]] mit [[S:Pflaumenkompott]] im Glas
+[[H:Blueberry Cheesecakecreme|Blueberry-Cheesecakecreme]] mit [[E:Butterkeksen|Butterkekse]] im Glas
+[[H:Dunkle Schokoladen-Tarte]] mit [[E:Sauerkirschen]], [[E:Kakao-Nibs]] und einer feinen [[E:Meersalznote|Meersalz]]
+[[H:Erdbeer-, Karamell- oder Vanille Panna Cotta|Panna Cotta]] im Glas
+[[H:Exotischer Fruchtsalat]] (vegan)
+[[H:Frischer Obstsalat|Obstsalat]] | Weckglas
+[[H:Gestockte Haselnusscreme]] im Glas
+[[H:Grießflammerie]] auf [[S:Fruchtpüree]] im Glas
+[[H:Hafermilchreis]] mit [[S:Schattenmorellen]]
+[[H:Haselnussküchlein]] auf Deckel
+[[H:Karamellisierte Pfirsiche]] auf pochierter [[S:Vanillecreme]] im Glas
+[[H:Klassisches Tiramisu|Tiramisu]] | Weckglas
+[[H:Kokos-Grießcreme]] mit einem [[S:Ananasragout]]
+[[H:Lebkuchenmousse]] im Glas (saisonal)
+[[H:Lemon-Cheesecakecreme]], [[E:Buttercrumbles]] | Weckglas
+[[H:Mascarpone-Schmandcreme]] mit [[E:Erdbeeren]] im Glas
+[[H:Mascarpone-Schmandcreme]] mit [[E:Pfirsichen|Pfirsiche]] im Glas
+[[H:Matcha-Tiramisu]] mit [[E:Himbeeren]] und [[E:Pistazien]]
+[[H:Mousse au Chocolat]] im Glas
+[[H:Mousse au Chocolat]], gerösteten [[E:Mandeln|Geröstete Mandeln]]
+[[H:Obstsalat]] | Weckglas (vegan)
+[[H:Passionsfrucht Creme Brûlée|Crème Brûlée]]
+[[H:Pochierte Spekulatiuscreme]] mit [[S:Zimtkirschen]] im Glas (saisonal)
+[[H:Quarkcreme]] mit einem [[S:Apfelchutney]] im Glas
+[[H:Rote Grütze]] mit einer [[S:Vanillesauce|Vanillesoße]] | Weckglas
+[[H:Rote Grütze]] mit [[S:Vanillesauce|Vanillesoße]] im Glas
+[[H:Schoko-Cookie Tiramisu|Schoko-Cookie-Tiramisu]] im Glas
+[[H:Schokopudding]] mit [[S:Vanillesauce|Vanillesoße]] im Glas
+Selbstgemachter [[H:Haselnusspudding]] mit [[S:Vanillesauce|Vanillesoße]] im Glas
+Selbstgemachter [[H:Kokos-Vanillepudding]] mit [[E:Schokoraspen]] im Glas
+[[H:Strawberry Cheesecakecreme|Strawberry-Cheesecakecreme]] mit [[E:Crumble]] im Glas
+[[H:Tiramisu]] im Glas
+[[H:Ube-Cheesecake]], [[E:Vanille Crumble|Vanille-Crumble]] | Weckglas
+[[H:Vanille Panna Cotta|Panna Cotta]], [[S:Erdbeersauce|Erdbeersoße]] | Glas (vegetarisch)
+[[H:Vanille- oder Schokoladen Crème Brûlée|Crème Brûlée]] im Glas
+[[H:Vanillepudding]] mit [[S:Schokoladensauce|Schokoladensoße]]
+[[H:Vegane Schokoküchlein]]
+[[H:Vegane Schokomuffins]]
+[[H:Vegane Vanillemuffins]]
+[[H:Vegane Zitronenküchlein]]
+[[H:Verschiedene Blechkuchen|Blechkuchen]]
+[[H:Verschiedene Mini-Blechkuchen|Mini-Blechkuchen]]

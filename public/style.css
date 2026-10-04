@@ -84,6 +84,7 @@ main { padding: 20px; max-width: 1300px; margin: 0 auto; }
 
 .tabpanel { display: none; }
 .tabpanel.active { display: block; }
+.katalog-frame { width: 100%; height: calc(100vh - 110px); min-height: 520px; border: 1px solid var(--border); border-radius: var(--radius); background: #fff; display: block; }
 
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
 @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }

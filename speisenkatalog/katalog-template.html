@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Speisenkatalog</title>
+<style>
+  :root { --bg:#f9fafb; --panel:#fff; --border:#e5e7eb; --text:#111827; --muted:#6b7280; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); font-size:15px; }
+  header { background:var(--panel); border-bottom:1px solid var(--border); padding:16px 22px; position:sticky; top:0; z-index:5; }
+  h1 { margin:0 0 4px; font-size:20px; }
+  .sub { color:var(--muted); font-size:13px; }
+  .legend, .toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px; }
+  .tabs button, .toolbar button, .toolbar select, .toolbar input { font:inherit; padding:7px 12px; border:1px solid var(--border); border-radius:8px; background:#fff; }
+  .toolbar button:disabled { opacity:.4; cursor:default; }
+  .tabs { display:flex; gap:6px; margin-top:12px; }
+  .tabs button.active, .toolbar button.active { background:#1f2937; color:#fff; border-color:#1f2937; }
+  .toolbar input { min-width:240px; }
+  #saved { font-size:12.5px; color:#047857; }
+  #saved.warn { color:#b91c1c; }
+  main { padding:18px 22px 60px; max-width:1300px; margin:0 auto; }
+  h2 { font-size:18px; margin:30px 0 4px; padding-bottom:6px; border-bottom:2px solid #1f2937; }
+  h3 { font-size:14px; margin:18px 0 8px; color:#374151; text-transform:uppercase; letter-spacing:.04em; }
+  .count { color:var(--muted); font-weight:400; font-size:13px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(380px, 1fr)); gap:10px; }
+  .card { position:relative; background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:10px 14px; }
+  .card.modded { border-color:#fdb02e; box-shadow:0 0 0 1px #fdb02e inset; }
+  .card.rem { opacity:.75; background:#f3f4f6; }
+  .card.open { border-color:#6b7280; box-shadow:0 2px 10px rgba(0,0,0,.08); }
+  .dish { line-height:2.05; font-size:15.5px; padding-right:22px; cursor:pointer; position:relative; }
+  .chev { position:absolute; right:0; top:0; color:#9ca3af; font-size:13px; }
+  .details { margin-top:6px; padding-top:6px; border-top:1px dashed var(--border); }
+  .tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
+  .tag { font-size:11.5px; padding:2px 8px; border-radius:999px; background:#eef2ff; border:1px solid #c7d2fe; color:#3730a3; cursor:pointer; }
+  .tag.neg { background:#fef2f2; border-color:#fecaca; color:#b91c1c; }
+  .tag.auto { border-style:dashed; font-style:italic; }
+  .tag.sel { outline:2px solid #1f2937; }
+  .tag .tx { margin-left:6px; font-weight:400; opacity:.45; cursor:pointer; }
+  .tag .tx:hover { opacity:1; color:#b91c1c; }
+  .tag.addtag { background:#fff; border-style:dashed; color:#6b7280; }
+  .tag.addtag:hover { color:#111827; border-color:#6b7280; }
+  .taginput { font:inherit; font-size:12px; padding:2px 8px; border:1px solid #6b7280; border-radius:999px; width:150px; }
+  .al { font-size:11px; color:var(--muted); margin-top:6px; }
+  .c { padding:2px 6px; border-radius:4px; cursor:pointer; box-decoration-break:clone; -webkit-box-decoration-break:clone; }
+  .c:hover { filter:brightness(.93); outline:1px dashed rgba(0,0,0,.45); }
+  .rH { background:#fdb02e; color:#10206b; } .rS { background:#00e5b8; color:#1c1c80; }
+  .rB1 { background:#0a2cff; color:#fff; } .rB2 { background:#001b8a; color:#fff; }
+  .rG { background:#96e5b8; color:#0b3d1e; } .rE { background:#2b2b2b; color:#f3f3f3; }
+  .lg { font-size:12px; padding:3px 9px; border-radius:5px; }
+  .meta { color:var(--muted); font-size:12px; margin-top:6px; }
+  .rowbtns { display:flex; gap:14px; margin-top:8px; flex-wrap:wrap; }
+  .link { font:inherit; font-size:12px; color:#3730a3; background:none; border:0; padding:0; cursor:pointer; text-decoration:underline; }
+  .link.danger { color:#b91c1c; }
+  textarea { width:100%; min-height:62px; margin-top:8px; font:inherit; font-size:13px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; resize:vertical; }
+  .note { background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:8px; padding:8px 12px; font-size:12.5px; margin-top:10px; }
+  .empty { color:var(--muted); padding:20px; }
+  @media (max-width:800px), (max-height:760px) { header { position:static; } }
+  /* Dialoge */
+  .ov { position:fixed; inset:0; background:rgba(17,24,39,.45); display:none; align-items:flex-start; justify-content:center; padding:5vh 12px; }
+  .ov.open { display:flex; }
+  #pk { z-index:20; } #dlg { z-index:40; padding-top:12vh; }
+  .pkbox { background:#fff; border-radius:12px; width:min(560px,100%); max-height:88vh; display:flex; flex-direction:column; box-shadow:0 20px 50px rgba(0,0,0,.3); }
+  .pkhead { padding:14px 16px 10px; border-bottom:1px solid var(--border); }
+  .pkhead h4 { margin:0 0 4px; font-size:16px; }
+  .pkhead input { width:100%; font:inherit; padding:8px 10px; border:1px solid var(--border); border-radius:8px; margin-top:8px; }
+  .pklist, .dlgbody { overflow:auto; padding:6px 16px 14px; }
+  .pklist h5 { margin:12px 0 6px; font-size:12px; color:#374151; text-transform:uppercase; letter-spacing:.04em; }
+  .pkopt { display:inline-block; margin:0 6px 7px 0; cursor:pointer; }
+  .pkopt.cur { outline:3px solid #1f2937; outline-offset:1px; }
+  .pkfoot { padding:10px 16px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
+  .pkroles { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .pkroles button { font:inherit; font-size:12.5px; padding:4px 10px; border-radius:6px; border:2px solid transparent; cursor:pointer; }
+  .pkroles button.sel { border-color:#1f2937; }
+  .pkfoot button { font:inherit; font-size:13px; padding:6px 12px; border:1px solid var(--border); border-radius:8px; background:#fff; cursor:pointer; }
+  .pkfoot button.primary { background:#1f2937; color:#fff; border-color:#1f2937; }
+  .pkfoot button.del { color:#b91c1c; border-color:#fecaca; }
+  .pkfoot button.del:disabled { opacity:.4; }
+  .dlgbody label { display:block; font-size:12px; color:#374151; margin:12px 0 4px; font-weight:600; }
+  .dlgbody input[type=text], .dlgbody select { width:100%; font:inherit; padding:7px 10px; border:1px solid var(--border); border-radius:8px; background:#fff; }
+  .dlgbody textarea { margin-top:0; min-height:110px; }
+  .dlgbody .hint { font-size:12px; color:var(--muted); margin-top:4px; }
+  .tagrow { display:flex; gap:6px; margin-top:6px; }
+  .tagrow input { flex:1; }
+  .tagrow button { font:inherit; padding:6px 12px; border:1px solid var(--border); border-radius:8px; background:#fff; cursor:pointer; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Speisenkatalog <span class="sub" id="stats"></span></h1>
+  <div class="sub">Komponenten farbig markiert. <b>Klick auf ein Gericht = Details (Tags, Hinzufügen …) · Klick auf eine Komponente = Bearbeiten oder To-Dos ansehen.</b></div>
+  <div class="legend" id="legend"></div>
+  <div class="tabs"><button id="tabD" class="active">Gerichte</button><button id="tabK">Sammlungen (Komponenten + To-Do)</button></div>
+  <div class="toolbar">
+    <input id="q" placeholder="Suchen (Gericht oder Komponente)…">
+    <select id="fKueche"><option value="">Alle Küchen</option></select>
+    <select id="fGang"><option value="">Alle Gänge</option></select>
+    <select id="fSammlung"><option value="">Alle Sammlungen</option></select>
+    <button id="clear">Filter zurücksetzen</button>
+    <button id="showRem">Entfernte Gerichte (0)</button>
+  </div>
+  <div class="toolbar">
+    <button id="undo" disabled>↶ Rückgängig</button>
+    <button id="redo" disabled>↷ Wiederholen</button>
+    <span id="saved"></span>
+    <button id="exp">Komplett als JSON exportieren</button>
+    <button id="bkExp">Sicherung der Änderungen speichern</button>
+    <button id="bkImp">Sicherung laden …</button>
+    <input type="file" id="bkFile" accept=".json,application/json" style="display:none">
+  </div>
+  <div class="note">Tags mit gestrichelter Kontur sind <b>automatisch aus den Namen abgeleitet</b> (v. a. Helal, vegan/vegetarisch, gluten frei, Laktose frei, Allergene) und müssen mit der echten Rezeptur geprüft werden. Rote Tags mit „(-)“ sind negative Merkmale. Alle Änderungen werden sofort im Browser gespeichert; mit „Sicherung speichern“ legst du zusätzlich eine Datei an.</div>
+</header>
+<main id="main"></main>
+<div id="pk" class="ov"><div class="pkbox">
+  <div class="pkhead"><h4 id="pkTitle"></h4><div class="sub" id="pkSub"></div><div class="pkroles" id="pkRoles"></div><input id="pkQ" placeholder="Suchen…" autocomplete="off"></div>
+  <div class="pklist" id="pkList"></div>
+  <div class="pkfoot" id="pkFoot"></div>
+</div></div>
+<div id="dlg" class="ov"><div class="pkbox">
+  <div class="pkhead"><h4 id="dlgTitle"></h4><div class="sub" id="dlgSub"></div></div>
+  <div class="dlgbody" id="dlgBody"></div>
+  <div class="pkfoot" id="dlgFoot"></div>
+</div></div>
+<script>
+const DB = /*__DB__*/null;
+const C = Object.fromEntries(DB.komponenten.map(c => [c.id, c]));
+DB.komponenten.forEach(c => { c.origName = c.name; c.origRolle = c.rolle; c.origGruppe = c.gruppe; });
+const roleClass = c => c.rolle === 'B' ? (c.gruppe.startsWith('Kartoffeln') ? 'rB1' : 'rB2') : 'r' + c.rolle;
+const HCOL = {
+  'Hähnchen': ['#fdb02e', '#10206b'], 'Pute': ['#ffe27a', '#3b3000'], 'Ente & Gans': ['#b5651d', '#ffffff'],
+  'Rind': ['#d62839', '#ffffff'], 'Kalb': ['#f4a6a6', '#4a1410'], 'Lamm': ['#7b3fb0', '#ffffff'], 'Schwein': ['#ff6fa5', '#4a0a2a'],
+  'Fisch': ['#4aa3df', '#06263d'], 'Meeresfrüchte': ['#ff8c5a', '#4a1608'], 'Vegetarisch & Vegan': ['#9acd32', '#1f3300'],
+  'Pasta & Aufläufe': ['#e8d3a2', '#4a3a10'], 'Suppen & Eintöpfe': ['#f2b48a', '#4a2200'], 'Backwaren, Quiches & Wraps': ['#b89b72', '#2d1f08'],
+  'Aufschnitt & Käse': ['#cdb4f6', '#2b1a4d'], 'Desserts': ['#f7a1e8', '#4a0f40']
+};
+const cstyle = c => { const x = c.rolle === 'H' && HCOL[c.gruppe]; return x ? ' style="background:' + x[0] + ';color:' + x[1] + '"' : ''; };
+const ROLE_LABEL = { H: 'Hauptkomponente', S: 'Soße', B: 'Beilage', G: 'Gemüse', E: 'Extra' };
+const ROLE_ORDER = { H: 0, S: 1, B: 2, G: 3, E: 4 };
+const state = { view: 'D', q: '', kueche: '', gang: '', sammlung: '', tag: '', comp: '', showRemoved: false };
+const OPEN = new Set();   // aufgeklappte Gerichte
+const esc = s => String(s).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
+const norm = s => (s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '');
+const dishOf = id => DB.gerichte.find(x => x.id === id);
+
+// ================= Speicher, Rückgängig =================
+let storageOk = true;
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { storageOk = false; return false; } }
+};
+const loadJson = (k, d) => { try { return JSON.parse(store.get(k) || 'null') || d; } catch (e) { return d; } };
+let NAMES = loadJson('speisen_names', {});        // { kompId: Name }
+let MODS = loadJson('speisen_mods', {});          // { gerichtId: [kompId, …] }
+let REMOVED = new Set(loadJson('speisen_removed', []));
+let TAGMODS = loadJson('speisen_tagmods', {});    // { "d:<gericht>" | "c:<komp>": { add:[], del:[] } }
+let TODOS = loadJson('speisen_todos', {});        // { kompId: Text }
+let GROUPS = loadJson('speisen_groups', {});      // { kompId: { rolle, gruppe } }
+const KEYS = () => ({ speisen_names: NAMES, speisen_mods: MODS, speisen_removed: [...REMOVED], speisen_tagmods: TAGMODS, speisen_todos: TODOS, speisen_groups: GROUPS });
+const snapshot = () => JSON.stringify(KEYS());
+function applyCompOverrides() {
+  DB.komponenten.forEach(c => {
+    c.name = NAMES[c.id] || c.origName;
+    const g = GROUPS[c.id];
+    c.rolle = (g && g.rolle) || c.origRolle;
+    c.gruppe = (g && g.gruppe) || c.origGruppe;
+  });
+}
+function restore(str) {
+  const s = JSON.parse(str);
+  NAMES = s.speisen_names || {}; MODS = s.speisen_mods || {}; REMOVED = new Set(s.speisen_removed || []);
+  TAGMODS = s.speisen_tagmods || {}; TODOS = s.speisen_todos || {}; GROUPS = s.speisen_groups || {};
+  applyCompOverrides();
+}
+// Server-Speicher: im Küchensheet-Generator liegt der Stand zusätzlich zentral auf dem Server
+// (alle im Büro sehen denselben Katalog). Als lokale Datei ohne Server bleibt es beim Browser-Speicher.
+const REMOTE = '/api/speisenkatalog/state';
+const remote = { ok: null, timer: null, localOk: true, time: '' };
+function updateSavedText() {
+  const el = document.getElementById('saved');
+  if (!remote.time) return;
+  if (remote.ok === false) { el.className = 'warn'; el.textContent = '⚠ Nur im Browser gespeichert (Server nicht erreichbar) ' + remote.time; }
+  else if (!remote.localOk && remote.ok !== true) { el.className = 'warn'; el.textContent = '⚠ Speichern im Browser nicht möglich – bitte „Sicherung speichern“ benutzen'; }
+  else { el.className = ''; el.textContent = (remote.ok ? '✓ Auf dem Server gespeichert ' : '✓ Gespeichert ') + remote.time; }
+}
+async function pushRemote() {
+  try {
+    const r = await fetch(REMOTE, { method: 'PUT', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ updated: new Date().toISOString(), daten: KEYS() }) });
+    remote.ok = r.ok;
+  } catch (e) { remote.ok = false; }
+  updateSavedText();
+}
+async function loadRemote() {
+  if (location.protocol === 'file:' || location.protocol === 'data:') return null;
+  try {
+    const r = await fetch(REMOTE, { credentials: 'same-origin', cache: 'no-store' });
+    if (!r.ok) { remote.ok = false; return null; }
+    remote.ok = true;
+    const j = await r.json();
+    return j && j.daten ? j : null;
+  } catch (e) { remote.ok = false; return null; }
+}
+function saveAll(quiet) {
+  let ok = true;
+  Object.entries(KEYS()).forEach(([k, v]) => { if (!store.set(k, JSON.stringify(v))) ok = false; });
+  remote.localOk = ok;
+  remote.time = new Date().toLocaleTimeString('de-DE');
+  if (remote.ok !== null) { clearTimeout(remote.timer); remote.timer = setTimeout(pushRemote, 600); }
+  updateSavedText();
+}
+const undoStack = [], redoStack = [];
+function pushUndo(snap) { undoStack.push(snap); if (undoStack.length > 200) undoStack.shift(); redoStack.length = 0; }
+function mutate(fn) { pushUndo(snapshot()); fn(); saveAll(); render(); }
+function doUndo() { if (!undoStack.length) return; redoStack.push(snapshot()); restore(undoStack.pop()); saveAll(); closeAll(); render(); }
+function doRedo() { if (!redoStack.length) return; undoStack.push(snapshot()); restore(redoStack.pop()); saveAll(); closeAll(); render(); }
+function updateUndoUi() {
+  const u = document.getElementById('undo'), r = document.getElementById('redo');
+  u.disabled = !undoStack.length; r.disabled = !redoStack.length;
+  u.textContent = '↶ Rückgängig' + (undoStack.length ? ' (' + undoStack.length + ')' : '');
+}
+const todoOf = c => TODOS[c.id] ?? c.todo ?? '';
+
+applyCompOverrides();
+
+// ================= Tags =================
+function effTags(owner, base) {
+  const m = TAGMODS[owner];
+  if (!m) return base;
+  const out = base.filter(t => !(m.del || []).includes(t.t));
+  (m.add || []).forEach(t => { if (!out.some(x => x.t === t)) out.push({ t, auto: false }); });
+  return out;
+}
+const ctags = c => effTags('c:' + c.id, c.tags);
+function tagEdit(owner, fn) {
+  mutate(() => {
+    const m = TAGMODS[owner] = TAGMODS[owner] || { add: [], del: [] };
+    m.add = m.add || []; m.del = m.del || [];
+    fn(m);
+    if (!m.add.length && !m.del.length) delete TAGMODS[owner];
+  });
+}
+const tagHtml = (tg, owner) => `<span class="tag ${tg.t.endsWith('(-)') ? 'neg' : ''} ${tg.auto ? 'auto' : ''} ${state.tag === tg.t ? 'sel' : ''}" data-tag="${esc(tg.t)}">${esc(tg.t)}<b class="tx" data-tagdel="${esc(tg.t)}" data-owner="${esc(owner)}" title="Tag entfernen">×</b></span>`;
+const addTagHtml = owner => `<span class="tag addtag" data-tagadd="${esc(owner)}" title="Tag hinzufügen">+ Tag</span>`;
+const tagsBlock = (tags, owner) => `<div class="tags">${tags.map(t => tagHtml(t, owner)).join('')}${addTagHtml(owner)}</div>`;
+function allTagNames() {
+  const set = new Set();
+  DB.komponenten.forEach(c => ctags(c).forEach(t => set.add(t.t)));
+  DB.gerichte.forEach(g => g.tags.forEach(t => set.add(t.t)));
+  Object.values(TAGMODS).forEach(m => (m.add || []).forEach(t => set.add(t)));
+  return [...set].sort((a, b) => a.localeCompare(b, 'de'));
+}
+function ensureTagList() {
+  const dl = document.getElementById('alltags') || Object.assign(document.createElement('datalist'), { id: 'alltags' });
+  dl.innerHTML = allTagNames().map(t => '<option value="' + esc(t) + '">').join('');
+  document.body.appendChild(dl);
+}
+function startTagInput(chip) {
+  const owner = chip.dataset.tagadd;
+  ensureTagList();
+  const inp = document.createElement('input');
+  inp.className = 'taginput'; inp.setAttribute('list', 'alltags'); inp.placeholder = 'Neuer Tag …';
+  chip.replaceWith(inp); inp.focus();
+  let done = false;
+  const commit = ok => {
+    if (done) return; done = true;
+    const v = inp.value.trim();
+    if (ok && v) tagEdit(owner, m => { m.del = m.del.filter(x => x !== v); if (!m.add.includes(v)) m.add.push(v); });
+    else render();
+  };
+  inp.onkeydown = ev => { if (ev.key === 'Enter') commit(true); else if (ev.key === 'Escape') commit(false); };
+  inp.onblur = () => commit(true);
+}
+
+// ================= Gericht: Text, Tags, Sammlung =================
+function segs(g) {
+  const out = []; let pos = 0;
+  g.teile.forEach((p, i) => {
+    const k = g.name.indexOf(p.text, pos);
+    if (k < 0) return;
+    out.push({ lit: g.name.slice(pos, k) }); out.push({ i }); pos = k + p.text.length;
+  });
+  out.push({ lit: g.name.slice(pos) });
+  return out;
+}
+function dishTags(kueche, cs) {
+  const t = [{ t: kueche, auto: false }];
+  const noExtra = cs.filter(c => c.rolle !== 'E');
+  const has = (c, x) => ctags(c).some(y => y.t === x);
+  const every = x => noExtra.every(c => has(c, x));
+  if (every('Vegan')) t.push({ t: 'Vegan', auto: true });
+  else if (every('Vegetarisch') || every('Vegan')) t.push({ t: 'Vegetarisch', auto: true });
+  ['Helal', 'gluten frei', 'Laktose frei'].forEach(x => { if (every(x)) t.push({ t: x, auto: true }); });
+  const hc = cs.find(c => c.rolle === 'H');
+  ['Leicht', 'Sportlich', 'Female food', 'Kinderfreundlich', 'Festlich', 'würzig', 'scharf', 'deftig', 'Hohe Marge', 'Niedrige Marge(-)'].forEach(x => {
+    if (hc && has(hc, x)) t.push({ t: x, auto: ctags(hc).find(y => y.t === x).auto });
+  });
+  if (cs.some(c => has(c, 'Zeitintensiv(-)'))) t.push({ t: 'Zeitintensiv(-)', auto: true });
+  else if (cs.every(c => has(c, 'Schnell') || c.rolle === 'E')) t.push({ t: 'Schnell', auto: true });
+  return t;
+}
+const ROLE_DEFAULT_SAMMLUNG = { Hauptgang: 'Vegetarisch & Vegan', Extras: 'Extras' };
+function ffGroup(cs, name) {
+  const hs = cs.filter(c => c.rolle === 'H');
+  if (hs.some(c => c.gruppe === 'Desserts')) return 'FF Desserts';
+  const lead = cs[0];
+  if (lead && (lead.gruppe === 'Salate' || (lead.rolle === 'H' && /salat/.test(norm(lead.name)) && !/obst|frucht/.test(norm(lead.name))))) return 'FF Salate';
+  if (hs.some(c => c.gruppe === 'Aufschnitt & Käse')) return 'FF Aufschnitt & Käse';
+  if (hs.some(c => c.gruppe === 'Backwaren, Quiches & Wraps' && /brotchen|kanapee|toast|baguette|sandwich/.test(norm(c.name)))) return 'FF Brötchen & Sandwiches';
+  const nonVeg = cs.filter(c => !c.veg);
+  if (nonVeg.length) return nonVeg.every(c => c.fisch) ? 'FF Fisch & Meeresfrüchte' : 'FF Fleisch';
+  return (cs.every(c => c.vegan) || /\(vegan\)/.test(norm(name))) ? 'FF Vegan' : 'FF Vegetarisch';
+}
+function sammlungOf(g, cs, name) {
+  if (g.ff) return ffGroup(cs, name);
+  const hc = cs.find(c => c.rolle === 'H');
+  if (hc) return hc.gruppe;
+  if (cs.some(c => c.rolle === 'G' && c.gruppe === 'Salate')) return 'Salate';
+  return ROLE_DEFAULT_SAMMLUNG[g.gang] || 'Gemüse, Brot & Beilagen';
+}
+// Satz neu bauen, wenn Komponenten hinzugefügt/entfernt wurden
+function genSegs(g, ids) {
+  const cs = ids.map(id => C[id]);
+  const at = r => ids.map((_, i) => i).filter(i => cs[i].rolle === r);
+  const H = at('H'), S = at('S'), R = [...at('B'), ...at('G'), ...at('E')];
+  const out = [];
+  const list = arr => arr.forEach((i, k) => { if (k) out.push({ lit: k === arr.length - 1 ? ' und ' : ', ' }); out.push({ i }); });
+  H.forEach((i, k) => { if (k) out.push({ lit: ' und ' }); out.push({ i }); });
+  if (S.length) {
+    let w = 'in';
+    const fs = g.teile.findIndex(p => C[p.comp].rolle === 'S');
+    if (fs >= 0) { const sg = segs(g); const k = sg.findIndex(s => s.i === fs); const lit = k > 0 ? sg[k - 1].lit.trim() : ''; if (['in', 'an', 'mit', 'auf', 'zu'].includes(lit)) w = lit; }
+    if (/butter|dip|chutney|pesto|aioli|tzatziki|salsa|hummus|remoulade|dressing|quark/i.test(cs[S[0]].name)) w = 'mit';
+    if (H.length) out.push({ lit: ' ' + w + ' ' });
+    S.forEach((i, k) => { if (k) out.push({ lit: ' und ' }); out.push({ i }); });
+  }
+  if (R.length) { if (H.length || S.length) out.push({ lit: ' mit ' }); list(R); }
+  return out;
+}
+// ---- Grammatik: Dativ für eingefügte Komponenten ("mit gebratenem Gemüse", "mit Kartoffelklößen") ----
+const ADJ_STEM = 'rot|grün|bunt|frisch|schwarz|weiß|weiss|gelb|vegan|selbstgemacht|mediterran|orientalisch|asiatisch|italienisch|französisch|griechisch|spanisch|knusprig|cremig|würzig|klassisch|scharf|mild|süß|sauer|gemischt|hell|dunkel|klein|groß|zart|leicht|pikant|aromatisch|sommerlich|herzhaft|braun|eingelegt|hausgemacht|lauwarm|kräftig|feurig';
+const ADJ_RE = new RegExp('^((' + ADJ_STEM + ')(e|er|es|en|em)?|ge[a-zäöüß]+(t|n)(e|er|es|en|em)|[a-zäöüß]+iert(e|er|es|en|em))$', 'i');
+const PLURAL_RE = /(kerne|nüsse|nusse|klöße|klosse|pilze|äpfel|pfirsiche|kekse|spieße|spiesse|trauben|beeren|saaten|späne|spane|oliven|tomaten|bohnen|erbsen|zwiebeln|kartoffeln|nudeln|mandeln|karotten|möhren|kapern|croutons|chips|kräuter|krauter)$/i;
+const FEM_RE = /(soße|sosse|sauce|creme|crème|sahne|paprika|aubergine|zucchini|butter|marmelade|salami|avocado|auswahl|pfanne|suppe|brühe|bruhe|limette|zitrone|orange|gurke|olive|birne|ananas|mango|melone|traube|beere|kirsche|aprikose|pflaume|feige|marinade|vinaigrette|glasur|füllung|fullung|kruste|panade|polenta|pasta|pizza|quiche|pastete|tarte|ratatouille|focaccia|ciabatta|baguette|brezel|laugenstange|wurst|gans|ente|forelle|garnele|lasagne|paella|minestrone|bowl|spalte|petersilie|minze|kresse|schokolade|vanille|zimtkirsche|banane|rübe|ruebe|tomate|zwiebel|karotte|kartoffel|artischocke|knolle|pilzcreme)$/i;
+function dativPhrase(name, weak) {
+  const m = name.match(/^(.*?)(\s*\(.*\))?$/);
+  const core = m[1], paren = m[2] || '';
+  const words = core.split(' ');
+  const last = words.length - 1;
+  const head = words[last];
+  const headLow = head.toLowerCase().split('-').pop();
+  const plural = PLURAL_RE.test(headLow) || (/(en|ln)$/.test(headLow) && !/(chen|kuchen|ofen|boden|garten|fladen|schinken|rahmen|wecken|haken|balken|rosmarin)$/.test(headLow));
+  const fem = !plural && FEM_RE.test(headLow);
+  const ending = (plural || weak) ? 'en' : fem ? 'er' : 'em';
+  const out = words.map((w, i) => {
+    if (i < last && ADJ_RE.test(w)) {
+      const base = w.replace(/(er|es|en|em|e)$/i, '');
+      return (base + ending).charAt(0).toLowerCase() + (base + ending).slice(1);
+    }
+    return w;
+  });
+  if (plural && /(e|el|er)$/i.test(head)) out[last] = head + 'n';
+  return out.join(' ') + paren;
+}
+function eff(g) {
+  const mod = !!MODS[g.id];
+  const ids = MODS[g.id] || g.teile.map(p => p.comp);
+  const authored = ids.map(id => NAMES[id] ? null : ((g.teile.find(p => p.comp === id) || {}).text || null));
+  const texts = ids.map((id, i) => authored[i] || C[id].name);
+  const positional = !mod || (ids.length === g.teile.length && ids.every((id, i) => C[id].rolle === C[g.teile[i].comp].rolle));
+  const segList = positional ? segs(g) : genSegs(g, ids);
+  // Kontext durchlaufen: nach "mit/in/auf/dazu …" (und in Aufzählungen danach) steht der Dativ
+  let dat = false, weak = false;
+  segList.forEach(sg => {
+    if (sg.lit !== undefined) {
+      const t = sg.lit.trim().toLowerCase();
+      if (/(^|[\s,])(mit|dazu|in|an|auf|zu|aus|von|nach|bei|neben|inkl\.?)$/.test(t)) { dat = true; weak = false; }
+      else if (/(^|[\s,])(einem|dem|diesem|jedem|einer|der)$/.test(t)) { dat = true; weak = true; }
+      else if (!/^([,\/|]|und|oder|,\s*und)?$/.test(t)) { dat = false; weak = false; }
+    } else if (!authored[sg.i] && dat) {
+      texts[sg.i] = dativPhrase(C[ids[sg.i]].name, weak);
+    }
+  });
+  const name = segList.map(s => s.lit !== undefined ? s.lit : texts[s.i]).join('');
+  const cs = ids.map(id => C[id]);
+  return { g, mod, ids, name, texts, segList, tags: effTags('d:' + g.id, dishTags(g.kueche, cs)), allergene: [...new Set(cs.flatMap(c => c.allergene))], sammlung: sammlungOf(g, cs, name), removed: REMOVED.has(g.id) };
+}
+
+// ================= Darstellung =================
+function dishHtml(e) {
+  const g = e.g, open = OPEN.has(g.id) || e.removed;
+  const html = e.segList.map(s => {
+    if (s.lit !== undefined) return esc(s.lit);
+    const c = C[e.ids[s.i]];
+    return `<span class="c ${roleClass(c)}"${cstyle(c)} data-pick="${esc(g.id)}" data-idx="${s.i}" title="${esc(c.name)} – klicken: bearbeiten / To-Dos">${esc(e.texts[s.i])}</span>`;
+  }).join('');
+  let details = '';
+  if (open) {
+    const hasTagMod = !!TAGMODS['d:' + g.id];
+    details = `<div class="details">
+      ${tagsBlock(e.tags, 'd:' + g.id)}
+      <div class="meta">${esc(g.gang)} · ${esc(e.sammlung)}${g.quelle === 'Büro-Katalog' ? ' · aus dem Büro-Katalog' : ''}</div>
+      ${e.allergene.length ? `<div class="al">Allergene (Hinweis): ${esc(e.allergene.join(', '))}</div>` : ''}
+      <div class="rowbtns">${e.removed
+        ? `<button class="link" data-restore="${esc(g.id)}">Gericht wiederherstellen</button>`
+        : `<button class="link" data-add="${esc(g.id)}">+ Komponente hinzufügen</button>${(e.mod || hasTagMod) ? `<button class="link" data-reset="${esc(g.id)}">Änderungen zurücksetzen</button>` : ''}<button class="link danger" data-remove="${esc(g.id)}">Gericht entfernen</button><button class="link" data-close="${esc(g.id)}">Zuklappen</button>`}</div>
+    </div>`;
+  }
+  return `<div class="card ${e.mod ? 'modded' : ''} ${e.removed ? 'rem' : ''} ${open ? 'open' : ''}" data-card="${esc(g.id)}"><div class="dish" data-toggle="${esc(g.id)}">${html}<span class="chev">${OPEN.has(g.id) ? '▴' : '▾'}</span></div>${details}</div>`;
+}
+function compHtml(c, uses) {
+  const n = uses[c.id] || 0;
+  return `<div class="card"><span class="c ${roleClass(c)}"${cstyle(c)} data-comp="${c.id}">${esc(c.name)}</span> <button class="link" data-cedit="${c.id}" title="Name, Label, Tags und To-Do bearbeiten">✎ bearbeiten</button>
+    <span class="meta"> · in ${n} Gericht${n === 1 ? '' : 'en'}${c.garMethodVorschlag ? ' · Gar-Vorschlag: ' + esc(c.garMethodVorschlag) : ''}${c.kuechen.length ? ' · ' + esc(c.kuechen.join(', ')) : ''}</span>
+    ${tagsBlock(ctags(c), 'c:' + c.id)}
+    ${c.allergene.length ? `<div class="al">Allergene (Hinweis): ${esc(c.allergene.join(', '))}</div>` : ''}
+    <textarea data-todo="${c.id}" placeholder="To-Do-Schritte hier eintragen …">${esc(todoOf(c))}</textarea></div>`;
+}
+function matchesDish(e) {
+  const g = e.g;
+  if (state.kueche && g.kueche !== state.kueche) return false;
+  if (state.gang && g.gang !== state.gang) return false;
+  if (state.sammlung && e.sammlung !== state.sammlung) return false;
+  if (state.tag && !e.tags.some(t => t.t === state.tag)) return false;
+  if (state.comp && !e.ids.includes(state.comp)) return false;
+  if (state.q) {
+    const hay = norm(e.name + ' ' + e.ids.map(id => C[id].name).join(' '));
+    if (!hay.includes(norm(state.q))) return false;
+  }
+  return true;
+}
+function matchesComp(c) {
+  if (state.kueche && !c.kuechen.includes(state.kueche)) return false;
+  if (state.tag && !ctags(c).some(t => t.t === state.tag)) return false;
+  if (state.comp && c.id !== state.comp) return false;
+  if (state.q && !norm(c.name).includes(norm(state.q))) return false;
+  return true;
+}
+const ORDER = ['Hähnchen','Pute','Ente & Gans','Rind','Kalb','Lamm','Schwein','Fisch','Meeresfrüchte','Vegetarisch & Vegan','Pasta & Aufläufe','Suppen & Eintöpfe','Salate','Backwaren, Quiches & Wraps','Aufschnitt & Käse','Desserts','Gemüse, Brot & Beilagen','Extras','FF Fleisch','FF Fisch & Meeresfrüchte','FF Vegetarisch','FF Vegan','FF Salate','FF Desserts','FF Aufschnitt & Käse','FF Brötchen & Sandwiches'];
+function refreshFilters(all) {
+  const fill = (id, vals) => {
+    const el = document.getElementById(id), cur = el.value;
+    el.innerHTML = el.options[0].outerHTML + vals.map(k => `<option>${esc(k)}</option>`).join('');
+    el.value = vals.includes(cur) ? cur : '';
+  };
+  fill('fKueche', [...new Set(DB.gerichte.map(g => g.kueche))].sort());
+  fill('fGang', [...new Set(DB.gerichte.map(g => g.gang))]);
+  const sam = [...new Set(all.map(e => e.sammlung))];
+  fill('fSammlung', ORDER.filter(k => sam.includes(k)).concat(sam.filter(k => !ORDER.includes(k)).sort()));
+  state.kueche = document.getElementById('fKueche').value; state.gang = document.getElementById('fGang').value; state.sammlung = document.getElementById('fSammlung').value;
+}
+function legendHtml() {
+  return Object.entries(HCOL).map(([k, v]) => `<span class="lg" style="background:${v[0]};color:${v[1]}">${esc(k)}</span>`).join('') +
+    [['rS','Soße'],['rB1','Beilage: Kartoffeln & Knödel'],['rB2','Beilage: Reis, Nudeln & Getreide'],['rG','Gemüse'],['rE','Extra']].map(([c, t]) => `<span class="lg ${c}">${t}</span>`).join('');
+}
+document.getElementById('legend').innerHTML = legendHtml();
+function render() {
+  const m = document.getElementById('main');
+  const all = DB.gerichte.map(eff);
+  refreshFilters(all);
+  const active = all.filter(e => !e.removed);
+  const nMod = active.filter(e => e.mod).length;
+  document.getElementById('stats').textContent = `· ${active.length} Gerichte${REMOVED.size ? ' (' + REMOVED.size + ' entfernt)' : ''}${nMod ? ' · ' + nMod + ' angepasst' : ''} · ${DB.komponenten.length} Komponenten`;
+  const rb = document.getElementById('showRem');
+  rb.textContent = state.showRemoved ? 'Zurück zu den Gerichten' : `Entfernte Gerichte (${REMOVED.size})`;
+  rb.classList.toggle('active', state.showRemoved);
+  updateUndoUi();
+  let html = '';
+  if (state.view === 'D') {
+    const list = (state.showRemoved ? all.filter(e => e.removed) : active).filter(matchesDish);
+    const by = {};
+    list.forEach(e => (by[e.sammlung] = by[e.sammlung] || []).push(e));
+    const keys = ORDER.filter(k => by[k]).concat(Object.keys(by).filter(k => !ORDER.includes(k)).sort());
+    keys.forEach(k => { html += `<h2>${esc(k)} <span class="count">${by[k].length} Gerichte</span></h2><div class="grid">${by[k].map(dishHtml).join('')}</div>`; });
+    if (!list.length) html = `<div class="empty">${state.showRemoved ? 'Keine entfernten Gerichte.' : 'Keine Gerichte für diesen Filter.'}</div>`;
+  } else {
+    const uses = {};
+    active.forEach(e => e.ids.forEach(id => uses[id] = (uses[id] || 0) + 1));
+    const list = DB.komponenten.filter(matchesComp);
+    [['H','Hauptkomponenten'],['S','Soßen'],['B','Beilagen'],['G','Gemüse'],['E','Extras']].forEach(([r, label]) => {
+      const cs = list.filter(c => c.rolle === r);
+      if (!cs.length) return;
+      html += `<h2>${label} <span class="count">${cs.length}</span></h2>`;
+      const groups = {};
+      cs.forEach(c => (groups[c.gruppe] = groups[c.gruppe] || []).push(c));
+      Object.keys(groups).forEach(gr => {
+        html += `<h3>${esc(gr)} · ${groups[gr].length}</h3><div class="grid">${groups[gr].sort((a, b) => a.name.localeCompare(b.name, 'de')).map(c => compHtml(c, uses)).join('')}</div>`;
+      });
+    });
+    if (!list.length) html = '<div class="empty">Keine Komponenten für diesen Filter.</div>';
+  }
+  const y = window.scrollY;
+  m.innerHTML = html;
+  window.scrollTo(0, y);
+}
+function rerenderCard(id) {
+  const old = document.querySelector('[data-card="' + CSS.escape(id) + '"]');
+  if (!old) return;
+  const t = document.createElement('div');
+  t.innerHTML = dishHtml(eff(dishOf(id)));
+  old.replaceWith(t.firstElementChild);
+}
+
+// ================= Dialoge =================
+const dlgState = { buttons: [] };
+function dlgOpen({ title, sub, body, buttons, onOpen }) {
+  document.getElementById('dlgTitle').textContent = title || '';
+  document.getElementById('dlgSub').textContent = sub || '';
+  document.getElementById('dlgBody').innerHTML = body || '';
+  document.getElementById('dlgBody').style.display = body ? '' : 'none';
+  dlgState.buttons = buttons;
+  document.getElementById('dlgFoot').innerHTML = buttons.map((b, i) => `<button data-i="${i}" class="${b.cls || ''}">${esc(b.label)}</button>`).join('');
+  document.getElementById('dlg').classList.add('open');
+  if (onOpen) onOpen();
+}
+const dlgClose = () => document.getElementById('dlg').classList.remove('open');
+document.getElementById('dlgFoot').addEventListener('click', ev => {
+  const b = ev.target.closest('button'); if (!b) return;
+  const def = dlgState.buttons[+b.dataset.i];
+  if (def.validate && def.validate() === false) return;
+  dlgClose();
+  if (def.fn) def.fn();
+});
+document.getElementById('dlg').addEventListener('click', ev => { if (ev.target.id === 'dlg') dlgClose(); });
+const pkClose = () => document.getElementById('pk').classList.remove('open');
+const closeAll = () => { dlgClose(); pkClose(); };
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { if (document.getElementById('dlg').classList.contains('open')) dlgClose(); else pkClose(); return; }
+  const inField = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName || ''));
+  if ((e.ctrlKey || e.metaKey) && !inField && !document.querySelector('.ov.open')) {
+    if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); if (e.shiftKey) doRedo(); else doUndo(); }
+    else if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); doRedo(); }
+  }
+});
+
+// Klick auf eine Komponente im Gericht: Bearbeiten oder To-Dos ansehen?
+function compMenu(dishId, idx) {
+  const e = eff(dishOf(dishId));
+  const c = C[e.ids[idx]];
+  dlgOpen({
+    title: c.name,
+    sub: ROLE_LABEL[c.rolle] + ' · ' + c.gruppe + ' – in „' + e.name + '“',
+    buttons: [
+      { label: 'Bearbeiten', cls: 'primary', fn: () => pkOpen(dishId, idx, 'swap') },
+      { label: 'To-Dos ansehen', fn: () => todoDlg(c.id) },
+      { label: 'Abbrechen' }
+    ]
+  });
+}
+function todoDlg(id, after) {
+  const c = C[id];
+  dlgOpen({
+    title: 'To-Dos: ' + c.name,
+    sub: 'Arbeitsschritte, die für diese Komponente immer gleich gelten.',
+    body: '<textarea id="tdText" placeholder="To-Do-Schritte hier eintragen …"></textarea>',
+    buttons: [
+      { label: 'Abbrechen', fn: after },
+      { label: 'Speichern', cls: 'primary', fn: () => { const v = document.getElementById('tdText').value; mutate(() => { if (v === (c.todo || '')) delete TODOS[id]; else TODOS[id] = v; }); if (after) after(); } }
+    ],
+    onOpen: () => { const t = document.getElementById('tdText'); t.value = todoOf(c); t.focus(); }
+  });
+}
+// Komponente bearbeiten: Name, Art, Label (Gruppe), Tags, To-Do – alles als Entwurf, erst „Speichern“ übernimmt
+function groupsForRole(role) {
+  const set = new Set(DB.komponenten.filter(c => c.rolle === role).map(c => c.gruppe));
+  if (role === 'H') Object.keys(HCOL).forEach(k => set.add(k));
+  return [...set].sort((a, b) => a.localeCompare(b, 'de'));
+}
+function compEditDlg(id, after) {
+  const c = C[id];
+  const draft = { tags: ctags(c).map(t => t.t) };
+  const NEW = '__neu__';
+  const body = `
+    <label>Name</label><input type="text" id="ceName" autocomplete="off">
+    <div class="hint">Gilt für diese Komponente in allen Gerichten.</div>
+    <label>Art</label><select id="ceRole">${Object.entries(ROLE_LABEL).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select>
+    <label>Label / Gruppe</label><select id="ceGroup"></select>
+    <input type="text" id="ceNew" placeholder="Name der neuen Gruppe …" style="display:none;margin-top:6px" autocomplete="off">
+    <label>Tags</label><div class="tags" id="ceTags" style="margin-top:0"></div>
+    <div class="tagrow"><input type="text" id="ceTagIn" list="alltags" placeholder="Tag hinzufügen …" autocomplete="off"><button id="ceTagAdd" type="button">+ Hinzufügen</button></div>
+    <label>To-Do</label><textarea id="ceTodo" placeholder="To-Do-Schritte …"></textarea>`;
+  const fillGroups = (role, sel) => {
+    const gs = groupsForRole(role);
+    if (sel && !gs.includes(sel)) gs.push(sel);
+    document.getElementById('ceGroup').innerHTML = gs.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('') + `<option value="${NEW}">➕ Neue Gruppe …</option>`;
+    document.getElementById('ceGroup').value = sel && gs.includes(sel) ? sel : gs[0] || NEW;
+    document.getElementById('ceNew').style.display = document.getElementById('ceGroup').value === NEW ? '' : 'none';
+  };
+  const drawTags = () => {
+    document.getElementById('ceTags').innerHTML = draft.tags.map((t, i) => `<span class="tag ${t.endsWith('(-)') ? 'neg' : ''}">${esc(t)}<b class="tx" data-ti="${i}" title="Entfernen">×</b></span>`).join('') || '<span class="hint">Keine Tags</span>';
+  };
+  const addTag = () => { const inp = document.getElementById('ceTagIn'); const v = inp.value.trim(); if (v && !draft.tags.includes(v)) { draft.tags.push(v); drawTags(); } inp.value = ''; inp.focus(); };
+  dlgOpen({
+    title: 'Komponente bearbeiten',
+    sub: 'Original: ' + c.origName,
+    body,
+    buttons: [
+      { label: 'Abbrechen', fn: after },
+      { label: 'Speichern', cls: 'primary',
+        validate: () => { if (!document.getElementById('ceName').value.trim()) { document.getElementById('ceName').focus(); return false; } if (document.getElementById('ceGroup').value === NEW && !document.getElementById('ceNew').value.trim()) { document.getElementById('ceNew').focus(); return false; } },
+        fn: () => {
+          const name = document.getElementById('ceName').value.trim();
+          const rolle = document.getElementById('ceRole').value;
+          const gsel = document.getElementById('ceGroup').value;
+          const gruppe = gsel === NEW ? document.getElementById('ceNew').value.trim() : gsel;
+          const todo = document.getElementById('ceTodo').value;
+          const tags = draft.tags.slice();
+          mutate(() => {
+            if (name === c.origName) delete NAMES[id]; else NAMES[id] = name;
+            if (rolle === c.origRolle && gruppe === c.origGruppe) delete GROUPS[id]; else GROUPS[id] = { rolle, gruppe };
+            if (todo === (c.todo || '')) delete TODOS[id]; else TODOS[id] = todo;
+            const base = c.tags.map(t => t.t);
+            const add = tags.filter(t => !base.includes(t)), del = base.filter(t => !tags.includes(t));
+            if (add.length || del.length) TAGMODS['c:' + id] = { add, del }; else delete TAGMODS['c:' + id];
+            applyCompOverrides();
+          });
+          if (after) after();
+        } }
+    ],
+    onOpen: () => {
+      document.getElementById('ceName').value = c.name;
+      document.getElementById('ceRole').value = c.rolle;
+      fillGroups(c.rolle, c.gruppe);
+      document.getElementById('ceTodo').value = todoOf(c);
+      drawTags(); ensureTagList();
+      document.getElementById('ceRole').onchange = e => fillGroups(e.target.value, null);
+      document.getElementById('ceGroup').onchange = e => { document.getElementById('ceNew').style.display = e.target.value === NEW ? '' : 'none'; if (e.target.value === NEW) document.getElementById('ceNew').focus(); };
+      document.getElementById('ceTags').onclick = e => { const x = e.target.closest('[data-ti]'); if (x) { draft.tags.splice(+x.dataset.ti, 1); drawTags(); } };
+      document.getElementById('ceTagAdd').onclick = addTag;
+      document.getElementById('ceTagIn').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } };
+      document.getElementById('ceName').focus();
+    }
+  });
+}
+
+// ================= Auswahl-Liste (Komponenten tauschen/bearbeiten/hinzufügen) =================
+const pk = { dish: null, idx: 0, mode: 'swap', role: 'S' };
+const ROLE_NAMES = [['S', 'Soße'], ['B', 'Beilage'], ['G', 'Gemüse'], ['E', 'Extra'], ['H', 'Hauptkomponente']];
+function pkRender() {
+  const e = eff(dishOf(pk.dish));
+  const q = norm(document.getElementById('pkQ').value);
+  const roles = document.getElementById('pkRoles'), foot = document.getElementById('pkFoot');
+  let role, title, sub;
+  if (pk.mode === 'swap') {
+    const cur = C[e.ids[pk.idx]];
+    role = cur.rolle;
+    title = ROLE_LABEL[role] + ': ' + cur.name;
+    sub = 'In „' + e.name + '“ · Klick auf eine andere Komponente = tauschen oder bearbeiten';
+    roles.innerHTML = '';
+    foot.innerHTML = '<button id="pkEditCur">Diese Komponente bearbeiten</button><button id="pkDel" class="del"' + (e.ids.length < 2 ? ' disabled' : '') + '>Aus Gericht entfernen</button><button id="pkAdd">Neue Komponente hinzufügen</button><button id="pkFilter">Gerichte mit dieser zeigen</button><button id="pkClose" class="primary">Abbrechen</button>';
+  } else {
+    role = pk.role;
+    title = 'Komponente hinzufügen';
+    sub = 'Zu „' + e.name + '“ · Klick auf eine Komponente = hinzufügen oder bearbeiten';
+    roles.innerHTML = ROLE_NAMES.map(([r, n]) => '<button class="c r' + (r === 'B' ? 'B2' : r) + (r === role ? ' sel' : '') + '" data-role="' + r + '">' + n + '</button>').join('');
+    foot.innerHTML = '<button id="pkClose" class="primary">Abbrechen</button>';
+  }
+  document.getElementById('pkTitle').textContent = title;
+  document.getElementById('pkSub').textContent = sub;
+  const curId = pk.mode === 'swap' ? e.ids[pk.idx] : null;
+  const opts = DB.komponenten.filter(c => c.rolle === role && (!q || norm(c.name).includes(q)) && (pk.mode === 'swap' || !e.ids.includes(c.id)));
+  const groups = {};
+  opts.forEach(c => (groups[c.gruppe] = groups[c.gruppe] || []).push(c));
+  let html = '';
+  Object.keys(groups).forEach(gr => {
+    html += '<h5>' + esc(gr) + '</h5>' + groups[gr].sort((a, b) => a.name.localeCompare(b.name, 'de')).map(c =>
+      '<span class="c pkopt ' + roleClass(c) + (c.id === curId ? ' cur' : '') + '"' + cstyle(c) + ' data-opt="' + c.id + '">' + esc(c.name) + '</span>').join('');
+  });
+  document.getElementById('pkList').innerHTML = html || '<div class="empty">Nichts gefunden.</div>';
+}
+function pkOpen(dish, idx, mode) {
+  pk.dish = dish; pk.idx = idx; pk.mode = mode || 'swap'; pk.role = 'S';
+  document.getElementById('pkQ').value = '';
+  document.getElementById('pk').classList.add('open');
+  pkRender();
+  document.getElementById('pkQ').focus();
+}
+function setIds(dish, ids) {
+  const g = dishOf(dish);
+  if (ids.length === g.teile.length && ids.every((id, i) => id === g.teile[i].comp)) delete MODS[dish]; else MODS[dish] = ids;
+}
+document.getElementById('pkQ').oninput = pkRender;
+document.getElementById('pk').addEventListener('click', ev => {
+  if (ev.target.id === 'pk') { pkClose(); return; }
+  const cur = eff(dishOf(pk.dish));
+  const o = ev.target.closest('[data-opt]');
+  if (o) {
+    const id = o.dataset.opt;
+    if (pk.mode === 'swap' && id === cur.ids[pk.idx]) { compEditDlg(id, pkRender); return; }
+    const doIt = () => {
+      mutate(() => {
+        const ids = cur.ids.slice();
+        if (pk.mode === 'swap') ids[pk.idx] = id;
+        else { const r = ROLE_ORDER[C[id].rolle]; let at = 0; ids.forEach((x, i) => { if (ROLE_ORDER[C[x].rolle] <= r) at = i + 1; }); ids.splice(at, 0, id); }
+        setIds(pk.dish, ids);
+      });
+      pkClose();
+    };
+    dlgOpen({
+      title: C[id].name,
+      sub: 'Was möchtest du mit dieser Komponente tun?',
+      buttons: [
+        { label: pk.mode === 'swap' ? 'In diesem Gericht tauschen' : 'Zu diesem Gericht hinzufügen', cls: 'primary', fn: doIt },
+        { label: 'Bearbeiten', fn: () => compEditDlg(id, pkRender) },
+        { label: 'Abbrechen' }
+      ]
+    });
+    return;
+  }
+  const r = ev.target.closest('[data-role]'); if (r) { pk.role = r.dataset.role; pkRender(); return; }
+  const btn = ev.target.closest('button'); if (!btn) return;
+  if (btn.id === 'pkClose') pkClose();
+  else if (btn.id === 'pkEditCur') compEditDlg(cur.ids[pk.idx], pkRender);
+  else if (btn.id === 'pkAdd') { pk.mode = 'add'; pk.role = 'S'; document.getElementById('pkQ').value = ''; pkRender(); }
+  else if (btn.id === 'pkDel' && cur.ids.length > 1) { mutate(() => { const ids = cur.ids.slice(); ids.splice(pk.idx, 1); setIds(pk.dish, ids); }); pkClose(); }
+  else if (btn.id === 'pkFilter') {
+    const id = cur.ids[pk.idx];
+    pkClose();
+    Object.assign(state, { comp: id, view: 'D', showRemoved: false });
+    document.getElementById('tabD').classList.add('active'); document.getElementById('tabK').classList.remove('active');
+    render(); window.scrollTo(0, 0);
+  }
+});
+
+// ================= Bedienung =================
+const setTab = v => { state.view = v; document.getElementById('tabD').classList.toggle('active', v === 'D'); document.getElementById('tabK').classList.toggle('active', v === 'K'); render(); };
+document.getElementById('tabD').onclick = () => setTab('D');
+document.getElementById('tabK').onclick = () => setTab('K');
+document.getElementById('q').oninput = e => { state.q = e.target.value; render(); };
+document.getElementById('fKueche').onchange = e => { state.kueche = e.target.value; render(); };
+document.getElementById('fGang').onchange = e => { state.gang = e.target.value; render(); };
+document.getElementById('fSammlung').onchange = e => { state.sammlung = e.target.value; render(); };
+document.getElementById('showRem').onclick = () => { state.showRemoved = !state.showRemoved; setTab('D'); };
+document.getElementById('clear').onclick = () => { Object.assign(state, { q: '', kueche: '', gang: '', sammlung: '', tag: '', comp: '' }); document.getElementById('q').value = ''; ['fKueche', 'fGang', 'fSammlung'].forEach(i => document.getElementById(i).value = ''); render(); };
+document.getElementById('undo').onclick = doUndo;
+document.getElementById('redo').onclick = doRedo;
+document.getElementById('main').addEventListener('click', e => {
+  const td = e.target.closest('[data-tagdel]');
+  if (td) { const t = td.dataset.tagdel; tagEdit(td.dataset.owner, m => { if (m.add.includes(t)) m.add = m.add.filter(x => x !== t); else if (!m.del.includes(t)) m.del.push(t); }); return; }
+  const ta = e.target.closest('[data-tagadd]'); if (ta) { startTagInput(ta); return; }
+  const tg = e.target.closest('[data-tag]'); if (tg) { state.tag = state.tag === tg.dataset.tag ? '' : tg.dataset.tag; render(); return; }
+  const pkc = e.target.closest('[data-pick]'); if (pkc) { compMenu(pkc.dataset.pick, +pkc.dataset.idx); return; }
+  const ce = e.target.closest('[data-cedit]'); if (ce) { compEditDlg(ce.dataset.cedit); return; }
+  const ad = e.target.closest('[data-add]'); if (ad) { pkOpen(ad.dataset.add, 0, 'add'); return; }
+  const rm = e.target.closest('[data-remove]'); if (rm) { mutate(() => REMOVED.add(rm.dataset.remove)); return; }
+  const rs = e.target.closest('[data-restore]'); if (rs) { mutate(() => { REMOVED.delete(rs.dataset.restore); if (!REMOVED.size) state.showRemoved = false; }); return; }
+  const rt = e.target.closest('[data-reset]'); if (rt) { mutate(() => { delete MODS[rt.dataset.reset]; delete TAGMODS['d:' + rt.dataset.reset]; }); return; }
+  const cl = e.target.closest('[data-close]'); if (cl) { OPEN.delete(cl.dataset.close); rerenderCard(cl.dataset.close); return; }
+  const tgl = e.target.closest('[data-toggle]'); if (tgl) { const id = tgl.dataset.toggle; if (OPEN.has(id)) OPEN.delete(id); else OPEN.add(id); rerenderCard(id); return; }
+  const cp = e.target.closest('[data-comp]'); if (cp) { state.comp = state.comp === cp.dataset.comp ? '' : cp.dataset.comp; setTab('D'); }
+});
+// To-Do-Textfelder (Sammlungen): sofort speichern, als eine Rückgängig-Stufe pro Eingabe
+let todoBefore = null;
+document.getElementById('main').addEventListener('focusin', e => { if (e.target.dataset && e.target.dataset.todo) todoBefore = snapshot(); });
+document.getElementById('main').addEventListener('input', e => { if (!e.target.dataset.todo) return; TODOS[e.target.dataset.todo] = e.target.value; saveAll(); });
+document.getElementById('main').addEventListener('change', e => { if (e.target.dataset.todo && todoBefore) { pushUndo(todoBefore); todoBefore = null; updateUndoUi(); } });
+
+// ================= Export / Sicherung =================
+function download(name, obj) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(obj, null, 1)], { type: 'application/json' }));
+  a.download = name; a.click();
+}
+document.getElementById('exp').onclick = () => {
+  const out = JSON.parse(JSON.stringify(DB));
+  out.komponenten.forEach(c => {
+    c.todo = todoOf(c); c.tags = ctags(c);
+    if (c.name !== c.origName) c.umbenannt = true;
+    if (c.rolle !== c.origRolle || c.gruppe !== c.origGruppe) c.umgruppiert = true;
+    delete c.origName; delete c.origRolle; delete c.origGruppe;
+  });
+  out.gerichte = DB.gerichte.map(g => {
+    const e = eff(g);
+    return { id: g.id, name: e.name, kueche: g.kueche, gang: g.gang, ff: g.ff, quelle: g.quelle, sammlung: e.sammlung, teile: e.ids.map((id, i) => ({ text: e.texts[i], comp: id })), tags: e.tags, allergene: e.allergene, angepasst: e.mod, entfernt: e.removed };
+  });
+  download('speisendatenbank-angepasst.json', out);
+};
+document.getElementById('bkExp').onclick = () => download('speisenkatalog-aenderungen.json', { format: 'speisenkatalog-aenderungen', version: 1, gespeichert: new Date().toISOString(), daten: KEYS() });
+document.getElementById('bkImp').onclick = () => document.getElementById('bkFile').click();
+document.getElementById('bkFile').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const j = JSON.parse(r.result);
+      if (j.format !== 'speisenkatalog-aenderungen' || !j.daten) throw new Error('falsches Format');
+      mutate(() => restore(JSON.stringify(j.daten)));
+    } catch (err) { alert('Die Datei ist keine gültige Sicherung: ' + err.message); }
+    e.target.value = '';
+  };
+  r.readAsText(f);
+};
+window.addEventListener('beforeunload', () => { if (remote.timer) { clearTimeout(remote.timer); remote.timer = null; pushRemote(); } });
+const hasChanges = () => Object.values(KEYS()).some(v => Array.isArray(v) ? v.length : Object.keys(v).length);
+render();
+document.getElementById('saved').textContent = 'Änderungen werden automatisch gespeichert';
+// Stand vom Server holen (falls vorhanden); sonst den lokalen Stand einmalig hochladen
+loadRemote().then(j => {
+  if (j) {
+    restore(JSON.stringify(j.daten));
+    Object.entries(KEYS()).forEach(([k, v]) => store.set(k, JSON.stringify(v)));
+    undoStack.length = 0; redoStack.length = 0;
+    render();
+    remote.time = new Date().toLocaleTimeString('de-DE'); updateSavedText();
+  } else if (remote.ok && hasChanges()) { saveAll(); }
+  else if (hasChanges()) saveAll();
+});
+</script>
+</body>
+</html>
