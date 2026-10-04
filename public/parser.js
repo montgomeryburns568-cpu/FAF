@@ -76,6 +76,7 @@ const SOFT_STOPWORDS = [
   'personal', 'mietmaterial', 'konditionen', 'probeessen', 'stehtische', 'lieferung au',
   'zusatzkosten', 'location', 'optional: technik', 'textil', 'geschirr',
   'sekt', 'aperitif', 'prosecco',
+  'besonderheiten',   // Büro-Export: Hinweise zu Unverträglichkeiten, keine Speisen
 ];
 function matchStopword(line, list) {
   const low = normalize(line).replace(/[:–-]\s*$/, '').trim();
@@ -264,7 +265,23 @@ function stripBoilerplateLines(rawLines) {
   const noisy = new Set(Array.from(counts.entries()).filter(([l, c]) => c >= 3 && !matchCategory(l)).map(([l]) => l));
   return rawLines
     .filter(l => !noisy.has(l) && !/^Seite\s+\d+$/i.test(l) && !/^--\s*\d+\s*of\s*\d+\s*--$/.test(l))
-    .filter(l => !/^www\.[^\s]+$/i.test(l));
+    .filter(l => !/^www\.[^\s]+$/i.test(l))
+    // Druck-Kopf-/Fußzeilen aus dem Büro-Dashboard ("Office  https://…", "1 von 2  08.09.26, 13:25")
+    .filter(l => !/https?:\/\/work-app-web\.vercel\.app\//i.test(l) && !/^\d+\s+von\s+\d+\s+\d{2}\.\d{2}\.\d{2}/.test(l));
+}
+
+// Beilagen-Kategorien mit Hilfe des Speisenkatalogs korrigieren: Gemüse steht in Angeboten oft unter
+// "Beilagen" und wurde dort als Sättigungsbeilage gezählt (und teilte sich die Personen mit Reis/Kartoffeln).
+// Der Katalog kennt die Art jeder Komponente (Beilage/Gemüse/Soße) – so landet jedes Gericht in der richtigen Kategorie.
+const KATALOG_KATEGORIE = { B: 'beilage-saettigung', G: 'beilage-gemuese', S: 'sosse' };
+function kategorienMitKatalog(days) {
+  if (typeof KatalogTodo === 'undefined' || typeof KatalogTodo.rolleFuer !== 'function') return;
+  days.forEach(d => d.dishes.forEach(dish => {
+    if (!['beilage-saettigung', 'beilage-gemuese', 'sosse'].includes(dish.category)) return;
+    const rolle = KatalogTodo.rolleFuer(dish.name, dish.category);
+    const neu = rolle && KATALOG_KATEGORIE[rolle];
+    if (neu && neu !== dish.category) { dish.kategorieVorher = dish.category; dish.category = neu; }
+  }));
 }
 
 function repairPdfLigatures(text) {
@@ -423,6 +440,13 @@ function parseMenuLines(lines, eventDate) {
     // Nur relevant innerhalb einer "•"/"-"-Liste: bei nacktem Format (keine Aufzählungspunkte
     // ueberhaupt) ist jede Zeile ein eigenes Gericht, sonst wuerden mehrere Gerichte ohne
     // Bullet faelschlich zu einem verschmelzen.
+    // Umbrochene Gerichtsnamen auch ohne Aufzählungspunkte: endet die Zeile davor mit Bindestrich
+    // ("verschiedene Top-" / "pings, dazu ein Dressing") oder mit "und/mit/oder/…" und die nächste beginnt
+    // klein, gehört sie noch zum selben Gericht.
+    if (lastDish && /^[a-zäöüß]/.test(line)) {
+      if (/-$/.test(lastDish.name)) { lastDish.name = lastDish.name.slice(0, -1) + line; continue; }
+      if (/\b(und|mit|oder|sowie|dazu|auf|in|an|von|aus),?$/i.test(lastDish.name) || /,$/.test(lastDish.name)) { lastDish.name += ' ' + line; continue; }
+    }
     if (lastDish && sawBulletInCat) {
       const looksLikeContinuation = line.length < 60 && !/[.!?]\s*$/.test(line);
       if (looksLikeContinuation) { lastDish.name += ' ' + line; continue; }
@@ -478,6 +502,7 @@ function parseAngebot(text, filename) {
 
   const days = parseMenuLines(lines, eventDate);
   finalizeDishes(days, priceRows);
+  kategorienMitKatalog(days);
 
   const notizParts = [];
   const anlass = extractAnlass(allLines);

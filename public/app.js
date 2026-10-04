@@ -408,7 +408,7 @@ function renderDishRow(dish) {
   main.className = 'dish-row';
   main.innerHTML = `
     <input type="text" class="dish-name" value="${dish.name.replace(/"/g, '&quot;')}" placeholder="Gericht">
-    <select class="dish-cat">${categoryOptions(dish.category)}</select>
+    <select class="dish-cat"${dish.kategorieVorher ? ` title="Kategorie vom Speisenkatalog zugeordnet (Angebot: ${catLabel(dish.kategorieVorher)})" style="border-color:var(--accent)"` : ''}>${categoryOptions(dish.category)}</select>
     <input type="number" class="dish-personen" value="${dish.personen ?? ''}" min="0" placeholder="Pers.">
     <button type="button" class="btn-ghost rm small-btn">✕</button>
   `;

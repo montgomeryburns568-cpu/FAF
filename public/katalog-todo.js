@@ -10,12 +10,16 @@ const KatalogTodo = (function () {
   const STOP = new Set(['mit', 'und', 'oder', 'in', 'im', 'an', 'auf', 'zu', 'dazu', 'von', 'vom', 'der', 'die', 'das', 'dem', 'den', 'einer', 'einem', 'ein', 'eine', 'aus', 'nach', 'art', 'wahlweise', 'nur', 'frisch', 'frischen', 'frischem', 'frischer', 'leicht', 'leichter', 'zart', 'zarte']);
   function nk(s) {
     return String(s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '')
-      .replace(/ß/g, 'ss').replace(/sauce/g, 'sosse').replace(/[^a-z0-9]+/g, ' ').trim();
+      .replace(/ß/g, 'ss').replace(/sauce/g, 'sosse')
+      // häufige Schreibvarianten in Angeboten
+      .replace(/broccoli/g, 'brokkoli').replace(/\bmohren?\b/g, 'karotten').replace(/potato(es)?/g, 'kartoffel').replace(/coleslaw/g, 'krautsalat')
+      .replace(/[^a-z0-9]+/g, ' ').trim();
   }
   function stem(w) {
     if (w.length < 5) return w;
     let s = w.replace(/(en|em|er|es)$/, '');
     if (s === w) s = w.replace(/e$/, '');
+    if (s.length > 6) s = s.replace(/n$/, '');      // Kartoffeln = Kartoffel
     return s.length >= 3 ? s : w;
   }
   const tokens = s => nk(s).split(' ').filter(Boolean).map(stem);
@@ -193,5 +197,35 @@ const KatalogTodo = (function () {
     return { komponenten: liste, rest: [...new Set(rest)].slice(0, 6) };
   }
 
-  return { load, refresh, fuerGericht, erkenne, isReady: () => ready, GAR_LABEL };
+  // Art eines (Beilagen-)Gerichts: 'B' Sättigungsbeilage, 'G' Gemüse, 'S' Soße – oder null.
+  // Zuerst über die Komponenten des Katalogs (die erste erkannte entscheidet), sonst über typische Wörter.
+  const ROLLEN_WORTE = {
+    B: /kartoffel|reis\b|reis |nudel|spatzle|knodel|klosse|puree|pommes|wedges|gnocchi|couscous|bulgur|polenta|risotto|pasta|baguette|ciabatta|brot\b/,
+    G: /gemuse|bohnen|karott|brokkoli|blumenkohl|spinat|kohl|erbsen|spargel|zucchini|mais|paprika|aubergine|kurbis|pilz|champignon|lauch|fenchel|rucola|tomaten|salat/,
+    S: /sosse|dip\b|dressing|marinade|ketchup|senf\b|mayo|chutney|pesto|jus\b|creme\b/,
+  };
+  function rolleFuer(dishName, catId) {
+    if (ready) {
+      const { gefunden } = erkenne(dishName, catId);
+      const hit = gefunden.find(c => c.rolle === 'B' || c.rolle === 'G' || c.rolle === 'S');
+      if (hit) return hit.rolle;
+    }
+    // Wortweise von vorn: das erste Wort mit Treffer entscheidet; in Zusammensetzungen gilt der hintere
+    // Teil ("Paprikakartoffeln" = Kartoffel, nicht Paprika)
+    for (const t of nk(dishName).split(' ').filter(Boolean)) {
+      let best = null, bestEnd = -1;
+      for (const [r, re] of Object.entries(ROLLEN_WORTE)) {
+        const g = new RegExp(re.source, 'g');
+        let m;
+        while ((m = g.exec(t))) {
+          if (m.index + m[0].length > bestEnd) { bestEnd = m.index + m[0].length; best = r; }
+          if (!m[0].length) g.lastIndex++;
+        }
+      }
+      if (best) return best;
+    }
+    return null;
+  }
+
+  return { load, refresh, fuerGericht, erkenne, rolleFuer, init: (komponenten, aliase, state) => { window._katalogKomp = komponenten; window._katalogAlias = aliase || []; build(komponenten, state, aliase); }, isReady: () => ready, GAR_LABEL };
 })();
