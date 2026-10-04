@@ -55,6 +55,10 @@
   textarea { width:100%; min-height:62px; margin-top:8px; font:inherit; font-size:13px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; resize:vertical; }
   .note { background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:8px; padding:8px 12px; font-size:12.5px; margin-top:10px; }
   .empty { color:var(--muted); padding:20px; }
+  #toast { position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(20px); background:#1f2937; color:#fff; padding:10px 16px; border-radius:10px; font-size:13.5px; max-width:90vw; opacity:0; pointer-events:none; transition:all .25s; z-index:60; }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  .card.flash { animation: flash 2.5s ease-out; }
+  @keyframes flash { 0% { box-shadow:0 0 0 4px #fdb02e; } 100% { box-shadow:0 0 0 0 rgba(253,176,46,0); } }
   @media (max-width:800px), (max-height:760px) { header { position:static; } }
   /* Dialoge */
   .ov { position:fixed; inset:0; background:rgba(17,24,39,.45); display:none; align-items:flex-start; justify-content:center; padding:5vh 12px; }
@@ -111,6 +115,7 @@
   <div class="note">Tags mit gestrichelter Kontur sind <b>automatisch aus den Namen abgeleitet</b> (v. a. Helal, vegan/vegetarisch, gluten frei, Laktose frei, Allergene) und müssen mit der echten Rezeptur geprüft werden. Rote Tags mit „(-)“ sind negative Merkmale. Alle Änderungen werden sofort im Browser gespeichert; mit „Sicherung speichern“ legst du zusätzlich eine Datei an.</div>
 </header>
 <main id="main"></main>
+<div id="toast"></div>
 <div id="pk" class="ov"><div class="pkbox">
   <div class="pkhead"><h4 id="pkTitle"></h4><div class="sub" id="pkSub"></div><div class="pkroles" id="pkRoles"></div><input id="pkQ" placeholder="Suchen…" autocomplete="off"></div>
   <div class="pklist" id="pkList"></div>
@@ -140,7 +145,10 @@ const state = { view: 'D', q: '', kueche: '', gang: '', sammlung: '', tag: '', c
 const OPEN = new Set();   // aufgeklappte Gerichte
 const esc = s => String(s).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
 const norm = s => (s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '');
-const dishOf = id => DB.gerichte.find(x => x.id === id);
+// Eigene Varianten: Änderungen an einer Speise erzeugen eine NEUE Speise, die Originalspeise bleibt unverändert
+const customDishes = () => Object.entries(CUSTOM).map(([id, c]) => ({ id, name: c.name, kueche: c.kueche, gang: c.gang, ff: c.ff, quelle: 'Eigene Variante', basis: c.basis, variante: true, teile: c.teile, tags: [], allergene: [], sammlung: '' }));
+const allDishes = () => DB.gerichte.concat(customDishes());
+const dishOf = id => DB.gerichte.find(x => x.id === id) || customDishes().find(x => x.id === id);
 
 // ================= Speicher, Rückgängig =================
 let storageOk = true;
@@ -151,11 +159,12 @@ const store = {
 const loadJson = (k, d) => { try { return JSON.parse(store.get(k) || 'null') || d; } catch (e) { return d; } };
 let NAMES = loadJson('speisen_names', {});        // { kompId: Name }
 let MODS = loadJson('speisen_mods', {});          // { gerichtId: [kompId, …] }
+let CUSTOM = loadJson('speisen_custom', {});      // { varianteId: { basis, name, kueche, gang, ff, teile } }
 let REMOVED = new Set(loadJson('speisen_removed', []));
 let TAGMODS = loadJson('speisen_tagmods', {});    // { "d:<gericht>" | "c:<komp>": { add:[], del:[] } }
 let TODOS = loadJson('speisen_todos', {});        // { kompId: Text }
 let GROUPS = loadJson('speisen_groups', {});      // { kompId: { rolle, gruppe } }
-const KEYS = () => ({ speisen_names: NAMES, speisen_mods: MODS, speisen_removed: [...REMOVED], speisen_tagmods: TAGMODS, speisen_todos: TODOS, speisen_groups: GROUPS });
+const KEYS = () => ({ speisen_names: NAMES, speisen_mods: MODS, speisen_custom: CUSTOM, speisen_removed: [...REMOVED], speisen_tagmods: TAGMODS, speisen_todos: TODOS, speisen_groups: GROUPS });
 const snapshot = () => JSON.stringify(KEYS());
 function applyCompOverrides() {
   DB.komponenten.forEach(c => {
@@ -167,8 +176,9 @@ function applyCompOverrides() {
 }
 function restore(str) {
   const s = JSON.parse(str);
-  NAMES = s.speisen_names || {}; MODS = s.speisen_mods || {}; REMOVED = new Set(s.speisen_removed || []);
+  NAMES = s.speisen_names || {}; MODS = s.speisen_mods || {}; CUSTOM = s.speisen_custom || {}; REMOVED = new Set(s.speisen_removed || []);
   TAGMODS = s.speisen_tagmods || {}; TODOS = s.speisen_todos || {}; GROUPS = s.speisen_groups || {};
+  if (typeof migrateMods === 'function') migrateMods();
   applyCompOverrides();
 }
 // Server-Speicher: im Küchensheet-Generator liegt der Stand zusätzlich zentral auf dem Server
@@ -219,6 +229,32 @@ function updateUndoUi() {
 }
 const todoOf = c => TODOS[c.id] ?? c.todo ?? '';
 
+let neueVariante = null;   // zuletzt angelegte Variante (für Hinweis + Scrollen)
+const newVariantId = () => 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+function startVariant(g, ids, forcedId) {
+  const nid = forcedId || newVariantId();
+  CUSTOM[nid] = { basis: g.variante ? g.basis : g.id, name: g.name, kueche: g.kueche, gang: g.gang, ff: g.ff, teile: g.teile };
+  MODS[nid] = ids.slice();
+  OPEN.add(nid);
+  neueVariante = nid;
+  return nid;
+}
+function migrateMods() {
+  let changed = false;
+  Object.keys(MODS).forEach(id => {
+    const g = DB.gerichte.find(x => x.id === id);
+    if (g) {   // feste ID, damit mehrere Geräte/Nutzer dieselbe Variante erzeugen (keine Dopplungen)
+      if (!CUSTOM['vm-' + id]) startVariant(g, MODS[id], 'vm-' + id);
+      neueVariante = null; delete MODS[id]; changed = true;
+    }
+  });
+  if (changed) migrationHappened = true;
+  return changed;
+}
+let migrationHappened = false;
+const migriert = migrateMods();
+migrationHappened = false;
+
 applyCompOverrides();
 
 // ================= Tags =================
@@ -244,7 +280,7 @@ const tagsBlock = (tags, owner) => `<div class="tags">${tags.map(t => tagHtml(t,
 function allTagNames() {
   const set = new Set();
   DB.komponenten.forEach(c => ctags(c).forEach(t => set.add(t.t)));
-  DB.gerichte.forEach(g => g.tags.forEach(t => set.add(t.t)));
+  allDishes().forEach(g => g.tags.forEach(t => set.add(t.t)));
   Object.values(TAGMODS).forEach(m => (m.add || []).forEach(t => set.add(t)));
   return [...set].sort((a, b) => a.localeCompare(b, 'de'));
 }
@@ -397,11 +433,11 @@ function dishHtml(e) {
     const hasTagMod = !!TAGMODS['d:' + g.id];
     details = `<div class="details">
       ${tagsBlock(e.tags, 'd:' + g.id)}
-      <div class="meta">${esc(g.gang)} · ${esc(e.sammlung)}${g.quelle === 'Büro-Katalog' ? ' · aus dem Büro-Katalog' : ''}</div>
+      <div class="meta">${esc(g.gang)} · ${esc(e.sammlung)}${g.quelle === 'Büro-Katalog' ? ' · aus dem Büro-Katalog' : ''}${g.variante ? ' · <b>Eigene Variante</b> von „' + esc(((dishOf(g.basis) || {}).name) || g.name) + '“' : ''}</div>
       ${e.allergene.length ? `<div class="al">Allergene (Hinweis): ${esc(e.allergene.join(', '))}</div>` : ''}
       <div class="rowbtns">${e.removed
         ? `<button class="link" data-restore="${esc(g.id)}">Gericht wiederherstellen</button>`
-        : `<button class="link" data-add="${esc(g.id)}">+ Komponente hinzufügen</button>${(e.mod || hasTagMod) ? `<button class="link" data-reset="${esc(g.id)}">Änderungen zurücksetzen</button>` : ''}<button class="link danger" data-remove="${esc(g.id)}">Gericht entfernen</button><button class="link" data-close="${esc(g.id)}">Zuklappen</button>`}</div>
+        : `<button class="link" data-add="${esc(g.id)}">+ Komponente hinzufügen</button><button class="link" data-copy="${esc(g.id)}">Als neue Speise kopieren</button>${(e.mod || hasTagMod) ? `<button class="link" data-reset="${esc(g.id)}">Änderungen zurücksetzen</button>` : ''}<button class="link danger" data-remove="${esc(g.id)}">Gericht entfernen</button><button class="link" data-close="${esc(g.id)}">Zuklappen</button>`}</div>
     </div>`;
   }
   return `<div class="card ${e.mod ? 'modded' : ''} ${e.removed ? 'rem' : ''} ${open ? 'open' : ''}" data-card="${esc(g.id)}"><div class="dish" data-toggle="${esc(g.id)}">${html}<span class="chev">${OPEN.has(g.id) ? '▴' : '▾'}</span></div>${details}</div>`;
@@ -443,8 +479,8 @@ function refreshFilters(all) {
     el.innerHTML = el.options[0].outerHTML + vals.map(k => `<option>${esc(k)}</option>`).join('');
     el.value = vals.includes(cur) ? cur : '';
   };
-  fill('fKueche', [...new Set(DB.gerichte.map(g => g.kueche))].sort());
-  fill('fGang', [...new Set(DB.gerichte.map(g => g.gang))]);
+  fill('fKueche', [...new Set(allDishes().map(g => g.kueche))].sort());
+  fill('fGang', [...new Set(allDishes().map(g => g.gang))]);
   const sam = [...new Set(all.map(e => e.sammlung))];
   fill('fSammlung', ORDER.filter(k => sam.includes(k)).concat(sam.filter(k => !ORDER.includes(k)).sort()));
   state.kueche = document.getElementById('fKueche').value; state.gang = document.getElementById('fGang').value; state.sammlung = document.getElementById('fSammlung').value;
@@ -456,7 +492,7 @@ function legendHtml() {
 document.getElementById('legend').innerHTML = legendHtml();
 function render() {
   const m = document.getElementById('main');
-  const all = DB.gerichte.map(eff);
+  const all = allDishes().map(eff);
   refreshFilters(all);
   const active = all.filter(e => !e.removed);
   const nMod = active.filter(e => e.mod).length;
@@ -492,6 +528,19 @@ function render() {
   const y = window.scrollY;
   m.innerHTML = html;
   window.scrollTo(0, y);
+  if (neueVariante) {
+    const id = neueVariante; neueVariante = null;
+    const el = document.querySelector('[data-card="' + CSS.escape(id) + '"]');
+    if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('flash'); }
+    const g = dishOf(id);
+    if (g) toast('Neue Speise angelegt: „' + eff(g).name + '“ – die Originalspeise bleibt unverändert.');
+  }
+}
+let toastTimer = null;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 6000);
 }
 function rerenderCard(id) {
   const old = document.querySelector('[data-card="' + CSS.escape(id) + '"]');
@@ -677,7 +726,12 @@ function pkOpen(dish, idx, mode) {
 }
 function setIds(dish, ids) {
   const g = dishOf(dish);
-  if (ids.length === g.teile.length && ids.every((id, i) => id === g.teile[i].comp)) delete MODS[dish]; else MODS[dish] = ids;
+  const gleich = ids.length === g.teile.length && ids.every((id, i) => id === g.teile[i].comp);
+  if (!g.variante) {            // Originalspeise bleibt unverändert, die Änderung wird eine neue Speise
+    if (!gleich) startVariant(g, ids);
+    return;
+  }
+  if (gleich) delete MODS[dish]; else MODS[dish] = ids;
 }
 document.getElementById('pkQ').oninput = pkRender;
 document.getElementById('pk').addEventListener('click', ev => {
@@ -742,6 +796,7 @@ document.getElementById('main').addEventListener('click', e => {
   const pkc = e.target.closest('[data-pick]'); if (pkc) { compMenu(pkc.dataset.pick, +pkc.dataset.idx); return; }
   const ce = e.target.closest('[data-cedit]'); if (ce) { compEditDlg(ce.dataset.cedit); return; }
   const ad = e.target.closest('[data-add]'); if (ad) { pkOpen(ad.dataset.add, 0, 'add'); return; }
+  const cpy = e.target.closest('[data-copy]'); if (cpy) { mutate(() => { const g = dishOf(cpy.dataset.copy); startVariant(g, eff(g).ids); }); return; }
   const rm = e.target.closest('[data-remove]'); if (rm) { mutate(() => REMOVED.add(rm.dataset.remove)); return; }
   const rs = e.target.closest('[data-restore]'); if (rs) { mutate(() => { REMOVED.delete(rs.dataset.restore); if (!REMOVED.size) state.showRemoved = false; }); return; }
   const rt = e.target.closest('[data-reset]'); if (rt) { mutate(() => { delete MODS[rt.dataset.reset]; delete TAGMODS['d:' + rt.dataset.reset]; }); return; }
@@ -769,9 +824,9 @@ document.getElementById('exp').onclick = () => {
     if (c.rolle !== c.origRolle || c.gruppe !== c.origGruppe) c.umgruppiert = true;
     delete c.origName; delete c.origRolle; delete c.origGruppe;
   });
-  out.gerichte = DB.gerichte.map(g => {
+  out.gerichte = allDishes().map(g => {
     const e = eff(g);
-    return { id: g.id, name: e.name, kueche: g.kueche, gang: g.gang, ff: g.ff, quelle: g.quelle, sammlung: e.sammlung, teile: e.ids.map((id, i) => ({ text: e.texts[i], comp: id })), tags: e.tags, allergene: e.allergene, angepasst: e.mod, entfernt: e.removed };
+    return { id: g.id, name: e.name, kueche: g.kueche, gang: g.gang, ff: g.ff, quelle: g.quelle, sammlung: e.sammlung, teile: e.ids.map((id, i) => ({ text: e.texts[i], comp: id })), tags: e.tags, allergene: e.allergene, angepasst: e.mod, entfernt: e.removed, variante: !!g.variante, basis: g.basis || null };
   });
   download('speisendatenbank-angepasst.json', out);
 };
@@ -794,12 +849,14 @@ window.addEventListener('beforeunload', () => { if (remote.timer) { clearTimeout
 const hasChanges = () => Object.values(KEYS()).some(v => Array.isArray(v) ? v.length : Object.keys(v).length);
 render();
 document.getElementById('saved').textContent = 'Änderungen werden automatisch gespeichert';
+if (migriert) saveAll();
 // Stand vom Server holen (falls vorhanden); sonst den lokalen Stand einmalig hochladen
 loadRemote().then(j => {
   if (j) {
     restore(JSON.stringify(j.daten));
     Object.entries(KEYS()).forEach(([k, v]) => store.set(k, JSON.stringify(v)));
     undoStack.length = 0; redoStack.length = 0;
+    if (migrationHappened) { migrationHappened = false; saveAll(); }   // alte Direktänderungen wurden in Varianten umgewandelt
     render();
     remote.time = new Date().toLocaleTimeString('de-DE'); updateSavedText();
   } else if (remote.ok && hasChanges()) { saveAll(); }
