@@ -173,7 +173,22 @@ function computePfanneComponent(comp, P, pfannenGramm, recipes, rules) {
   return result;
 }
 
+// Erweitert die Berechnung um die Komponenten des Speisenkatalogs (Menge + To-Dos je Komponente).
+// Rezepte aus der Rezepte-Datenbank werden je Komponente herangezogen (Zutaten + Zubereitung);
+// Pfannen, Brot, Fingerfood/Flying und Gerichte mit Portionsstufen (Kokotten) behalten ihre bisherige Berechnung.
 function computeDish(dish, recipes, rules) {
+  const result = computeDishBase(dish, recipes, rules);
+  const recipe = result.recipe ? recipes.find(r => r.id === result.recipe) : null;
+  const behalteAlt = result.isPfanne || ['fingerfood', 'flying', 'brot', 'pfanne'].includes(dish.category)
+    || (recipe && recipe.portionStufen && recipe.portionStufen.length)
+    || (recipe && ['vorspeise', 'dessert', 'sonstiges'].includes(dish.category));
+  if (!behalteAlt && typeof KatalogTodo !== 'undefined') {
+    const k = KatalogTodo.fuerGericht(dish, { rules, recipes, findRecipe: findRecipeForDish, unitToGrams });
+    if (k) { result.komponenten = k.komponenten; result.komponentenRest = k.rest; }
+  }
+  return result;
+}
+function computeDishBase(dish, recipes, rules) {
   const cat = catById(dish.category) || catById('sonstiges');
   const role = cat.formulaRole;
   const P = dish.personen || 0;
@@ -343,6 +358,8 @@ document.getElementById('tabnav').addEventListener('click', e => {
   switchTab(btn.dataset.tab);
   if (btn.dataset.tab === 'einkaufsliste') renderEinkaufsliste();
   if (btn.dataset.tab === 'speisenkatalog') loadKatalog();
+  // Änderungen aus dem Speisenkatalog (To-Dos, Namen, Labels) in die To-Do-Liste übernehmen
+  if (btn.dataset.tab === 'todo') KatalogTodo.refresh().then(ok => { if (ok) renderTodo(); });
 });
 
 // ---------- Angebot tab: editor rendering ----------
@@ -940,6 +957,10 @@ function renderTodo() {
         });
         return;
       }
+      if (d.komponenten && d.komponenten.length) {
+        html += renderKomponentenTodo(d, day);
+        return;
+      }
       const checkId = day.id + '_' + d.id;
       const checked = !!draftEvent.todoChecks[checkId];
       html += `<div class="todo-item ${checked ? 'checked' : ''}" data-check-id="${checkId}">
@@ -956,13 +977,36 @@ function renderTodo() {
   });
   out.innerHTML = html;
 }
+function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m])); }
+
+// Gericht mit erkannten Speisenkatalog-Komponenten: je Komponente Menge (aus den Referenzdaten) + To-Dos
+const KOMP_ROLE_LABEL = { H: 'Hauptkomponente', S: 'Soße', B: 'Beilage', G: 'Gemüse' };
+function renderKomponentenTodo(d, day) {
+  let html = `<div class="todo-dish"><div class="todo-dish-title"><strong>${escHtml(d.name)}</strong><span class="hint"> · ${d.personen} Personen${['vorspeise', 'dessert', 'sonstiges'].includes(d.category) && d.totalLabel ? ' · ' + escHtml(d.totalLabel) : ''}</span></div>`;
+  d.komponenten.forEach(k => {
+    const checkId = day.id + '_' + d.id + '_k' + k.id;
+    const checked = !!draftEvent.todoChecks[checkId];
+    const gar = (k.garMethod && k.menge)
+      ?` <select class="todo-comp-gar no-print" data-day="${day.id}" data-dish="${d.id}" data-comp="${k.id}" title="Garmethode für diese Komponente">${garMethodOptions(k.garMethod)}</select>` : '';
+    html += `<div class="todo-item todo-komp ${checked ? 'checked' : ''}" data-check-id="${checkId}">
+      <input type="checkbox" class="todo-check" ${checked ? 'checked' : ''}>
+      <div class="todo-text">
+        <div class="todo-komp-head">${k.menge ? '<strong class="todo-menge">' + escHtml(k.menge) + '</strong> ' : ''}<strong>${escHtml(k.name)}</strong> <span class="hint">(${KOMP_ROLE_LABEL[k.rolle] || ''}${k.refLabel ? '' : ''})</span>${gar}</div>
+        ${k.formel ? `<div class="todo-formula">${escHtml(k.formel)}</div>` : ''}
+        ${k.rezept && k.rezept.zutaten.length ? `<ul class="ingredient-list">${k.rezept.zutaten.map(i => `<li>${fmtAmount(i.amount)} ${escHtml(i.unit)} ${escHtml(i.name)}</li>`).join('')}</ul>` : ''}
+        ${k.todo ? `<div class="todo-steps">${escHtml(k.todo)}</div>`
+          : (k.rezept && k.rezept.steps ? `<div class="todo-steps">${escHtml(k.rezept.steps)}</div>` : '<div class="todo-steps hint">Noch kein To-Do im Speisenkatalog hinterlegt.</div>')}
+      </div>
+    </div>`;
+  });
+  if (d.komponentenRest && d.komponentenRest.length) {
+    html += `<div class="hint no-print" style="margin:4px 0 0 28px">Nicht zugeordnet: ${d.komponentenRest.map(escHtml).join(', ')}</div>`;
+  }
+  return html + `</div>`;
+}
+
 let todoSaveTimer = null;
-document.getElementById('todoOutput').addEventListener('change', e => {
-  if (!e.target.classList.contains('todo-check')) return;
-  const item = e.target.closest('.todo-item');
-  const checkId = item.dataset.checkId;
-  draftEvent.todoChecks[checkId] = e.target.checked;
-  item.classList.toggle('checked', e.target.checked);
+function persistDraftSoon() {
   const idx = state.events.findIndex(ev => ev.id === draftEvent.id);
   if (idx === -1) return;
   state.events[idx] = draftEvent;
@@ -970,6 +1014,22 @@ document.getElementById('todoOutput').addEventListener('change', e => {
   todoSaveTimer = setTimeout(() => {
     API.send('PUT', '/api/events/' + draftEvent.id, draftEvent).catch(err => console.error('To-Do speichern fehlgeschlagen:', err));
   }, 500);
+}
+document.getElementById('todoOutput').addEventListener('change', e => {
+  if (e.target.classList.contains('todo-comp-gar')) {
+    const dish = findDish(findDay(e.target.dataset.day), e.target.dataset.dish);
+    dish.compGar = dish.compGar || {};
+    dish.compGar[e.target.dataset.comp] = e.target.value;
+    persistDraftSoon();
+    renderTodo();
+    return;
+  }
+  if (!e.target.classList.contains('todo-check')) return;
+  const item = e.target.closest('.todo-item');
+  const checkId = item.dataset.checkId;
+  draftEvent.todoChecks[checkId] = e.target.checked;
+  item.classList.toggle('checked', e.target.checked);
+  persistDraftSoon();
 });
 document.getElementById('printTodoBtn').addEventListener('click', () => window.print());
 
@@ -1145,6 +1205,7 @@ const RULE_FIELDS = [
   { key: 'hauptteilGramm', label: 'Hauptgang: Gramm Hauptteil pro Portion' },
   { key: 'saettigungGramm', label: 'Sättigungsbeilage: Gramm pro Portion' },
   { key: 'gemueseGramm', label: 'Gemüsebeilage: Gramm pro Portion' },
+  { key: 'sosseGramm', label: 'Soße: ml pro Portion (Hauptgang)' },
   { key: 'garverlustStandard', label: 'Garverlust-Faktor (Standard)' },
   { key: 'garverlustSchmoren', label: 'Garverlust-Faktor (Schmoren/Braten)' },
   { key: 'garzuwachs', label: 'Garzuwachs-Faktor' },
@@ -1156,7 +1217,7 @@ const RULE_FIELDS = [
 ];
 function renderRulesForm() {
   document.getElementById('rulesForm').innerHTML = RULE_FIELDS.map(f => `
-    <label>${f.label}<input type="number" step="any" data-rule="${f.key}" value="${state.rules[f.key]}"></label>
+    <label>${f.label}<input type="number" step="any" data-rule="${f.key}" value="${state.rules[f.key] != null ? state.rules[f.key] : (DEFAULT_RULES[f.key] != null ? DEFAULT_RULES[f.key] : '')}"></label>
   `).join('');
   syncCategoryBaseGrams();
 }
@@ -1408,6 +1469,7 @@ function render() {
 async function boot() {
   try {
     state = await loadState();
+    await KatalogTodo.load();   // Speisenkatalog (Komponenten + To-Dos) für die To-Do-Liste
     render();
   } catch (err) {
     console.error(err);

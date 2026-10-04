@@ -122,6 +122,12 @@ app.get('/api/speisenkatalog/page', requireAuth, (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.type('html').send(require('./speisenkatalog/katalog-html.js'));
 });
+// Schlanke Komponentenliste + aktueller Änderungsstand (für die To-Do-Erkennung im Generator)
+app.get('/api/speisenkatalog/komponenten', requireAuth, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const daten = require('./speisenkatalog/katalog-komponenten.js');
+  res.json({ komponenten: daten.komponenten, aliase: daten.aliase, state: await store.getSpeisenkatalog() });
+});
 app.get('/api/speisenkatalog/state', requireAuth, async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json(await store.getSpeisenkatalog());

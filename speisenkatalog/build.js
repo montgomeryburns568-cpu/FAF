@@ -366,6 +366,21 @@ fs.writeFileSync(IDS_FILE, JSON.stringify(REG, null, 0), 'utf8');
 const tpl = fs.readFileSync(path.join(DIR, 'katalog-template.html'), 'utf8');
 const html = tpl.replace('/*__DB__*/null', () => JSON.stringify(out));
 fs.writeFileSync(path.join(DIR, 'speisenkatalog.html'), html, 'utf8');
+// Schlanke Komponentenliste für den Küchensheet-Generator (To-Do-Erkennung): Name, Art, Gruppe, Garmethode, To-Do-Text
+const slim = out.komponenten.map(c => ({ id: c.id, name: c.name, rolle: c.rolle, gruppe: c.gruppe, gar: c.garMethodVorschlag || null, todo: c.todo || '' }));
+// Aliase: so wie ein Gericht im Katalog geschrieben ist (z. B. "Tortelloni gefüllt mit Spinat und Ricotta"), wenn es vom Komponentennamen abweicht
+const aliasSet = new Map();
+const compNameById = new Map(out.komponenten.map(c => [c.id, c]));
+for (const g of out.gerichte) for (const p of g.teile) {
+  const c = compNameById.get(p.comp);
+  if (!c || c.rolle === 'E') continue;
+  const t = p.text.trim();
+  // nur mehrteilige Schreibweisen: Einzelwörter wie "Vegan", "Hackfleisch" oder "Champignons" wären zu unspezifisch
+  if (t.length < 4 || !/[\s-]/.test(t) || t.split(/\s+/).length > 7 || norm(t) === norm(c.name)) continue;
+  aliasSet.set(norm(t) + '|' + c.id, [t, c.id]);
+}
+const out2 = { komponenten: slim, aliase: [...aliasSet.values()] };
+fs.writeFileSync(path.join(DIR, 'katalog-komponenten.js'), '// Automatisch von build.js erzeugt – nicht von Hand ändern.\nmodule.exports = ' + JSON.stringify(out2) + ';\n', 'utf8');
 // Für den Server als JS-Modul (wird beim Deploy automatisch mit eingepackt)
 fs.writeFileSync(path.join(DIR, 'katalog-html.js'), '// Automatisch von build.js erzeugt – nicht von Hand ändern.\nmodule.exports = ' + JSON.stringify(html) + ';\n', 'utf8');
 

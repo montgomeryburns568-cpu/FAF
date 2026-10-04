@@ -197,6 +197,12 @@ button {
 .todo-item.checked .todo-text { text-decoration: line-through; color: var(--muted); }
 .todo-text { font-size: 13px; }
 .todo-formula { font-family: 'Courier New', monospace; color: var(--accent-text); }
+.todo-dish { margin: 12px 0 4px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius); }
+.todo-dish-title { font-size: 14px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+.todo-komp-head { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.todo-menge { font-size: 14px; }
+.todo-comp-gar { font-size: 11px; padding: 1px 4px; max-width: 220px; }
+.todo-steps { margin-top: 4px; white-space: pre-line; font-size: 13px; }
 
 .recipe-list { max-height: 560px; overflow-y: auto; margin-top: 10px; }
 .recipe-item { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; cursor: pointer; display: flex; justify-content: space-between; }
