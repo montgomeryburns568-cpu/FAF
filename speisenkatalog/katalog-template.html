@@ -227,7 +227,7 @@ function updateUndoUi() {
   u.disabled = !undoStack.length; r.disabled = !redoStack.length;
   u.textContent = '↶ Rückgängig' + (undoStack.length ? ' (' + undoStack.length + ')' : '');
 }
-const todoOf = c => TODOS[c.id] ?? c.todo ?? '';
+const todoOf = c => (TODOS[c.id] != null && String(TODOS[c.id]).trim() !== '') ? TODOS[c.id] : (c.todo || '');
 
 let neueVariante = null;   // zuletzt angelegte Variante (für Hinweis + Scrollen)
 const newVariantId = () => 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
@@ -601,7 +601,10 @@ function todoDlg(id, after) {
   dlgOpen({
     title: 'To-Dos: ' + c.name,
     sub: 'Arbeitsschritte, die für diese Komponente immer gleich gelten.',
-    body: '<textarea id="tdText" placeholder="To-Do-Schritte hier eintragen …"></textarea>',
+    body: (c.zutaten ? '<div class="hint" style="margin:8px 0 2px"><b>Rezept (Bezugsmenge ' + c.referenzMenge + ' g/ml):</b> ' + c.zutaten.map(z => (z.amount != null ? String(z.amount).replace('.', ',') + (z.unit ? ' ' + z.unit : '') + ' ' : '') + esc(z.name)).join(', ') + '</div>'
+      + (c.todoQuelle === 'Standardrezept' && TODOS[id] == null ? '<div class="hint">Standardrezept (Vorschlag) – bitte prüfen und bei Bedarf anpassen.</div>' : '')
+      + (c.rezeptName ? '<div class="hint">Im Generator verknüpft mit dem Rezept „' + esc(c.rezeptName) + '“ (Rezepte-Tab).</div>' : '') : '')
+      + '<textarea id="tdText" placeholder="To-Do-Schritte hier eintragen …"></textarea>',
     buttons: [
       { label: 'Abbrechen', fn: after },
       { label: 'Speichern', cls: 'primary', fn: () => { const v = document.getElementById('tdText').value; mutate(() => { if (v === (c.todo || '')) delete TODOS[id]; else TODOS[id] = v; }); if (after) after(); } }

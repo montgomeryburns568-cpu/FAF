@@ -179,11 +179,11 @@ function computePfanneComponent(comp, P, pfannenGramm, recipes, rules) {
 function computeDish(dish, recipes, rules) {
   const result = computeDishBase(dish, recipes, rules);
   const recipe = result.recipe ? recipes.find(r => r.id === result.recipe) : null;
-  const behalteAlt = result.isPfanne || ['fingerfood', 'flying', 'brot', 'pfanne'].includes(dish.category)
-    || (recipe && recipe.portionStufen && recipe.portionStufen.length)
-    || (recipe && ['vorspeise', 'dessert', 'sonstiges'].includes(dish.category));
+  // Nur Pfannen, Brot und Gerichte mit Portionsstufen (Kokotten) behalten ihre eigene Berechnung
+  const behalteAlt = result.isPfanne || ['brot', 'pfanne'].includes(dish.category)
+    || (recipe && recipe.portionStufen && recipe.portionStufen.length);
   if (!behalteAlt && typeof KatalogTodo !== 'undefined') {
-    const k = KatalogTodo.fuerGericht(dish, { rules, recipes, findRecipe: findRecipeForDish, unitToGrams });
+    const k = KatalogTodo.fuerGericht(dish, { rules, recipes, findRecipe: findRecipeForDish, unitToGrams, gesamtGramm: result.gesamtGramm, gesamtFormel: result.gesamtFormel });
     if (k) { result.komponenten = k.komponenten; result.komponentenRest = k.rest; }
   }
   return result;
@@ -233,6 +233,8 @@ function computeDishBase(dish, recipes, rules) {
     const teilePerPerson = dish.teilePerPerson || (role === 'flying' ? rules.flyingTeilePerPerson : rules.fingerfoodTeilePerPerson);
     let totalTeile = P * teilePerPerson;
     if (dish.multiplikator) totalTeile = totalTeile * dish.multiplikator;
+    result.gesamtGramm = totalTeile * rules.fingerfoodTeilGramm;
+    result.gesamtFormel = `${fmtAmount(totalTeile)} Teile × ${rules.fingerfoodTeilGramm} g`;
     const ffMatch = FINGERFOOD_TEIL_TABLE.find(f => normalize(dish.name).includes(normalize(f.name)) || normalize(f.name).includes(normalize(dish.name)));
     result.formula = `(${P}×${teilePerPerson}) = ${fmtAmount(totalTeile)} Teile`;
     if (ffMatch) {
@@ -259,6 +261,7 @@ function computeDishBase(dish, recipes, rules) {
   const baseGram = cat.baseGram || 0;
   const roleUsesGarFactor = role === 'hauptteil' || role === 'saettigung' || role === 'gemuese';
   const neededGrams = baseGram > 0 ? P * baseGram * (roleUsesGarFactor ? garFactor : 1) : null;
+  if (neededGrams != null) { result.gesamtGramm = neededGrams; result.gesamtFormel = `${P} × ${baseGram} g`; }
 
   if (recipe && recipe.portionStufen && recipe.portionStufen.length && !dish.multiplikator) {
     const combo = findKokottenCombo(P, recipe.portionStufen);
@@ -1055,15 +1058,28 @@ function refreshCategorySelect() {
 function renderRecipeList() {
   const q = normalize(document.getElementById('recipeSearch').value);
   const listEl = document.getElementById('recipeList');
-  const items = state.recipes.filter(r => !q || normalize(r.name).includes(q));
+  const hideStd = document.getElementById('hideStd') && document.getElementById('hideStd').checked;
+  const items = state.recipes.filter(r => (!q || normalize(r.name).includes(q)) && !(hideStd && r.standard));
   listEl.innerHTML = items.map(r => `
     <div class="recipe-item" data-id="${r.id}">
       <span>${r.name}</span>
-      <span class="tag">${catLabel(r.category)}</span>
+      <span>${r.standard ? '<span class="tag" title="Standardrezept aus dem Speisenkatalog (Bezugsmenge 200 g/ml) – bitte prüfen">Standard</span> ' : ''}<span class="tag">${catLabel(r.category)}</span></span>
     </div>
   `).join('') || '<p class="hint">Keine Rezepte gefunden.</p>';
 }
 document.getElementById('recipeSearch').addEventListener('input', renderRecipeList);
+document.getElementById('hideStd').addEventListener('change', renderRecipeList);
+document.getElementById('stdImportBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('stdImportBtn');
+  btn.disabled = true;
+  try {
+    const r = await API.send('POST', '/api/recipes/standard-import');
+    state.recipes = r.recipes;
+    renderRecipeList();
+    alert(r.added ? `${r.added} Standardrezepte ergänzt (Bezugsmenge 200 g/ml, im Rezepte-Tab mit „Standard“ markiert).` : 'Alle Standardrezepte sind bereits vorhanden.');
+  } catch (err) { alert('Fehler: ' + err.message); }
+  finally { btn.disabled = false; }
+});
 document.getElementById('recipeList').addEventListener('click', e => {
   const item = e.target.closest('.recipe-item');
   if (!item) return;

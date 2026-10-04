@@ -12,7 +12,7 @@ const KatalogTodo = (function () {
     return String(s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '')
       .replace(/ß/g, 'ss').replace(/sauce/g, 'sosse')
       // häufige Schreibvarianten in Angeboten
-      .replace(/broccoli/g, 'brokkoli').replace(/\bmohren?\b/g, 'karotten').replace(/potato(es)?/g, 'kartoffel').replace(/coleslaw/g, 'krautsalat')
+      .replace(/cheescake/g, 'cheesecake').replace(/anti-?\s?pasti/g, 'antipasti').replace(/broccoli/g, 'brokkoli').replace(/\bmohren?\b/g, 'karotten').replace(/potato(es)?/g, 'kartoffel').replace(/coleslaw/g, 'krautsalat')
       .replace(/[^a-z0-9]+/g, ' ').trim();
   }
   function stem(w) {
@@ -43,11 +43,15 @@ const KatalogTodo = (function () {
     byId = Object.fromEntries(eff.map(c => [c.id, c]));
     // Suchbegriffe: Komponentenname + Schreibweisen aus den Katalog-Gerichten (Aliase)
     comps = [];
-    eff.forEach(c => { if (nk(c.name).length >= 4) comps.push({ c, tok: tokens(c.name) }); });
-    (aliase || window._katalogAlias || []).forEach(([text, id]) => {
-      const c = byId[id];
-      if (c && nk(text).length >= 4) comps.push({ c, tok: tokens(text) });
-    });
+    // Jede Schreibweise auch ohne Bindestriche ("Hähnchen-Schnitzel" = "Hähnchenschnitzel")
+    const push = (c, text) => {
+      if (nk(text).length < 4) return;
+      comps.push({ c, tok: tokens(text) });
+      const joined = text.replace(/-/g, '');
+      if (joined !== text) comps.push({ c, tok: tokens(joined) });
+    };
+    eff.forEach(c => push(c, c.name));
+    (aliase || window._katalogAlias || []).forEach(([text, id]) => { const c = byId[id]; if (c) push(c, text); });
     comps = comps.filter(e => e.tok.length);
     ready = true;
   }
@@ -171,14 +175,26 @@ const KatalogTodo = (function () {
     const liste = gefunden.map(c => {
       const ref = proPerson(c.rolle, catId, rules);
       const override = dish.compGar && dish.compGar[c.id];
-      const garMethod = ref && ref.ohneGar ? null : (override || c.gar || (ref ? 'standard' : null));
+      const garMethod = ref ? (ref.ohneGar ? null : (override || c.gar || 'standard')) : null;
       const factor = garMethod ? garFactorOf(garMethod, rules) : 1;
       const share = 1 / gleicheRolle[c.rolle];
-      let grams = null, formel = '';
+      let grams = null, formel = '', unit = ref ? ref.unit : 'g';
       if (ref && P > 0) {
         const roh = P * ref.g * share;
         grams = roh * factor;
         formel = `${P} × ${num(ref.g)} ${ref.unit}${share < 1 ? ' × ' + num(share) : ''}${garMethod && factor !== 1 ? ' × ' + num(factor) + ' (' + GAR_LABEL[garMethod] + ')' : ''}`;
+      } else if (!ref && ctx.gesamtGramm > 0) {
+        // Vorspeise, Dessert, Fingerfood …: Gesamtmenge des Gerichts (Regeln) auf die Hauptkomponenten verteilen;
+        // Soßen/Dips nach Referenzwert "Dips: 30 g pro Portion"
+        const haupt = gefunden.filter(x => x.rolle !== 'S').length;
+        if (c.rolle === 'S' && haupt && P > 0) {
+          grams = P * 30; unit = 'ml'; formel = `${P} × 30 ml (Dip/Soße)`;
+        } else {
+          const anteil = c.rolle === 'S' ? 1 : 1 / Math.max(1, haupt);
+          grams = ctx.gesamtGramm * anteil;
+          unit = c.rolle === 'S' ? 'ml' : 'g';
+          formel = ctx.gesamtFormel + (anteil < 1 ? ' × ' + Math.round(anteil * 100) + ' %' : '');
+        }
       }
       const rez = zutatenFuer(c, grams, P, share, recipes, unitToGrams);
       // To-Do-Text: im Katalog bearbeiteter Text > eigener Katalogtext > Zubereitung des Rezepts > Standardzubereitung
@@ -189,8 +205,8 @@ const KatalogTodo = (function () {
       else if (c.todoBase) { todo = c.todoBase; todoQuelle = 'Standardrezept (Vorschlag)'; }
       return {
         id: c.id, name: c.name, rolle: c.rolle, gruppe: c.gruppe,
-        refLabel: ref ? ref.label : '', garMethod, grams, unit: ref ? ref.unit : 'g',
-        menge: grams != null ? fmtMenge(grams, ref.unit) : '', formel,
+        refLabel: ref ? ref.label : '', garMethod, grams, unit,
+        menge: grams != null ? fmtMenge(grams, unit) : '', formel,
         todo, todoQuelle, rezept: rez && rez.art === 'rezept' ? rez.name : '', zutaten: rez ? rez.zutaten : [], temp: rez ? rez.temp : '',
       };
     });

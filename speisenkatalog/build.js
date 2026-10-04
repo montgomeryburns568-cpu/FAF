@@ -82,22 +82,22 @@ const compById = new Map([...comps.values()].map(c => [c.id, c]));
 // ---------- 2. Sammlungen (Gruppen) ----------
 const SAVORY_NOT_DESSERT = /reibekuchen|mozzarella|forelle|lachs|pilz|frischkase|kase\b|thunfisch|ziegenkase|schafskase/;
 function proteinGroup(n) {
-  if (has(n, /suppe|eintopf|bruhe|gazpacho|minestrone|ribollita|bauerntopf|schneegestober|susppchen|suppchen/)) return 'Suppen & Eintöpfe';
-  if (has(n, /hahnchen|huhn|chicken|poularde|wings|backhendl|coq au vin/)) return 'Hähnchen';
+  if (has(n, /suppe|eintopf|bruhe|gazpacho|minestrone|ribollita|bauerntopf|schneegestober|susppchen|suppchen|borschtsch/)) return 'Suppen & Eintöpfe';
+  if (has(n, /hahnchen|huhn|chicken|poularde|wings|backhendl|coq au vin|kiewer/)) return 'Hähnchen';
   if (has(n, /\bpute|puten/)) return 'Pute';
   if (has(n, /\bente|entenbrust|entenkeule|barbarie|\bgans|ganse/)) return 'Ente & Gans';
   if (has(n, /kalb|wiener schnitzel|vitello/)) return 'Kalb';
   if (has(n, /(?<!f)lamm/)) return 'Lamm';
   if (has(n, /garnele|scampi|gambas|shrimp|muschel|calamari|tintenfisch|meeresfruchte|vongole|paella|crevette|krabbe|crabcake/) && !has(n, /gemuse/)) return 'Meeresfrüchte';
-  if (has(n, /lachs|zander|kabeljau|seelachs|forelle|dorade|wolfsbarsch|thunfisch|seeteufel|matjes|pangasius|tilapia|backfisch|fisch|poke|saint pierre|seehecht|kaviar/) && !has(n, /schweinelachs/)) return 'Fisch';
-  if (has(n, /creme|mousse|tiramisu|panna cotta|pudding|grutze|flammerie|crumble|cheesecake|brownie|muffin|kuchen|kuchlein|brulee|obstsalat|fruchtsalat|porridge|tarte|milchreis|hafermilchreis|\bpie\b|pfirsiche|cookie/) && !has(n, SAVORY_NOT_DESSERT)) return 'Desserts';
-  if (has(n, /tortelloni|ravioli|lasagne|cannelloni|gnocchi|linguine|penne|tagliatelle|spaghetti|pasta|nudeln|orzo|zoodles/)) return 'Pasta & Aufläufe';
-  if (has(n, /quiche|pastete|wrap|crepe|brotchen|focaccia|sandwich|bagel|toast|blatterteig|strudel|borek|tartine|bao buns|taco|pizza|frittata|kanapee|baguette|schnecke/) && !has(n, /beef|rind|schwein|speck|hack/)) return 'Backwaren, Quiches & Wraps';
+  if (has(n, /lachs|zander|kabeljau|seelachs|forelle|dorade|wolfsbarsch|thunfisch|seeteufel|matjes|pangasius|tilapia|backfisch|fisch|poke|saint pierre|seehecht|kaviar|hering/) && !has(n, /schweinelachs/)) return 'Fisch';
+  if (has(n, /creme|mousse|tiramisu|panna cotta|pudding|grutze|flammerie|crumble|cheesecake|brownie|muffin|kuchen|kuchlein|brulee|obstsalat|fruchtsalat|porridge|tarte|milchreis|hafermilchreis|\bpie\b|pfirsiche|cookie|catalana|medovik|syrniki|cannoli|windbeutel|spritzkuchen|oats|acai|obstspiess|milchreis/) && !has(n, SAVORY_NOT_DESSERT)) return 'Desserts';
+  if (has(n, /tortelloni|ravioli|lasagne|cannelloni|gnocchi|linguine|penne|tagliatelle|spaghetti|pasta|nudeln|nudel\b|orzo|zoodles|pelmeni|wareniki|piroggen/)) return 'Pasta & Aufläufe';
+  if (has(n, /quiche|pastete|wrap|crepe|brotchen|focaccia|sandwich|bagel|toast|blatterteig|strudel|borek|tartine|bao buns|taco|pizza|frittata|kanapee|canape|baguette|schnecke|zwiebelkuchen|empanada|blini|laugenkonfekt|schlafrock/) && !has(n, /beef|rind|schwein|speck|hack/)) return 'Backwaren, Quiches & Wraps';
   if (has(n, /vegan|veggie|gemuse|tofu|linsen|kichererbsen|falafel|halloumi|paneer|ricotta|kasespatzle|kaiserschmarrn|reibekuchen|bohnen-chili|sin carne/)) return 'Vegetarisch & Vegan';
   if (has(n, /^frikadellen|klopse|leberkase|bratwurst/)) return 'Schwein';
-  if (has(n, /rind|roastbeef|tafelspitz|rumpsteak|ossobuco|bistecca|carpaccio|beef|brisket|kofta|chili con carne|klopse|frikadell|hackfleisch|hackball|hackbraten|hacksteak|hackpatty|burger|stroganoff|rouladen|sauerbraten|gulasch|cevapcici|ragout/) && !has(n, /vegan|veggie|gemuse-|linsen|tofu/) && !has(n, /schwein/)) return 'Rind';
+  if (has(n, /rind|roastbeef|tafelspitz|rumpsteak|ossobuco|bistecca|carpaccio|beef|brisket|kofta|chili con carne|klopse|frikadell|hackfleisch|hackball|hackbraten|hacksteak|hackpatty|burger|stroganoff|rouladen|sauerbraten|gulasch|cevapcici|ragout|polpette|kohlroulade|wellington/) && !has(n, /vegan|veggie|gemuse-|linsen|tofu/) && !has(n, /schwein/)) return 'Rind';
   if (has(n, /schwein|nacken|schnitzel|haxe|schaufele|kassler|bratwurst|rippchen|ribs|leberkase|porchetta|pulled pork|saltimbocca|schweinelachs|rahmschnitzel|medaillons|chorizo/)) return 'Schwein';
-  if (has(n, /schinken|salami|aufschnitt|wurstplatte|kase|kas\b|speck|wurst|camembert/)) return 'Aufschnitt & Käse';
+  if (has(n, /schinken|salami|aufschnitt|wurstplatte|kase|kas\b|speck|wurst|camembert|mortadella|prosciutto|cicchetti/)) return 'Aufschnitt & Käse';
   return 'Vegetarisch & Vegan';
 }
 function beilageGroup(n) {
@@ -313,8 +313,12 @@ function parseZutaten(z) {
   });
 }
 const rezeptMap = new Map();
+let rezeptNr = 0;
 for (const f of fs.readdirSync(DIR).filter(f => /^rezepte-.*\.js$/.test(f)).sort()) {
-  for (const e of require(path.join(DIR, f))) for (const n of e.names) if (!rezeptMap.has(norm(n))) rezeptMap.set(norm(n), { ...e, datei: f });
+  for (const e of require(path.join(DIR, f))) {
+    const E = { ...e, datei: f, nr: rezeptNr++ };       // ein Eintrag kann für mehrere Komponentennamen gelten
+    for (const n of e.names) if (!rezeptMap.has(norm(n))) rezeptMap.set(norm(n), E);
+  }
 }
 const zuordnung = fs.existsSync(path.join(DIR, 'rezept-zuordnung.json')) ? JSON.parse(fs.readFileSync(path.join(DIR, 'rezept-zuordnung.json'), 'utf8')) : {};
 const ohneRezept = [];
@@ -325,12 +329,45 @@ for (const c of comps.values()) {
   if (e) {
     c.zutaten = parseZutaten(e.z);
     c.standardSchritte = e.s;
+    c.stdNr = e.nr;
     if (!c.todo) { c.todo = e.s; c.todoQuelle = 'Standardrezept'; } else c.todoQuelle = 'Nutzer';
   } else {
     if (c.todo) c.todoQuelle = 'Nutzer';
     if (!c.rezeptName) ohneRezept.push(c.role + ' | ' + c.name + ' (' + c.gruppe + ')');
   }
 }
+// ---- Standardrezepte für die Rezepte-Datenbank des Generators (Bezugsmenge 200 g bzw. 200 ml) ----
+function rezeptKategorie(c) {
+  if (c.role === 'S') return 'sosse';
+  if (c.role === 'B') return c.gruppe === 'Brot & Gebäck' ? 'brot' : 'beilage-saettigung';
+  if (c.role === 'G') return c.gruppe === 'Salate' ? 'vorspeise' : 'beilage-gemuese';
+  if (c.role === 'E') return 'sonstiges';
+  if (c.gruppe === 'Desserts') return 'dessert';
+  if (c.gruppe === 'Suppen & Eintöpfe') return 'vorspeise';
+  if (c.gruppe === 'Aufschnitt & Käse' || c.gruppe === 'Backwaren, Quiches & Wraps') return 'fingerfood';
+  return 'hauptgang';
+}
+const stdByNr = new Map();
+for (const c of comps.values()) if (c.stdNr != null) (stdByNr.get(c.stdNr) || stdByNr.set(c.stdNr, []).get(c.stdNr)).push(c);
+const crypto = require('crypto');
+const stdRezepte = [];
+for (const [nr, cs] of stdByNr) {
+  const e = [...rezeptMap.values()].find(x => x.nr === nr);
+  const namen = [...new Set(cs.map(c => c.name))];
+  const name = namen.slice(0, 4).join(' / ') + (namen.length > 4 ? ' / …' : '');
+  const fl = cs.some(c => c.role === 'S' || c.gruppe === 'Suppen & Eintöpfe');
+  const rec = {
+    id: 'std-' + crypto.createHash('sha1').update(name).digest('hex').slice(0, 10),
+    name, category: rezeptKategorie(cs[0]), temp: '',
+    referenceUnit: { type: 'menge', value: 200, unit: fl ? 'ml' : 'g' },
+    ingredients: parseZutaten(e.z).filter(z => z.amount != null).map(z => ({ name: z.name, amount: z.amount, unit: z.unit || 'g' })),
+    steps: e.s, quelle: 'Standardrezept (Speisenkatalog)', standard: true,
+  };
+  stdRezepte.push(rec);
+  cs.forEach(c => { if (!c.rezeptName) c.rezeptName = name; });   // Verknüpfung Komponente -> Rezept (nur wenn kein eigenes Rezept zugeordnet ist)
+}
+fs.writeFileSync(path.join(DIR, 'standard-rezepte.js'), '// Automatisch von build.js erzeugt – nicht von Hand ändern.\nmodule.exports = ' + JSON.stringify({ version: crypto.createHash('sha1').update(JSON.stringify(stdRezepte)).digest('hex').slice(0, 12), recipes: stdRezepte }) + ';\n', 'utf8');
+console.log('Standardrezepte für die Rezepte-Datenbank:', stdRezepte.length);
 fs.writeFileSync(path.join(DIR, 'rezepte-fehlt.txt'), ohneRezept.sort().join('\n') + '\n', 'utf8');
 console.log('Komponenten ohne Zubereitung/Rezept:', ohneRezept.length, '(Liste: rezepte-fehlt.txt)');
 

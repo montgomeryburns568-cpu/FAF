@@ -29,7 +29,7 @@ async function kvSet(key, data) {
 }
 
 // ---------- lokale JSON-Dateien (Dev-Fallback, falls keine KV konfiguriert) ----------
-const DATA_DIR = path.join(__dirname, 'data');
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const BACKUP_DIR = path.join(DATA_DIR, 'backups');
 const FILES = {
   recipes: path.join(DATA_DIR, 'recipes.json'),
@@ -83,11 +83,44 @@ async function init() {
   } else {
     initLocal();
   }
+  await seedStandardRezepte(false);
+}
+
+// ---------- Standardrezepte aus dem Speisenkatalog in die Rezepte-Datenbank übernehmen ----------
+// Je Komponente ein Standardrezept (Bezugsmenge 200 g/ml, kurze Zubereitung). Es werden nur FEHLENDE Rezepte
+// ergänzt (gleicher Name = vorhanden); gelöschte oder bearbeitete Rezepte kommen nicht zurück, weil sich die
+// Datenbank merkt, welche Standardrezepte schon einmal übernommen wurden. force=true ergänzt alles Fehlende erneut.
+const norm = s => (s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, ' ').trim();
+const STD_MARKER_FILE = path.join(DATA_DIR, 'standardrezepte.json');
+async function getStdMarker() {
+  if (useKV) return kvGetOrInit('standardrezepte', { version: '', ids: [] });
+  try { return JSON.parse(fs.readFileSync(STD_MARKER_FILE, 'utf-8')); } catch (e) { return { version: '', ids: [] }; }
+}
+async function setStdMarker(m) {
+  if (useKV) await kvSet('standardrezepte', m);
+  else fs.writeFileSync(STD_MARKER_FILE, JSON.stringify(m), 'utf-8');
+}
+async function seedStandardRezepte(force) {
+  let std;
+  try { std = require('./speisenkatalog/standard-rezepte.js'); } catch (e) { return { added: 0 }; }
+  const marker = await getStdMarker();
+  if (!force && marker.version === std.version) return { added: 0 };
+  const existing = await (useKV ? kvGetOrInit('recipes', SEED_RECIPES) : Promise.resolve(readJSON(FILES.recipes)));
+  const have = new Set(existing.map(r => norm(r.name)));
+  const seenIds = new Set(force ? [] : marker.ids);
+  const add = std.recipes.filter(r => !have.has(norm(r.name)) && !seenIds.has(r.id) && !existing.some(e => e.id === r.id));
+  if (add.length) {
+    const merged = existing.concat(add);
+    if (useKV) await kvSet('recipes', merged); else writeJSON(FILES.recipes, merged);
+  }
+  await setStdMarker({ version: std.version, ids: std.recipes.map(r => r.id) });
+  return { added: add.length };
 }
 
 module.exports = {
   useKV,
   init,
+  seedStandardRezepte,
   async getRecipes() { return useKV ? kvGetOrInit('recipes', SEED_RECIPES) : readJSON(FILES.recipes); },
   async setRecipes(data) { if (useKV) { await kvSet('recipes', data); } else { writeJSON(FILES.recipes, data); } },
   async getRules() { return useKV ? kvGetOrInit('rules', DEFAULT_RULES) : readJSON(FILES.rules); },

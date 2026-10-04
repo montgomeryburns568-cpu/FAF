@@ -128,6 +128,10 @@
         <h2>Rezept-Datenbank</h2>
         <button id="newRecipeBtn" class="btn-primary">+ Neues Rezept</button>
       </div>
+      <div class="actions-row" style="margin:0 0 8px;gap:12px;align-items:center">
+        <button id="stdImportBtn" class="btn-ghost small-btn" title="Fehlende Standardrezepte aus dem Speisenkatalog (Bezugsmenge 200 g/ml) ergänzen">Standardrezepte ergänzen</button>
+        <label class="hint" style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="hideStd" style="width:auto;margin:0"> Standardrezepte ausblenden</label>
+      </div>
       <input type="text" id="recipeSearch" placeholder="Suchen...">
       <div id="recipeList" class="recipe-list"></div>
     </div>

@@ -80,6 +80,12 @@ app.get('/api/me', (req, res) => {
 // --- recipes ---
 app.get('/api/recipes', requireAuth, async (req, res) => res.json(await store.getRecipes()));
 
+// Fehlende Standardrezepte aus dem Speisenkatalog ergänzen (Bezugsmenge 200 g/ml)
+app.post('/api/recipes/standard-import', requireAuth, async (req, res) => {
+  const r = await store.seedStandardRezepte(true);
+  res.json({ added: r.added, recipes: await store.getRecipes() });
+});
+
 app.post('/api/recipes', requireAuth, async (req, res) => {
   const recipes = await store.getRecipes();
   const recipe = { ...req.body, id: req.body.id || crypto.randomUUID() };
