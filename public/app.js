@@ -46,11 +46,11 @@ const API = {
 };
 
 async function loadState() {
-  const [recipes, rules, events, archiv, artikelzuordnung] = await Promise.all([
+  const [recipes, rules, events, archiv, artikelzuordnung, kunden] = await Promise.all([
     API.get('/api/recipes'), API.get('/api/rules'), API.get('/api/events'), API.get('/api/archiv'),
-    API.get('/api/artikelzuordnung'),
+    API.get('/api/artikelzuordnung'), API.get('/api/kunden').catch(() => []),
   ]);
-  return { recipes, rules, events, archiv, artikelzuordnung, currentEventId: getCurrentEventId() };
+  return { recipes, rules, events, archiv: archiv.filter(e => !e.ausgeblendet), kunden, artikelzuordnung, currentEventId: getCurrentEventId() };
 }
 
 let state = null;
@@ -217,9 +217,10 @@ function computeDishBase(dish, recipes, rules) {
   }
 
   if (role === 'brot') {
-    const perBrot = rules.brotProPerson || 10;
+    const faktor = dish.brotFaktor || 1;   // Kundenkartei: manche Kunden essen mehr/weniger Brot
+    const perBrot = Math.round((rules.brotProPerson || 10) / faktor * 10) / 10;
     const brote = Math.ceil(P / perBrot);
-    result.formula = `⌈${P}÷${perBrot}⌉ = ${brote} Brot(e)`;
+    result.formula = `⌈${P}÷${perBrot}⌉ = ${brote} Brot(e)${faktor !== 1 ? ' (Kundenfaktor ×' + faktor + ')' : ''}`;
     result.totalLabel = `${brote} Brot(e)`;
     result.ingredients = Object.entries(rules.brotSplit || DEFAULT_RULES.brotSplit).map(([n, share]) => ({
       name: n, amount: Math.round(brote * share * 10) / 10, unit: 'Brot',
@@ -331,7 +332,7 @@ function computeEvent(event, recipes, rules) {
     id: event.id, name: event.name, personen: event.personen, notiz: event.notiz,
     days: event.days.map(day => ({
       id: day.id, date: day.date, personen: day.personen,
-      dishes: day.dishes.map(d => computeDish(d, recipes, rules)),
+      dishes: day.dishes.map(d => computeDish(event.brotStufe ? { ...d, brotFaktor: KarteiLogik.brotFaktorWert(event.brotStufe) } : d, recipes, rules)),
     })),
   };
 }
@@ -361,6 +362,8 @@ document.getElementById('tabnav').addEventListener('click', e => {
   switchTab(btn.dataset.tab);
   if (btn.dataset.tab === 'einkaufsliste') renderEinkaufsliste();
   if (btn.dataset.tab === 'speisenkatalog') loadKatalog();
+  if (btn.dataset.tab === 'archiv') Kartei.ladeArchiv().then(() => Kartei.render());
+  if (btn.dataset.tab === 'angebot') Kartei.renderLagerHinweis();
   // Änderungen aus dem Speisenkatalog (To-Dos, Namen, Labels) in die To-Do-Liste übernehmen
   if (btn.dataset.tab === 'todo') KatalogTodo.refresh().then(ok => { if (ok) renderTodo(); });
 });
@@ -377,6 +380,9 @@ function renderEventFields() {
   document.getElementById('evName').value = draftEvent.name || '';
   document.getElementById('evPersonen').value = draftEvent.personen || '';
   document.getElementById('evNotiz').value = draftEvent.notiz || '';
+  document.getElementById('evBrot').value = draftEvent.brotStufe || '';
+  document.getElementById('evVeg').value = draftEvent.vegAnteil ?? '';
+  if (typeof Kartei !== 'undefined') { Kartei.renderKundenHinweis(); Kartei.renderLagerHinweis(); }
 }
 
 function renderDaysEditor() {
@@ -478,7 +484,7 @@ document.getElementById('daysEditor').addEventListener('click', e => {
     day.dishes = day.dishes.filter(d => d.id !== dishEl.dataset.dishId);
     renderDaysEditor();
   } else if (e.target.classList.contains('split-btn')) {
-    autoSplitDay(day, day.personen || draftEvent.personen || 0);
+    autoSplitDay(day, day.personen || draftEvent.personen || 0, draftEvent.vegAnteil);
     renderDaysEditor();
   } else if (e.target.classList.contains('tpl-2komp') || e.target.classList.contains('tpl-3komp')) {
     const dishEl = e.target.closest('.dish-row-wrap');
@@ -544,6 +550,18 @@ document.getElementById('evPersonen').addEventListener('input', e => {
   }
 });
 document.getElementById('evNotiz').addEventListener('input', e => draftEvent.notiz = e.target.value);
+document.getElementById('evBrot').addEventListener('change', e => { draftEvent.brotStufe = e.target.value || null; });
+document.getElementById('evVeg').addEventListener('change', e => {
+  draftEvent.vegAnteil = e.target.value !== '' ? Math.max(0, Math.min(100, parseInt(e.target.value, 10))) : null;
+  if (draftEvent.days.length && confirm('Personen der Hauptgänge mit dem neuen Vegetarisch-Anteil neu verteilen?')) { autoSplitAllDays(draftEvent); renderDaysEditor(); }
+});
+// Kennt die Kundenkartei den Kunden, werden Brot-Faktor und Vegetarisch-Anteil aus dem Profil übernommen
+document.getElementById('evName').addEventListener('change', () => {
+  if (typeof Kartei === 'undefined' || !Kartei.profilAufEvent(draftEvent)) return;
+  document.getElementById('evBrot').value = draftEvent.brotStufe || '';
+  document.getElementById('evVeg').value = draftEvent.vegAnteil ?? '';
+  if (draftEvent.vegAnteil != null && draftEvent.days.length) { autoSplitAllDays(draftEvent); renderDaysEditor(); }
+});
 
 let lastUploadedFilename = '';
 document.getElementById('parseBtn').addEventListener('click', () => {
@@ -552,6 +570,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
   draftEvent = parseDocument(text, lastUploadedFilename);
   const hint = draftEvent.parseHinweis;
   delete draftEvent.parseHinweis;
+  if (typeof Kartei !== 'undefined' && Kartei.profilAufEvent(draftEvent)) autoSplitAllDays(draftEvent);
   renderEventFields();
   renderDaysEditor();
   const statusEl = document.getElementById('fileImportStatus');
@@ -629,6 +648,8 @@ async function persistEvent() {
   if (idx === -1) state.events.push(saved); else state.events[idx] = saved;
   saveCurrentEventId(draftEvent.id);
   refreshEventSelect();
+  // Der Server legt/aktualisiert dazu den Archiv-Eintrag – Archiv, Kartei und Lagerhinweise neu laden
+  if (typeof Kartei !== 'undefined') Kartei.ladeArchiv().then(() => Kartei.render());
   return true;
 }
 document.getElementById('saveEventBtn').addEventListener('click', async () => {
@@ -814,6 +835,13 @@ function findArtikelForIngredient(ingredientName, artikelzuordnung) {
   return null;
 }
 
+// Überproduktion aus früheren Veranstaltungen, die zu dieser Zutat passt (theoretisch noch vorrätig)
+function lagerHinweisHTML(zutat) {
+  if (typeof Kartei === 'undefined') return '';
+  const l = Kartei.lagerFuerZutat(zutat);
+  if (!l.length) return '';
+  return `<div class="lager-hint">📦 Auf Lager (Überproduktion): ${l.map(r => `${escHtml(r.name)}${r.menge != null ? ' ' + fmtAmount(r.menge) + ' ' + escHtml(r.einheit) : ''} (${r.tageRest != null ? (r.tageRest === 0 ? 'heute letzter Tag' : 'noch ' + r.tageRest + ' T') : 'Haltbarkeit offen'})`).join(', ')}</div>`;
+}
 function renderEinkaufsliste() {
   const out = document.getElementById('einkaufslisteOutput');
   document.getElementById('einkaufslisteBestellliste').style.display = 'none';
@@ -838,7 +866,7 @@ function renderEinkaufsliste() {
     const qty = z.qty != null ? z.qty : autoQty;
     html += `<tr data-key="${key}" data-needed-amount="${i.amount}" data-needed-unit="${i.unit}" class="${suggested ? 'ez-suggested' : ''}">
       <td>${i.name}</td>
-      <td>${fmtAmount(i.amount)} ${i.unit}</td>
+      <td>${fmtAmount(i.amount)} ${i.unit}${lagerHinweisHTML(i.name)}</td>
       <td><input type="text" class="ez-artnr" value="${z.artNr || ''}" placeholder="Art.-Nr.">${suggested ? `<div class="hint">Vorschlag: ${z.name}</div>` : ''}</td>
       <td><input type="number" step="any" class="ez-packamount" value="${z.packAmount ?? ''}" placeholder="Menge" style="width:70px">
           <input type="text" class="ez-packunit" value="${z.packUnit || ''}" placeholder="Einheit" style="width:60px"></td>
@@ -1291,160 +1319,7 @@ function renderReferenz() {
   `).join('');
 }
 
-// ---------- Archiv tab ----------
-let archivDraft = null;
-
-function dishPriceRowHTML(d) {
-  return `<div class="dish-price-row">
-    <input type="text" class="ad-dish-name" value="${(d?.name || '').replace(/"/g, '&quot;')}" placeholder="Gericht">
-    <input type="number" class="ad-dish-price" value="${d?.price ?? ''}" step="0.01" min="0" placeholder="Preis (€)">
-    <button type="button" class="btn-ghost rm small-btn">✕</button>
-  </div>`;
-}
-function renderDishPriceRows(dishes) {
-  document.getElementById('adDishRows').innerHTML = (dishes && dishes.length ? dishes : [{}]).map(dishPriceRowHTML).join('');
-}
-document.getElementById('adAddDishBtn').addEventListener('click', () => {
-  document.getElementById('adDishRows').insertAdjacentHTML('beforeend', dishPriceRowHTML({}));
-});
-document.getElementById('adDishRows').addEventListener('click', e => {
-  if (e.target.classList.contains('rm')) e.target.closest('.dish-price-row').remove();
-});
-
-document.getElementById('archivFileInput').addEventListener('change', async e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const statusEl = document.getElementById('archivImportStatus');
-  statusEl.textContent = '📄 PDF wird gelesen …';
-  try {
-    const buf = await file.arrayBuffer();
-    const r = await fetch('/api/archiv/upload', {
-      method: 'POST',
-      headers: { 'content-type': 'application/pdf', 'x-filename': encodeURIComponent(file.name) },
-      credentials: 'include', body: buf,
-    });
-    if (r.status === 401) { showLogin(); throw new Error('Nicht angemeldet.'); }
-    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
-    const result = await r.json();
-    const parsed = parseDocument(result.text, result.filename);
-    const dishMap = new Map();
-    parsed.days.forEach(day => day.dishes.forEach(d => { if (d.name && !dishMap.has(normalize(d.name))) dishMap.set(normalize(d.name), { name: d.name, price: null }); }));
-    archivDraft = {
-      filename: result.filename, pathname: result.pathname, rawText: result.text,
-      customerName: parsed.name, eventDate: parsed.days[0]?.date || '', personen: parsed.personen,
-      dishes: Array.from(dishMap.values()), totalPrice: extractTotalPrice(result.text),
-    };
-    document.getElementById('adKunde').value = archivDraft.customerName || '';
-    document.getElementById('adDatum').value = archivDraft.eventDate || '';
-    document.getElementById('adPersonen').value = archivDraft.personen || '';
-    document.getElementById('adGesamtpreis').value = archivDraft.totalPrice ?? '';
-    renderDishPriceRows(archivDraft.dishes);
-    document.getElementById('archivDraftForm').style.display = '';
-    statusEl.textContent = '✅ Erkannt – bitte prüfen, Preise ergänzen und speichern.';
-  } catch (err) {
-    statusEl.textContent = '❌ ' + err.message;
-  }
-});
-
-document.getElementById('adCancelBtn').addEventListener('click', () => {
-  archivDraft = null;
-  document.getElementById('archivDraftForm').style.display = 'none';
-  document.getElementById('archivFileInput').value = '';
-  document.getElementById('archivImportStatus').textContent = '';
-});
-
-document.getElementById('adSaveBtn').addEventListener('click', async () => {
-  if (!archivDraft) return;
-  const dishes = Array.from(document.querySelectorAll('#adDishRows .dish-price-row')).map(row => ({
-    name: row.querySelector('.ad-dish-name').value.trim(),
-    price: row.querySelector('.ad-dish-price').value ? parseFloat(row.querySelector('.ad-dish-price').value) : null,
-  })).filter(d => d.name);
-  const entry = {
-    filename: archivDraft.filename, pathname: archivDraft.pathname, rawText: archivDraft.rawText,
-    customerName: document.getElementById('adKunde').value.trim() || 'Unbekannt',
-    eventDate: document.getElementById('adDatum').value.trim(),
-    personen: document.getElementById('adPersonen').value ? parseInt(document.getElementById('adPersonen').value, 10) : null,
-    totalPrice: document.getElementById('adGesamtpreis').value ? parseFloat(document.getElementById('adGesamtpreis').value) : null,
-    dishes,
-  };
-  const saved = await API.send('POST', '/api/archiv', entry);
-  state.archiv.push(saved);
-  archivDraft = null;
-  document.getElementById('archivDraftForm').style.display = 'none';
-  document.getElementById('archivFileInput').value = '';
-  document.getElementById('archivImportStatus').textContent = '✅ Im Archiv gespeichert.';
-  renderArchivList();
-  renderArchivAnalytics();
-});
-
-function renderArchivList() {
-  const out = document.getElementById('archivList');
-  if (!out) return;
-  const q = normalize(document.getElementById('archivSearch').value);
-  const items = (state.archiv || []).filter(e => {
-    if (!q) return true;
-    if (normalize(e.customerName || '').includes(q)) return true;
-    return (e.dishes || []).some(d => normalize(d.name).includes(q));
-  }).sort((a, b) => (b.uploadedAt || '').localeCompare(a.uploadedAt || ''));
-  out.innerHTML = items.map(e => `
-    <div class="archiv-item" data-id="${e.id}">
-      <div class="archiv-item-title"><span>${e.customerName || 'Unbekannt'} ${e.eventDate ? '· ' + e.eventDate : ''}</span><span>${e.totalPrice != null ? e.totalPrice.toFixed(2) + ' €' : ''}</span></div>
-      <div class="archiv-item-meta">${e.personen ? e.personen + ' Personen · ' : ''}${(e.dishes || []).length} Gerichte · hochgeladen ${e.uploadedAt ? new Date(e.uploadedAt).toLocaleDateString('de-DE') : ''}</div>
-      <div class="archiv-item-dishes">${(e.dishes || []).map(d => d.name + (d.price != null ? ` (${d.price.toFixed(2)}€)` : '')).join(', ')}</div>
-      <div class="archiv-item-actions">
-        <a class="btn-ghost small-btn" href="/api/archiv/${e.id}/pdf" target="_blank" rel="noopener">PDF ansehen</a>
-        <button type="button" class="btn-danger small-btn archiv-delete">Löschen</button>
-      </div>
-    </div>
-  `).join('') || '<p class="hint">Noch keine Angebote im Archiv.</p>';
-}
-document.getElementById('archivSearch').addEventListener('input', renderArchivList);
-document.getElementById('archivList').addEventListener('click', async e => {
-  if (!e.target.classList.contains('archiv-delete')) return;
-  const item = e.target.closest('.archiv-item');
-  const id = item.dataset.id;
-  if (!confirm('Diesen Archiv-Eintrag inkl. PDF wirklich löschen?')) return;
-  await API.send('DELETE', '/api/archiv/' + id);
-  state.archiv = state.archiv.filter(e => e.id !== id);
-  renderArchivList();
-  renderArchivAnalytics();
-});
-
-function renderArchivAnalytics() {
-  const out = document.getElementById('archivAnalytics');
-  if (!out) return;
-  const archiv = state.archiv || [];
-  if (!archiv.length) { out.innerHTML = '<p class="hint">Noch keine Daten für eine Auswertung.</p>'; return; }
-
-  const kundenCount = new Map();
-  archiv.forEach(e => { const k = e.customerName || 'Unbekannt'; kundenCount.set(k, (kundenCount.get(k) || 0) + 1); });
-  const kundenRows = Array.from(kundenCount.entries()).sort((a, b) => b[1] - a[1]).slice(0, 15);
-
-  const dishStats = new Map();
-  archiv.forEach(e => (e.dishes || []).forEach(d => {
-    const key = normalize(d.name);
-    const entry = dishStats.get(key) || { name: d.name, count: 0, priceSum: 0, priceCount: 0 };
-    entry.count += 1;
-    if (d.price != null) { entry.priceSum += d.price; entry.priceCount += 1; }
-    dishStats.set(key, entry);
-  }));
-  const dishRows = Array.from(dishStats.values()).sort((a, b) => b.count - a.count).slice(0, 20);
-
-  const withPrice = archiv.filter(e => e.totalPrice != null);
-  const avgTotal = withPrice.length ? withPrice.reduce((s, e) => s + e.totalPrice, 0) / withPrice.length : null;
-
-  out.innerHTML = `
-    <p class="hint">${archiv.length} Angebote im Archiv${avgTotal != null ? ' · Ø Gesamtpreis ' + avgTotal.toFixed(2) + ' €' : ''}</p>
-    <h3>Kunden-Häufigkeit</h3>
-    <table class="analytics-table"><thead><tr><th>Kunde</th><th>Anzahl Angebote</th></tr></thead><tbody>
-      ${kundenRows.map(([name, count]) => `<tr><td>${name}</td><td>${count}</td></tr>`).join('')}
-    </tbody></table>
-    <h3 style="margin-top:14px">Gerichte-Häufigkeit</h3>
-    <table class="analytics-table"><thead><tr><th>Gericht</th><th>Anzahl</th><th>Ø Preis</th></tr></thead><tbody>
-      ${dishRows.map(d => `<tr><td>${d.name}</td><td>${d.count}</td><td>${d.priceCount ? (d.priceSum / d.priceCount).toFixed(2) + ' €' : '–'}</td></tr>`).join('')}
-    </tbody></table>
-  `;
-}
+// ---------- Archiv, Kundenkartei, Nachtrag, Überproduktions-Lager: siehe kartei.js ----------
 
 // ---------- login gate ----------
 function showLogin() {
@@ -1494,8 +1369,7 @@ function render() {
   renderDaysEditor();
   renderKueche();
   renderTodo();
-  renderArchivList();
-  renderArchivAnalytics();
+  Kartei.render();
 }
 async function boot() {
   try {

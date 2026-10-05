@@ -49,7 +49,7 @@
     <button class="tab-btn" data-tab="speisenkatalog">Speisenkatalog</button>
     <button class="tab-btn" data-tab="regeln">Regeln</button>
     <button class="tab-btn" data-tab="referenz">Referenz</button>
-    <button class="tab-btn" data-tab="archiv">Archiv</button>
+    <button class="tab-btn" data-tab="archiv">Archiv<span id="archivBadge" class="tab-badge" style="display:none"></span></button>
   </nav>
   <div class="event-picker">
     <select id="eventSelect"><option value="">– Neues Angebot –</option></select>
@@ -62,6 +62,8 @@
 <main>
 
 <section id="tab-angebot" class="tabpanel active">
+  <div id="kundenHinweis" class="card hinweis-card" style="display:none; margin-bottom:18px"></div>
+  <div id="lagerHinweis" class="card hinweis-card" style="display:none; margin-bottom:18px"></div>
   <div class="grid-2">
     <div class="card">
       <h2>Angebot einlesen</h2>
@@ -77,6 +79,10 @@
         <label>Kunde/Event<input type="text" id="evName" placeholder="z.B. Condor"></label>
         <label>Personen (gesamt)<input type="number" id="evPersonen" min="1"></label>
       </div>
+      <div class="field-row">
+        <label>Brotverbrauch<select id="evBrot"><option value="">normal</option><option value="weniger">weniger Brot (×0,8)</option><option value="mehr">mehr Brot (×1,25)</option><option value="vielmehr">viel mehr Brot (×1,5)</option></select></label>
+        <label>Vegetarisch-Anteil Hauptgang (%)<input type="number" id="evVeg" min="0" max="100" placeholder="Standard 33"></label>
+      </div>
       <label>Notiz (Datum, Abfahrt/Ankunft, etc.)<textarea id="evNotiz" rows="2"></textarea></label>
       <div id="daysEditor"></div>
       <button id="addDayBtn" class="btn-ghost">+ Tag hinzufügen</button>
@@ -91,7 +97,7 @@
 <section id="tab-kuechensheet" class="tabpanel">
   <div class="output-toolbar no-print">
     <h2>Küchensheet</h2>
-    <button id="printKuecheBtn" class="btn-ghost">Drucken / PDF</button>
+    <span><button type="button" class="btn-ghost nachtrag-btn" title="Nach der Produktion: Überproduktion, Unterproduktion und Besonderheiten erfassen">Produktion beendet → Nachtrag</button> <button id="printKuecheBtn" class="btn-ghost">Drucken / PDF</button></span>
   </div>
   <div id="kuecheOutput" class="output"></div>
 </section>
@@ -99,7 +105,7 @@
 <section id="tab-todo" class="tabpanel">
   <div class="output-toolbar no-print">
     <h2>To-Do-Liste</h2>
-    <button id="printTodoBtn" class="btn-ghost">Drucken / PDF</button>
+    <span><button type="button" class="btn-ghost nachtrag-btn" title="Nach der Produktion: Überproduktion, Unterproduktion und Besonderheiten erfassen">Produktion beendet → Nachtrag</button> <button id="printTodoBtn" class="btn-ghost">Drucken / PDF</button></span>
   </div>
   <div id="todoOutput" class="output"></div>
 </section>
@@ -200,11 +206,18 @@
 </section>
 
 <section id="tab-archiv" class="tabpanel">
-  <div class="grid-2">
+  <nav class="subtabs" id="archivSubnav">
+    <button type="button" class="subtab-btn active" data-sub="angebote">Angebote</button>
+    <button type="button" class="subtab-btn" data-sub="kunden">Kunden</button>
+    <button type="button" class="subtab-btn" data-sub="lager">Überproduktion<span id="lagerBadge"></span></button>
+    <button type="button" class="subtab-btn" data-sub="auswertung">Auswertung</button>
+  </nav>
+
+  <div id="sub-angebote" class="subpanel active">
     <div class="card">
-      <h2>Angebot ins Archiv hochladen</h2>
-      <p class="hint">PDF hochladen – Kunde, Datum, Gerichte werden vorausgefüllt, Preise trägst du danach ein. Original-PDF bleibt gespeichert und abrufbar.</p>
-      <input type="file" id="archivFileInput" accept=".pdf">
+      <h2>Angebote ins Archiv importieren</h2>
+      <p class="hint">Im Generator gespeicherte Angebote erscheinen hier automatisch. Zusätzlich: <strong>eine PDF</strong> hochladen (Kunde, Datum, Gerichte werden vorausgefüllt, Preise trägst du ein) oder <strong>mehrere PDFs auf einmal</strong> auswählen – sie werden automatisch erkannt und archiviert. Das Original-PDF bleibt abrufbar.</p>
+      <input type="file" id="archivFileInput" accept=".pdf" multiple>
       <span class="hint" id="archivImportStatus"></span>
       <div id="archivDraftForm" style="display:none; margin-top:14px">
         <div class="field-row">
@@ -224,17 +237,52 @@
         </div>
       </div>
     </div>
+    <div class="card" style="margin-top:18px">
+      <div class="output-toolbar">
+        <h2>Archivierte Angebote <span class="hint" id="archivCount"></span></h2>
+        <div class="toolbar-inline">
+          <select id="archivFilter">
+            <option value="">Alle</option>
+            <option value="offen">Nachtrag offen</option>
+            <option value="nachtrag">Mit Nachtrag</option>
+            <option value="generator">Aus dem Generator</option>
+            <option value="pdf">PDF / Import</option>
+          </select>
+          <input type="text" id="archivSearch" placeholder="Suchen (Kunde, Gericht)..." style="max-width:260px">
+          <button type="button" id="archivKeinNTBtn" class="btn-ghost small-btn" style="display:none" title="Z.B. für alte Angebote oder Probeessen">Alle angezeigten: kein Nachtrag nötig</button>
+        </div>
+      </div>
+      <div id="archivList"></div>
+    </div>
+  </div>
+
+  <div id="sub-kunden" class="subpanel">
+    <div class="card">
+      <div class="output-toolbar">
+        <h2>Kundenkartei <span class="hint" id="kundenCount"></span></h2>
+        <input type="text" id="kundenSuche" placeholder="Kunde oder Merkmal suchen …" style="max-width:260px">
+      </div>
+      <p class="hint">Kunden entstehen automatisch aus den Angeboten (ähnliche Schreibweisen werden zusammengefasst). Profil, Vorlieben, Brot-Faktor und Vegetarisch-Anteil fließen ins nächste Angebot dieses Kunden ein.</p>
+      <div id="archivKunden"></div>
+    </div>
+  </div>
+
+  <div id="sub-lager" class="subpanel">
+    <div class="card">
+      <div class="output-toolbar">
+        <h2>Überproduktion – theoretischer Lagerbestand <span class="hint" id="lagerCount"></span></h2>
+        <button type="button" class="btn-ghost small-btn" id="lagerAlleBtn">Abgelaufene anzeigen</button>
+      </div>
+      <p class="hint">Posten aus den Nachträgen. Die Haltbarkeit richtet sich nach der Lagerart (frischer Fisch/Obst kurz, Reis/TK-Gemüse lang) und kann je Posten angepasst werden. Beim Erstellen neuer Angebote werden passende Posten angezeigt.</p>
+      <div id="archivLager"></div>
+    </div>
+  </div>
+
+  <div id="sub-auswertung" class="subpanel">
     <div class="card">
       <h2>Auswertung</h2>
       <div id="archivAnalytics"></div>
     </div>
-  </div>
-  <div class="card" style="margin-top:18px">
-    <div class="output-toolbar">
-      <h2>Archivierte Angebote</h2>
-      <input type="text" id="archivSearch" placeholder="Suchen (Kunde, Gericht)..." style="max-width:260px">
-    </div>
-    <div id="archivList"></div>
   </div>
 </section>
 
@@ -244,6 +292,8 @@
 <script src="seed-data.js"></script>
 <script src="parser.js"></script>
 <script src="katalog-todo.js"></script>
+<script src="kartei-logik.js"></script>
 <script src="app.js"></script>
+<script src="kartei.js"></script>
 </body>
 </html>

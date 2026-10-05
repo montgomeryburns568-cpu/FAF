@@ -38,6 +38,7 @@ const FILES = {
   archiv: path.join(DATA_DIR, 'archiv.json'),
   artikelzuordnung: path.join(DATA_DIR, 'artikelzuordnung.json'),
   speisenkatalog: path.join(DATA_DIR, 'speisenkatalog.json'),
+  kunden: path.join(DATA_DIR, 'kunden.json'),
 };
 
 function ensureFile(file, defaultValue) {
@@ -70,6 +71,7 @@ function initLocal() {
   ensureFile(FILES.archiv, []);
   ensureFile(FILES.artikelzuordnung, {});
   ensureFile(FILES.speisenkatalog, {});
+  ensureFile(FILES.kunden, []);
 }
 
 async function init() {
@@ -80,6 +82,7 @@ async function init() {
     await kvGetOrInit('archiv', []);
     await kvGetOrInit('artikelzuordnung', {});
     await kvGetOrInit('speisenkatalog', {});
+    await kvGetOrInit('kunden', []);
   } else {
     initLocal();
   }
@@ -131,6 +134,9 @@ module.exports = {
   async setArchiv(data) { if (useKV) { await kvSet('archiv', data); } else { writeJSON(FILES.archiv, data); } },
   async getArtikelzuordnung() { return useKV ? kvGetOrInit('artikelzuordnung', {}) : readJSON(FILES.artikelzuordnung); },
   async setArtikelzuordnung(data) { if (useKV) { await kvSet('artikelzuordnung', data); } else { writeJSON(FILES.artikelzuordnung, data); } },
+  // Kundenkartei: manuell gepflegte Profile (Vorlieben, Tags, Brot-Faktor …); Statistiken werden aus dem Archiv berechnet
+  async getKunden() { return useKV ? kvGetOrInit('kunden', []) : (fs.existsSync(FILES.kunden) ? readJSON(FILES.kunden) : []); },
+  async setKunden(data) { if (useKV) { await kvSet('kunden', data); } else { writeJSON(FILES.kunden, data); } },
   // Änderungsstand des Speisenkatalogs (Austausch, Tags, To-Dos, Labels ...) – der Katalog selbst liegt als Datei im Repo
   async getSpeisenkatalog() { return useKV ? kvGetOrInit('speisenkatalog', {}) : readJSON(FILES.speisenkatalog); },
   async setSpeisenkatalog(data) { if (useKV) { await kvSet('speisenkatalog', data); } else { writeJSON(FILES.speisenkatalog, data); } },

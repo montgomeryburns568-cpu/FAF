@@ -146,6 +146,15 @@ app.put('/api/speisenkatalog/state', requireAuth, async (req, res) => {
 });
 
 // --- events ---
+// Jede gespeicherte Veranstaltung landet automatisch im Archiv (und bleibt dort, auch wenn das Event gelöscht wird).
+const KarteiLogik = require('./public/kartei-logik.js');
+async function archivSynchronisieren(events) {
+  const archiv = await store.getArchiv();
+  const a = KarteiLogik.archivAusEvents(events || await store.getEvents(), archiv);
+  const b = KarteiLogik.archivDatenErgaenzen(a.archiv);
+  if (a.geaendert || b.geaendert) await store.setArchiv(b.archiv);
+  return b.archiv;
+}
 app.get('/api/events', requireAuth, async (req, res) => res.json(await store.getEvents()));
 
 app.post('/api/events', requireAuth, async (req, res) => {
@@ -153,6 +162,7 @@ app.post('/api/events', requireAuth, async (req, res) => {
   const event = { ...req.body, id: req.body.id || crypto.randomUUID() };
   events.push(event);
   await store.setEvents(events);
+  await archivSynchronisieren(events).catch(err => console.error('Archiv-Sync:', err.message));
   res.json(event);
 });
 
@@ -162,6 +172,7 @@ app.put('/api/events/:id', requireAuth, async (req, res) => {
   const event = { ...req.body, id: req.params.id };
   if (idx === -1) events.push(event); else events[idx] = event;
   await store.setEvents(events);
+  await archivSynchronisieren(events).catch(err => console.error('Archiv-Sync:', err.message));
   res.json(event);
 });
 
@@ -266,17 +277,32 @@ app.post('/api/archiv/upload', requireAuth, express.raw({ type: '*/*', limit: '1
   if (!req.body || !req.body.length) return res.status(400).json({ error: 'Keine PDF-Daten erhalten.' });
   const filename = decodeURIComponent(req.headers['x-filename'] || 'angebot.pdf');
   try {
-    const { put } = require('@vercel/blob');
     const text = await extractPdfText(req.body);
-    const pathname = `archiv/${crypto.randomUUID()}-${filename}`;
-    const blob = await put(pathname, req.body, { access: 'private', contentType: 'application/pdf' });
-    res.json({ text, filename, pathname: blob.pathname });
+    // Das Original-PDF wandert in den Blob-Speicher; ohne Speicher (z.B. lokal) wird nur der Text archiviert.
+    let blobPath = null;
+    try {
+      const { put } = require('@vercel/blob');
+      const blob = await put(`archiv/${crypto.randomUUID()}-${filename}`, req.body, { access: 'private', contentType: 'application/pdf' });
+      blobPath = blob.pathname;
+    } catch (err) { console.error('PDF konnte nicht im Blob-Speicher abgelegt werden:', err.message); }
+    res.json({ text, filename, pathname: blobPath });
   } catch (err) {
     res.status(500).json({ error: 'PDF konnte nicht verarbeitet werden: ' + err.message });
   }
 });
 
-app.get('/api/archiv', requireAuth, async (req, res) => res.json(await store.getArchiv()));
+app.get('/api/archiv', requireAuth, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(await archivSynchronisieren());
+});
+
+// --- Kundenkartei: manuell gepflegte Profile (Vorlieben, Tags, Brot-Faktor ...) ---
+app.get('/api/kunden', requireAuth, async (req, res) => { res.setHeader('Cache-Control', 'no-store'); res.json(await store.getKunden()); });
+app.put('/api/kunden', requireAuth, async (req, res) => {
+  if (!Array.isArray(req.body)) return res.status(400).json({ error: 'Liste erwartet.' });
+  await store.setKunden(req.body);
+  res.json(req.body);
+});
 
 app.post('/api/archiv', requireAuth, async (req, res) => {
   const archiv = await store.getArchiv();

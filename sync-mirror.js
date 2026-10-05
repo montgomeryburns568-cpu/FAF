@@ -60,7 +60,7 @@ async function main() {
   const cookie = extractCookie(loginResp.headers.get('set-cookie'));
   if (!cookie) throw new Error('Kein Auth-Cookie erhalten.');
 
-  for (const name of ['recipes', 'rules', 'events', 'archiv', 'artikelzuordnung', 'speisenkatalog']) {
+  for (const name of ['recipes', 'rules', 'events', 'archiv', 'artikelzuordnung', 'speisenkatalog', 'kunden']) {
     const apiPath = name === 'speisenkatalog' ? 'speisenkatalog/state' : name;
     const resp = await fetch(`${MIRROR_URL}/api/${apiPath}`, { headers: { cookie } });
     if (!resp.ok) throw new Error(`Abruf von ${name} fehlgeschlagen: ${resp.status}`);

@@ -522,7 +522,7 @@ function parseAngebot(text, filename) {
 }
 
 function autoSplitAllDays(event) {
-  for (const day of event.days) autoSplitDay(day, day.personen || event.personen || 0);
+  for (const day of event.days) autoSplitDay(day, day.personen || event.personen || 0, event.vegAnteil);
 }
 function splitGroupOf(catId) { return catId === 'pfanne' ? 'hauptgang' : catId; }
 
@@ -546,11 +546,12 @@ function hauptgangArt(dish) {
 // Hauptgänge mit Fleisch UND vegetarischen Gerichten: 2/3 der Gäste Fleisch, 1/3 vegetarisch; je Teil
 // gleichmäßig auf die Gerichte (aufgerundet, damit niemand zu kurz kommt). Gibt es nur eine Art, wird
 // wie bei allen anderen Kategorien gleichmäßig geteilt.
-function splitHauptgang(free, remaining) {
+function splitHauptgang(free, remaining, vegAnteil) {
   const fleisch = free.filter(d => hauptgangArt(d) === 'fleisch');
   const veg = free.filter(d => hauptgangArt(d) === 'veg');
   if (!fleisch.length || !veg.length) return false;
-  const fleischSumme = Math.round(remaining * 2 / 3);
+  const vegPct = vegAnteil != null && !isNaN(vegAnteil) ? Math.max(0, Math.min(100, vegAnteil)) : 100 / 3;   // Standard: 1/3 vegetarisch
+  const fleischSumme = Math.round(remaining * (100 - vegPct) / 100);
   const vegSumme = remaining - fleischSumme;
   fleisch.forEach(d => { d.personen = Math.ceil(fleischSumme / fleisch.length); });
   veg.forEach(d => { d.personen = Math.ceil(vegSumme / veg.length); });
@@ -561,7 +562,7 @@ function splitHauptgang(free, remaining) {
 // 1/3 vegetarisch, s. splitHauptgang). Abschnitte mit
 // eigener Personenzahl in der Preistabelle (dish.sectionPersonen) nutzen diese; Gerichte mit
 // "für 25 Personen" (dish.personenFix) behalten ihre Zahl, die übrigen teilen den Rest.
-function autoSplitDay(day, totalPersonen) {
+function autoSplitDay(day, totalPersonen, vegAnteil) {
   const groups = {};
   for (const d of day.dishes) {
     const key = (d.section || '') + '||' + splitGroupOf(d.category);
@@ -577,7 +578,7 @@ function autoSplitDay(day, totalPersonen) {
     if (!free.length) continue;
     let remaining = total - fixed.reduce((s, d) => s + d.personenFix, 0);
     if (remaining <= 0) remaining = total;
-    if (splitGroupOf(free[0].category) === 'hauptgang' && splitHauptgang(free, remaining)) continue;
+    if (splitGroupOf(free[0].category) === 'hauptgang' && splitHauptgang(free, remaining, vegAnteil)) continue;
     const base = Math.floor(remaining / free.length);
     const rest = remaining - base * free.length;
     free.forEach((d, i) => { d.personen = base + (i < rest ? 1 : 0); });

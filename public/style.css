@@ -318,3 +318,67 @@ button {
   .topbar { min-width: 0; max-width: 100vw; }
   .topbar > * { min-width: 0; max-width: 100%; }
 }
+
+/* ---------- Archiv, Kundenkartei, Nachtrag, Überproduktion ---------- */
+.subtabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.subtab-btn { background: var(--panel); border: 1px solid var(--border-strong); color: var(--text); border-radius: 999px; padding: 6px 14px; font: inherit; cursor: pointer; }
+.subtab-btn:hover { background: var(--panel-2); }
+.subtab-btn.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.subpanel { display: none; }
+.subpanel.active { display: block; }
+.tab-badge { background: #d97706; color: #fff; border-radius: 999px; font-size: 11px; padding: 0 6px; margin-left: 6px; }
+.toolbar-inline { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.badge { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 999px; background: var(--panel-3); color: var(--text); margin-left: 4px; }
+.badge-ok { background: #d1fae5; color: #065f46; }
+.badge-warn { background: #fef3c7; color: #92400e; }
+:root[data-theme="dark"] .badge-ok { background: #064e3b; color: #a7f3d0; }
+:root[data-theme="dark"] .badge-warn { background: #5c4a16; color: #fcd34d; }
+.nachtrag-kurz { margin-top: 8px; padding: 8px 10px; border-left: 3px solid var(--success); background: var(--panel); font-size: 12.5px; line-height: 1.5; }
+.tag-chip { display: inline-block; font-size: 12px; padding: 1px 9px; margin: 2px 4px 2px 0; border-radius: 999px; background: var(--panel-3); color: var(--text); }
+.tag-chip.kat { border: 1px dashed var(--muted); background: transparent; }
+.kunde-card { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; background: var(--panel-2); }
+.kunde-card.open { border-color: var(--muted); }
+.kunde-head { padding: 10px 14px; cursor: pointer; }
+.kunde-detail { padding: 4px 14px 14px; border-top: 1px dashed var(--border-strong); }
+.kunde-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.kunde-event { padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.kunde-event .small-btn { margin-left: auto; }
+.kunde-detail h4, .kmodal h4 { margin: 14px 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.lager-table td { vertical-align: top; }
+.lager-table .lg-actions { white-space: nowrap; }
+.lager-table input[type=date] { padding: 3px 6px; font-size: 12px; }
+.ampel-abgelaufen td { opacity: .6; }
+.ideen { margin: 6px 0; font-size: 12.5px; }
+.kpi-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.kpi { flex: 1 1 130px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+.kpi-n { font-size: 20px; font-weight: 700; }
+.months { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+.month { text-align: center; font-size: 12px; min-width: 38px; }
+.mbar { background: var(--accent-dark); border-radius: 3px 3px 0 0; margin: 0 auto; width: 22px; }
+.bar2 { display: flex; height: 26px; border-radius: 6px; overflow: hidden; font-size: 12px; color: #fff; }
+.bar2 span { background: #b45309; padding: 4px 8px; white-space: nowrap; overflow: hidden; }
+.bar2 span.v { background: #15803d; }
+.hinweis-card { border-left: 4px solid #d97706; }
+.hinweis-card h2 { margin-top: 0; }
+.kunden-hinweis { margin: 6px 0 0; padding-left: 18px; line-height: 1.6; }
+.note-ok { background: var(--warn-bg); border: 1px solid #d97706; border-radius: 8px; padding: 8px 12px; margin: 8px 0; font-size: 13px; }
+.lager-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; margin-top: 8px; }
+.lager-chip { border: 1px solid var(--border-strong); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; background: var(--panel-2); }
+.lager-chip.treffer { border-color: #d97706; box-shadow: 0 0 0 1px #d97706 inset; }
+.lager-chip .small-btn { align-self: flex-start; }
+.lager-hint { margin-top: 4px; font-size: 12px; color: #b45309; }
+:root[data-theme="dark"] .lager-hint { color: #fbbf24; }
+.kmodal-ov { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 1000; display: flex; align-items: flex-start; justify-content: center; padding: 4vh 12px; overflow: auto; }
+.kmodal { background: var(--panel); color: var(--text); border: 1px solid var(--border-strong); border-radius: 12px; width: min(820px, 100%); padding: 18px 20px; box-shadow: 0 20px 50px rgba(0,0,0,.4); }
+.kmodal h3 { margin-top: 0; }
+.kmodal label { display: block; margin-top: 10px; font-size: 12.5px; }
+.nt-row { display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+.nt-row input[type=text], .nt-row select { flex: 1 1 120px; min-width: 0; }
+.nt-row .ue-name { flex: 2 1 180px; }
+.nt-row .ue-menge { width: 80px; flex: none; }
+.nt-add { margin: 6px 0; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.chip { border: 1px solid var(--border-strong); background: var(--panel-2); color: var(--text); border-radius: 999px; padding: 2px 10px; font-size: 12px; cursor: pointer; }
+.chip:hover { background: var(--panel-3); }
+@media (max-width: 800px) { .kunde-cols { grid-template-columns: 1fr; } }
+.table-scroll { overflow-x: auto; }
+.archiv-item-actions { flex-wrap: wrap; }
