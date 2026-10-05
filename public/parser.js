@@ -525,7 +525,40 @@ function autoSplitAllDays(event) {
   for (const day of event.days) autoSplitDay(day, day.personen || event.personen || 0);
 }
 function splitGroupOf(catId) { return catId === 'pfanne' ? 'hauptgang' : catId; }
-// Verteilt die Personen je Abschnitt+Kategorie gleichmäßig auf die Gerichte. Abschnitte mit
+
+// Hauptgänge: Fleisch/Fisch oder vegetarisch? Reihenfolge: ausdrücklich vegetarisch/vegan im Namen →
+// Fleisch-Hauptkomponente im Speisenkatalog → Fleisch-/Fisch-Stichwort im Namen → sonst vegetarisch.
+const VEG_WORT_RE = /veget|vegan|veggie|tofu|falafel|seitan/i;
+const MEAT_RE = /h(?:ä|ae)hnchen|h(?:ü|ue)hn|huhn|chicken|\bpute|truthahn|rind|beef|kalb|schwein|lamm|(?:^|[^a-zäöüß])(?:ente|enten|gans|hirsch|reh|hase|kaninchen)|(?:^|[^a-zäöüß])wild(?!kr|reis)|fleisch|hack|bolognese|speck|schinken|salami|wurst|w(?:ü|ue)rst|schnitzel|gulasch|steak|braten|haxe|rippchen|ribs|nacken|lachs|fisch|forelle|zander|dorade|thunfisch|kabeljau|scholle|garnele|shrimp|scampi|meeresfr|calamari|tintenfisch|muschel|hering|bacon|pulled|kassler|leberk|frikadelle|bulette|boulette|cevap|d(?:ö|oe)ner|gyros|geschnetzel|roulade|chorizo|prosciutto|carne|pollo|manzo|maiale|saltimbocca|cordon bleu|gefl(?:ü|ue)gel|poulard|kotelett|entrec|tafelspitz|ossobuco|lende|medaillon|scaloppine|pangasius|tilapia|barsch|saibling|krabbe|hummer|polpette|kiewer|schaschlik/i;
+const KATALOG_FLEISCH_GRUPPEN = new Set(['Hähnchen', 'Pute', 'Ente & Gans', 'Rind', 'Schwein', 'Kalb', 'Lamm', 'Fisch', 'Meeresfrüchte']);
+function hauptgangArt(dish) {
+  const name = dish.name || '';
+  if (VEG_WORT_RE.test(name)) return 'veg';
+  if (typeof KatalogTodo !== 'undefined' && typeof KatalogTodo.erkenne === 'function') {
+    try {
+      const { gefunden } = KatalogTodo.erkenne(name, 'hauptgang');
+      if (gefunden.some(c => c.rolle === 'H' && KATALOG_FLEISCH_GRUPPEN.has(c.gruppe))) return 'fleisch';
+    } catch (e) { /* Katalog nicht bereit */ }
+  }
+  return MEAT_RE.test(name) ? 'fleisch' : 'veg';
+}
+
+// Hauptgänge mit Fleisch UND vegetarischen Gerichten: 2/3 der Gäste Fleisch, 1/3 vegetarisch; je Teil
+// gleichmäßig auf die Gerichte (aufgerundet, damit niemand zu kurz kommt). Gibt es nur eine Art, wird
+// wie bei allen anderen Kategorien gleichmäßig geteilt.
+function splitHauptgang(free, remaining) {
+  const fleisch = free.filter(d => hauptgangArt(d) === 'fleisch');
+  const veg = free.filter(d => hauptgangArt(d) === 'veg');
+  if (!fleisch.length || !veg.length) return false;
+  const fleischSumme = Math.round(remaining * 2 / 3);
+  const vegSumme = remaining - fleischSumme;
+  fleisch.forEach(d => { d.personen = Math.ceil(fleischSumme / fleisch.length); });
+  veg.forEach(d => { d.personen = Math.ceil(vegSumme / veg.length); });
+  return true;
+}
+
+// Verteilt die Personen je Abschnitt+Kategorie gleichmäßig auf die Gerichte (Hauptgänge: 2/3 Fleisch,
+// 1/3 vegetarisch, s. splitHauptgang). Abschnitte mit
 // eigener Personenzahl in der Preistabelle (dish.sectionPersonen) nutzen diese; Gerichte mit
 // "für 25 Personen" (dish.personenFix) behalten ihre Zahl, die übrigen teilen den Rest.
 function autoSplitDay(day, totalPersonen) {
@@ -544,6 +577,7 @@ function autoSplitDay(day, totalPersonen) {
     if (!free.length) continue;
     let remaining = total - fixed.reduce((s, d) => s + d.personenFix, 0);
     if (remaining <= 0) remaining = total;
+    if (splitGroupOf(free[0].category) === 'hauptgang' && splitHauptgang(free, remaining)) continue;
     const base = Math.floor(remaining / free.length);
     const rest = remaining - base * free.length;
     free.forEach((d, i) => { d.personen = base + (i < rest ? 1 : 0); });
