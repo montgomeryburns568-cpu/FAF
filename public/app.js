@@ -442,10 +442,21 @@ function renderDishRow(dish) {
     <button type="button" class="btn-ghost rm small-btn">✕</button>
   `;
   row.appendChild(main);
+  const vorschau = document.createElement('div');
+  vorschau.className = 'dish-komp-preview';
+  vorschau.innerHTML = kompVorschauHTML(dish);
+  row.appendChild(vorschau);
   if (dish.category === 'pfanne') {
     row.appendChild(renderPfanneEditor(dish));
   }
   return row;
+}
+// Im Angebot erkannte Komponenten aus dem Speisenkatalog (Farbe = Art: Haupt, Soße, Beilage, Gemüse)
+function kompVorschauHTML(dish) {
+  if (typeof KatalogTodo === 'undefined' || !KatalogTodo.isReady() || !dish.name || ['pfanne', 'brot'].includes(dish.category)) return '';
+  const { gefunden } = KatalogTodo.erkenne(dish.name, dish.category);
+  if (!gefunden.length) return '<span class="komp-none">Im Speisenkatalog nicht erkannt</span>';
+  return '<span class="hint">Komponenten:</span> ' + gefunden.map(c => `<span class="komp-chip komp-${c.rolle}" title="${escHtml(c.gruppe || '')}">${escHtml(c.name)}</span>`).join('');
 }
 
 function renderPfanneEditor(dish) {
@@ -543,7 +554,11 @@ document.getElementById('daysEditor').addEventListener('input', e => {
     else if (e.target.classList.contains('comp-gar')) comp.garMethod = e.target.value;
     return;
   }
-  if (e.target.classList.contains('dish-name')) dish.name = e.target.value;
+  if (e.target.classList.contains('dish-name')) {
+    dish.name = e.target.value;
+    const prev = dishEl.querySelector('.dish-komp-preview');
+    if (prev) prev.innerHTML = kompVorschauHTML(dish);
+  }
   else if (e.target.classList.contains('dish-cat')) {
     dish.category = e.target.value;
     if (dish.category === 'pfanne' && (!dish.pfanneComponents || !dish.pfanneComponents.length)) {
@@ -713,6 +728,11 @@ function renderKueche() {
   if (computed.notiz) html += `<p class="hint">${computed.notiz}</p>`;
   if (computed.personen) html += `<p><strong>Gesamt-Personen:</strong> ${computed.personen}</p>`;
 
+  // Produktionsliste: alle Gerichte mit Anzahl, Komponenten per Touch einfärbbar (siehe produktion.js)
+  Produktion.baue(computed);
+  html += `<div id="produktionsliste">${Produktion.html()}</div>`;
+  html += `<details class="kueche-details" id="kuecheDetails" ${kuecheDetailsOpen ? 'open' : ''}><summary>Mengen, Rezepte &amp; Berechnung (Details)</summary>`;
+
   computed.days.forEach(day => {
     html += `<div class="day-output"><h3>${day.date || 'Tag'}${day.personen ? ' · ' + day.personen + ' Personen' : ''}${day.modus === 'abend' ? ' · <span class="badge">Abend / Privat</span>' : ''}</h3>`;
     const byCat = {};
@@ -733,9 +753,13 @@ function renderKueche() {
     ingredientTotals.forEach(i => { html += `<tr><td>${i.name}</td><td>${fmtAmount(i.amount)} ${i.unit}</td></tr>`; });
     html += `</tbody></table>`;
   }
+  html += `</details>`;
 
   out.innerHTML = html;
 }
+let kuecheDetailsOpen = false;
+document.getElementById('kuecheOutput').addEventListener('toggle', e => { if (e.target.id === 'kuecheDetails') kuecheDetailsOpen = e.target.open; }, true);
+window.addEventListener('beforeprint', () => document.querySelectorAll('#kuecheOutput details').forEach(d => { d.open = true; }));
 
 function renderDishCard(d, dayId) {
   const cat = catById(d.category);

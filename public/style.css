@@ -381,3 +381,41 @@ button {
 @media (max-width: 800px) { .kunde-cols { grid-template-columns: 1fr; } }
 .table-scroll { overflow-x: auto; }
 .archiv-item-actions { flex-wrap: wrap; }
+
+/* ---------- Küchensheet: Produktionsliste ---------- */
+.prod-head { margin: 10px 0 14px; padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--panel-2); }
+.prod-legend { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.prod-key { font-size: 12px; padding: 3px 10px; border-radius: 999px; }
+.prod-summary { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.prod-rot-text { color: #dc2626; font-weight: 600; }
+:root[data-theme="dark"] .prod-rot-text { color: #f87171; }
+.prod-fehlt { margin-top: 8px; padding: 6px 10px; border-radius: 8px; background: #fee2e2; color: #7f1d1d; font-size: 13px; }
+:root[data-theme="dark"] .prod-fehlt { background: #3b1114; color: #fecaca; }
+.prod-day h3 { margin-top: 18px; }
+.prod-cat { margin: 14px 0 6px; font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.prod-dish { border: 1px solid var(--border-strong); border-left-width: 5px; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; background: var(--panel); }
+.prod-dish.in-arbeit { border-left-color: #eab308; }
+.prod-dish.all-done { border-left-color: #16a34a; }
+.prod-dish.has-rot { border-left-color: #dc2626; }
+.prod-dish-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-bottom: 8px; }
+.prod-dish-name { font-weight: 700; font-size: 15px; flex: 1 1 200px; }
+.prod-anzahl { color: var(--muted); font-size: 13px; }
+.prod-progress { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--panel-3); }
+.prod-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.prod-chip { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-height: 52px; min-width: 120px; padding: 8px 14px; border-radius: 10px; border: 2px solid var(--border-strong); border-left-width: 8px; font: inherit; text-align: left; cursor: pointer; touch-action: manipulation; user-select: none; -webkit-tap-highlight-color: transparent; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.prod-chip-name { font-weight: 600; font-size: 14.5px; }
+.prod-chip-menge { font-size: 12px; opacity: .85; }
+.prod-chip.rolle-H { border-left-color: #fdb02e; } .prod-chip.rolle-S { border-left-color: #00c9a0; }
+.prod-chip.rolle-B { border-left-color: #2f4bff; } .prod-chip.rolle-G { border-left-color: #6fcf97; }
+.st-none { background: var(--panel-2); color: var(--text); }
+.st-gelb { background: #facc15; color: #422006; border-color: #ca8a04; }
+.st-gruen { background: #22c55e; color: #052e16; border-color: #15803d; }
+.st-rot { background: #ef4444; color: #fff; border-color: #b91c1c; }
+.prod-chip:active { transform: scale(.97); }
+.prod-unklar { margin-top: 6px; font-size: 12px; color: var(--muted); }
+.kueche-details { margin-top: 22px; }
+.kueche-details > summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
+.dish-komp-preview { padding: 2px 4px 6px; font-size: 12px; }
+.komp-chip { display: inline-block; padding: 1px 9px; margin: 2px 4px 2px 0; border-radius: 999px; font-size: 12px; background: #fdb02e; color: #10206b; }
+.komp-S { background: #00e5b8; color: #1c1c80; } .komp-B { background: #0a2cff; color: #fff; } .komp-G { background: #96e5b8; color: #0b3d1e; }
+.komp-none { color: var(--muted); font-style: italic; }
