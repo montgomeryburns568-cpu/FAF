@@ -50,7 +50,26 @@ async function loadState() {
     API.get('/api/recipes'), API.get('/api/rules'), API.get('/api/events'), API.get('/api/archiv'),
     API.get('/api/artikelzuordnung'), API.get('/api/kunden').catch(() => []),
   ]);
-  return { recipes, rules, events, archiv: archiv.filter(e => !e.ausgeblendet), kunden, artikelzuordnung, currentEventId: getCurrentEventId() };
+  return { recipes, rules: normalizeRules(rules), events, archiv: archiv.filter(e => !e.ausgeblendet), kunden, artikelzuordnung, currentEventId: getCurrentEventId() };
+}
+
+// ---------- Regelsätze: Mittag/Business (Basis) und Abend/Privat ----------
+// state.rules enthält die Werte für Mittag/Business; state.rules.abend den vollständigen Satz für Abend/Privat.
+const MODI = { mittag: 'Mittag / Business', abend: 'Abend / Privat' };
+function normalizeRules(rules) {
+  const r = rules || {};
+  if (!r.abend) { r.abend = {}; RULE_KEYS.forEach(k => { r.abend[k] = r[k] != null ? r[k] : DEFAULT_RULES[k]; }); r.abend.hauptteilGramm = DEFAULT_RULES.abend.hauptteilGramm; }
+  else RULE_KEYS.forEach(k => { if (r.abend[k] == null) r.abend[k] = r[k] != null ? r[k] : DEFAULT_RULES.abend[k]; });
+  return r;
+}
+function regelnFuerModus(rules, modus) {
+  if (modus !== 'abend' || !rules.abend) return rules;
+  return { ...rules, ...rules.abend };
+}
+function baseGramFor(cat, rules) {
+  const key = { vorspeise: 'vorspeiseGramm', dessert: 'vorspeiseGramm', hauptgang: 'hauptteilGramm', 'beilage-saettigung': 'saettigungGramm',
+    'beilage-gemuese': 'gemueseGramm', fingerfood: 'fingerfoodTeilGramm', flying: 'fingerfoodTeilGramm' }[cat.id];
+  return key && rules[key] != null ? rules[key] : (cat.baseGram || 0);
 }
 
 let state = null;
@@ -259,7 +278,7 @@ function computeDishBase(dish, recipes, rules) {
   }
 
   // vorspeise / dessert / hauptgang / beilage-saettigung / beilage-gemuese / sosse / sonstiges
-  const baseGram = cat.baseGram || 0;
+  const baseGram = baseGramFor(cat, rules);
   const roleUsesGarFactor = role === 'hauptteil' || role === 'saettigung' || role === 'gemuese';
   const neededGrams = baseGram > 0 ? P * baseGram * (roleUsesGarFactor ? garFactor : 1) : null;
   if (neededGrams != null) { result.gesamtGramm = neededGrams; result.gesamtFormel = `${P} × ${baseGram} g`; }
@@ -270,10 +289,7 @@ function computeDishBase(dish, recipes, rules) {
     result.formula = `${P} Personen → ${parts.join(' + ') || 'keine Stufe nötig'} = ${combo.covered}P abgedeckt`;
     result.totalLabel = parts.join(' + ') || '–';
     const stufenScale = recipe.referenceUnit.value ? combo.covered / recipe.referenceUnit.value : 0;
-    result.ingredients = recipe.ingredients.map(i => {
-      const ingScale = i.refPersonen ? combo.covered / i.refPersonen : stufenScale;
-      return { name: i.name, amount: round2(i.amount * ingScale), unit: i.unit, refPersonen: i.refPersonen || null };
-    });
+    result.ingredients = recipe.ingredients.map(i => ({ name: i.name, amount: round2(i.amount * stufenScale), unit: i.unit }));
     result.steps = recipe.steps;
     result.temp = recipe.temp || '';
     return result;
@@ -300,13 +316,7 @@ function computeDishBase(dish, recipes, rules) {
       scale = 1;
       result.formula = 'Komposition (siehe Zutaten)';
     }
-    // Manche Zutaten (z.B. Toppings/Dressing bei Blattsalaten, eigene Kokottengröße) haben
-    // eine eigene Bezugspersonenzahl, die von der Basis-Zutat des Rezepts abweicht.
-    result.ingredients = recipe.ingredients.map(i => {
-      const ingScale = (!dish.multiplikator && recipe.referenceUnit.type === 'portionen' && i.refPersonen)
-        ? P / i.refPersonen : scale;
-      return { name: i.name, amount: round2(i.amount * ingScale), unit: i.unit, refPersonen: i.refPersonen || null };
-    });
+    result.ingredients = recipe.ingredients.map(i => ({ name: i.name, amount: round2(i.amount * scale), unit: i.unit }));
     result.steps = recipe.steps;
     result.temp = recipe.temp || '';
     if (recipe.referenceUnit.type === 'menge') {
@@ -330,10 +340,14 @@ function computeDishBase(dish, recipes, rules) {
 function computeEvent(event, recipes, rules) {
   return {
     id: event.id, name: event.name, personen: event.personen, notiz: event.notiz,
-    days: event.days.map(day => ({
-      id: day.id, date: day.date, personen: day.personen,
-      dishes: day.dishes.map(d => computeDish(event.brotStufe ? { ...d, brotFaktor: KarteiLogik.brotFaktorWert(event.brotStufe) } : d, recipes, rules)),
-    })),
+    days: event.days.map(day => {
+      const modus = day.modus || event.modus || 'mittag';
+      const r = regelnFuerModus(rules, modus);   // Abend/Privat rechnet mit eigenem Regelsatz
+      return {
+        id: day.id, date: day.date, personen: day.personen, modus,
+        dishes: day.dishes.map(d => computeDish(event.brotStufe ? { ...d, brotFaktor: KarteiLogik.brotFaktorWert(event.brotStufe) } : d, recipes, r)),
+      };
+    }),
   };
 }
 
@@ -382,6 +396,7 @@ function renderEventFields() {
   document.getElementById('evNotiz').value = draftEvent.notiz || '';
   document.getElementById('evBrot').value = draftEvent.brotStufe || '';
   document.getElementById('evVeg').value = draftEvent.vegAnteil ?? '';
+  document.getElementById('evModus').value = draftEvent.modus || 'mittag';
   if (typeof Kartei !== 'undefined') { Kartei.renderKundenHinweis(); Kartei.renderLagerHinweis(); }
 }
 
@@ -397,6 +412,11 @@ function renderDaysEditor() {
         <input type="text" class="day-date" value="${day.date || ''}" placeholder="z.B. 07.09.2026">
         <input type="number" class="day-personen" value="${day.personen ?? ''}" placeholder="Personen (opt.)" min="0" style="width:150px">
         <button type="button" class="btn-ghost small-btn split-btn">Personen neu verteilen</button>
+        <select class="day-modus" title="Regelsatz für diesen Tag">
+          <option value="" ${!day.modus ? 'selected' : ''}>Regeln wie Angebot (${MODI[draftEvent.modus || 'mittag']})</option>
+          <option value="mittag" ${day.modus === 'mittag' ? 'selected' : ''}>${MODI.mittag}</option>
+          <option value="abend" ${day.modus === 'abend' ? 'selected' : ''}>${MODI.abend}</option>
+        </select>
         <span class="spacer"></span>
         <button type="button" class="btn-danger small-btn rm-day">Tag löschen</button>
       </div>
@@ -510,6 +530,7 @@ document.getElementById('daysEditor').addEventListener('input', e => {
   const day = findDay(dayEl.dataset.dayId);
   if (e.target.classList.contains('day-date')) { day.date = e.target.value; return; }
   if (e.target.classList.contains('day-personen')) { day.personen = e.target.value ? parseInt(e.target.value, 10) : null; return; }
+  if (e.target.classList.contains('day-modus')) { day.modus = e.target.value || null; return; }
   const dishEl = e.target.closest('.dish-row-wrap');
   if (!dishEl) return;
   const dish = findDish(day, dishEl.dataset.dishId);
@@ -551,6 +572,7 @@ document.getElementById('evPersonen').addEventListener('input', e => {
 });
 document.getElementById('evNotiz').addEventListener('input', e => draftEvent.notiz = e.target.value);
 document.getElementById('evBrot').addEventListener('change', e => { draftEvent.brotStufe = e.target.value || null; });
+document.getElementById('evModus').addEventListener('change', e => { draftEvent.modus = e.target.value; renderDaysEditor(); });
 document.getElementById('evVeg').addEventListener('change', e => {
   draftEvent.vegAnteil = e.target.value !== '' ? Math.max(0, Math.min(100, parseInt(e.target.value, 10))) : null;
   if (draftEvent.days.length && confirm('Personen der Hauptgänge mit dem neuen Vegetarisch-Anteil neu verteilen?')) { autoSplitAllDays(draftEvent); renderDaysEditor(); }
@@ -560,7 +582,9 @@ document.getElementById('evName').addEventListener('change', () => {
   if (typeof Kartei === 'undefined' || !Kartei.profilAufEvent(draftEvent)) return;
   document.getElementById('evBrot').value = draftEvent.brotStufe || '';
   document.getElementById('evVeg').value = draftEvent.vegAnteil ?? '';
-  if (draftEvent.vegAnteil != null && draftEvent.days.length) { autoSplitAllDays(draftEvent); renderDaysEditor(); }
+  document.getElementById('evModus').value = draftEvent.modus || 'mittag';
+  if (draftEvent.vegAnteil != null && draftEvent.days.length) autoSplitAllDays(draftEvent);
+  renderDaysEditor();
 });
 
 let lastUploadedFilename = '';
@@ -690,7 +714,7 @@ function renderKueche() {
   if (computed.personen) html += `<p><strong>Gesamt-Personen:</strong> ${computed.personen}</p>`;
 
   computed.days.forEach(day => {
-    html += `<div class="day-output"><h3>${day.date || 'Tag'}${day.personen ? ' · ' + day.personen + ' Personen' : ''}</h3>`;
+    html += `<div class="day-output"><h3>${day.date || 'Tag'}${day.personen ? ' · ' + day.personen + ' Personen' : ''}${day.modus === 'abend' ? ' · <span class="badge">Abend / Privat</span>' : ''}</h3>`;
     const byCat = {};
     day.dishes.forEach(d => { (byCat[d.category] = byCat[d.category] || []).push(d); });
     CATEGORIES.forEach(cat => {
@@ -732,7 +756,7 @@ function renderDishCard(d, dayId) {
     </div>`;
   }
   if (d.ingredients.length) {
-    html += `<ul class="ingredient-list">${d.ingredients.map(i => `<li>${fmtAmount(i.amount)} ${i.unit} ${i.name}${i.refPersonen ? ` <span class="hint">(eigene Bezugsgröße: ${i.refPersonen} Pers.)</span>` : ''}</li>`).join('')}</ul>`;
+    html += `<ul class="ingredient-list">${d.ingredients.map(i => `<li>${fmtAmount(i.amount)} ${i.unit} ${i.name}</li>`).join('')}</ul>`;
   }
   if (d.steps) html += `<div class="dish-steps">${d.steps}</div>`;
   if (d.missing) {
@@ -1136,7 +1160,6 @@ function ingredientRowHTML(ing) {
     <input type="text" class="ing-name" value="${(ing?.name || '').replace(/"/g, '&quot;')}" placeholder="Zutat">
     <input type="number" class="ing-amount" value="${ing?.amount ?? ''}" step="any" placeholder="Menge">
     <input type="text" class="ing-unit" value="${ing?.unit || ''}" placeholder="Einheit">
-    <input type="number" class="ing-refpersonen" value="${ing?.refPersonen ?? ''}" min="1" placeholder="Bezugspers." title="Nur ausfüllen, wenn diese Zutat eine eigene Bezugspersonenzahl hat (z.B. Toppings bei Blattsalaten: eigene Kokottengröße statt der Salat-Bezugsgröße). Leer = nutzt den Referenz-Wert oben.">
     <button type="button" class="btn-ghost rm small-btn">✕</button>
   </div>`;
 }
@@ -1227,7 +1250,6 @@ document.getElementById('recipeForm').addEventListener('submit', async e => {
     name: row.querySelector('.ing-name').value.trim(),
     amount: parseFloat(row.querySelector('.ing-amount').value) || 0,
     unit: row.querySelector('.ing-unit').value.trim(),
-    refPersonen: row.querySelector('.ing-refpersonen').value ? parseInt(row.querySelector('.ing-refpersonen').value, 10) : null,
   })).filter(i => i.name);
   const portionStufen = Array.from(document.querySelectorAll('#stufenRows .dish-price-row')).map(row => ({
     label: row.querySelector('.stufe-label').value.trim(),
@@ -1274,12 +1296,29 @@ const RULE_FIELDS = [
   { key: 'brotProPerson', label: 'Brot: Personen pro Brot' },
   { key: 'pfannenGrammProPortion', label: 'Pfannengericht: Gramm gesamt pro Portion' },
 ];
+let rulesModus = 'mittag';
 function renderRulesForm() {
-  document.getElementById('rulesForm').innerHTML = RULE_FIELDS.map(f => `
-    <label>${f.label}<input type="number" step="any" data-rule="${f.key}" value="${state.rules[f.key] != null ? state.rules[f.key] : (DEFAULT_RULES[f.key] != null ? DEFAULT_RULES[f.key] : '')}"></label>
-  `).join('');
+  normalizeRules(state.rules);
+  const wert = (modus, key) => {
+    const v = modus === 'abend' ? state.rules.abend[key] : state.rules[key];
+    return v != null ? v : (DEFAULT_RULES[key] != null ? DEFAULT_RULES[key] : '');
+  };
+  document.getElementById('rulesForm').innerHTML = `
+    <nav class="subtabs" id="rulesSubnav">
+      ${Object.entries(MODI).map(([m, l]) => `<button type="button" class="subtab-btn ${m === rulesModus ? 'active' : ''}" data-modus="${m}">${l}</button>`).join('')}
+    </nav>
+    ${Object.keys(MODI).map(m => `<div class="rules-grid rules-set" data-modus="${m}" style="${m === rulesModus ? '' : 'display:none'}">
+      <p class="hint" style="grid-column:1/-1">${m === 'mittag' ? 'Standard für Mittagessen und Firmen-/Business-Veranstaltungen.' : 'Für Abendveranstaltungen und Privatfeiern – es wird etwas mehr Hauptspeise kalkuliert. Die Auswahl erfolgt je Angebot (Event-Daten) oder je Tag.'}</p>
+      ${RULE_FIELDS.map(f => `<label>${f.label}<input type="number" step="any" data-rule="${f.key}" data-modus="${m}" value="${wert(m, f.key)}"></label>`).join('')}
+    </div>`).join('')}`;
   syncCategoryBaseGrams();
 }
+document.getElementById('rulesForm').addEventListener('click', e => {
+  const b = e.target.closest('#rulesSubnav .subtab-btn'); if (!b) return;
+  rulesModus = b.dataset.modus;
+  document.querySelectorAll('#rulesSubnav .subtab-btn').forEach(x => x.classList.toggle('active', x === b));
+  document.querySelectorAll('#rulesForm .rules-set').forEach(s => { s.style.display = s.dataset.modus === rulesModus ? '' : 'none'; });
+});
 function syncCategoryBaseGrams() {
   catById('vorspeise').baseGram = state.rules.vorspeiseGramm;
   catById('dessert').baseGram = state.rules.vorspeiseGramm;
@@ -1290,10 +1329,12 @@ function syncCategoryBaseGrams() {
   catById('flying').baseGram = state.rules.fingerfoodTeilGramm;
 }
 document.getElementById('saveRulesBtn').addEventListener('click', async () => {
+  normalizeRules(state.rules);
   document.querySelectorAll('[data-rule]').forEach(inp => {
-    state.rules[inp.dataset.rule] = parseFloat(inp.value) || 0;
+    const v = parseFloat(inp.value) || 0;
+    if (inp.dataset.modus === 'abend') state.rules.abend[inp.dataset.rule] = v; else state.rules[inp.dataset.rule] = v;
   });
-  state.rules = await API.send('PUT', '/api/rules', state.rules);
+  state.rules = normalizeRules(await API.send('PUT', '/api/rules', state.rules));
   syncCategoryBaseGrams();
   renderKueche();
   renderTodo();
@@ -1302,7 +1343,7 @@ document.getElementById('saveRulesBtn').addEventListener('click', async () => {
 document.getElementById('resetRulesBtn').addEventListener('click', async () => {
   if (!confirm('Regeln auf Standardwerte zurücksetzen?')) return;
   const fresh = JSON.parse(JSON.stringify(DEFAULT_RULES));
-  state.rules = await API.send('PUT', '/api/rules', fresh);
+  state.rules = normalizeRules(await API.send('PUT', '/api/rules', fresh));
   renderRulesForm();
 });
 

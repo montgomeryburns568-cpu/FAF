@@ -213,7 +213,6 @@ button {
 .ingredient-row { display: flex; gap: 6px; margin-bottom: 6px; }
 .ingredient-row input[type=text]:first-child { flex: 2; }
 .ingredient-row input { flex: 1; }
-.ingredient-row .ing-refpersonen { flex: 0.8; }
 .ingredient-row .rm { flex: none; }
 
 .rules-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin: 14px 0; }

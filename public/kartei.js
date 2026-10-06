@@ -403,6 +403,7 @@ const Kartei = (function () {
           <label>Vorlieben &amp; No-Gos (Komma getrennt)<input type="text" class="kp-tags" value="${esc((p.tags || []).join(', '))}" placeholder="kein Schwein, kein Rind, halal, vegetarisch-lastig, isst viel Brot"></label>
           <div class="field-row"><label>Brotverbrauch<select class="kp-brot">${Object.entries(BROT_STUFEN).map(([k, v]) => `<option value="${k}" ${(p.brot || 'normal') === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
           <label>Vegetarisch-Anteil Hauptgang (%)<input type="number" class="kp-veg" min="0" max="100" value="${p.vegAnteil ?? ''}" placeholder="Standard 33"></label></div>
+          <label>Standard-Regelsatz<select class="kp-modus"><option value="" ${!p.modus ? 'selected' : ''}>nicht festgelegt (Mittag / Business)</option><option value="mittag" ${p.modus === 'mittag' ? 'selected' : ''}>Mittag / Business</option><option value="abend" ${p.modus === 'abend' ? 'selected' : ''}>Abend / Privat</option></select></label>
           <label>Ansprechpartner / Kontakt<input type="text" class="kp-kontakt" value="${esc(p.kontakt || '')}"></label>
           <label>Notizen<textarea class="kp-notiz" rows="3">${esc(p.notiz || '')}</textarea></label>
           <div class="actions-row"><button type="button" class="btn-primary small-btn" data-act="profil-speichern">Profil speichern</button>
@@ -449,7 +450,7 @@ const Kartei = (function () {
           name: v('kp-name').trim() || g.name, typ: v('kp-typ').trim(), herkunft: v('kp-herkunft').trim(),
           tags: v('kp-tags').split(',').map(t => t.trim()).filter(Boolean), brot: v('kp-brot'),
           vegAnteil: v('kp-veg') !== '' ? Math.max(0, Math.min(100, parseInt(v('kp-veg'), 10))) : null,
-          kontakt: v('kp-kontakt').trim(), notiz: v('kp-notiz').trim(),
+          modus: v('kp-modus') || null, kontakt: v('kp-kontakt').trim(), notiz: v('kp-notiz').trim(),
         });
         await speichereKunden(); offenKunde = K.kundenKey(p.name); renderKunden(); renderKundenHinweis();
       }
@@ -605,6 +606,7 @@ const Kartei = (function () {
     if (p.herkunft) teile.push('Esskultur: ' + esc(p.herkunft));
     if (p.brot && p.brot !== 'normal') teile.push('Brot: ' + BROT_STUFEN[p.brot]);
     if (p.vegAnteil != null) teile.push(`Vegetarisch-Anteil Hauptgang: ${p.vegAnteil} %`);
+    if (p.modus === 'abend') teile.push('Standard-Regelsatz: Abend / Privat');
     const brot = Object.entries(st.brot).filter(([k]) => k !== 'passend');
     if (brot.length) teile.push('Brot früher: ' + brot.map(([k, v]) => `${{ zuwenig: 'zu wenig', zuviel: 'zu viel' }[k]} (${v}×)`).join(', '));
     if (st.unterproduktion.length) teile.push('Früher zu knapp: ' + Array.from(new Set(st.unterproduktion)).slice(0, 5).map(esc).join(', '));
@@ -622,6 +624,7 @@ const Kartei = (function () {
     let geaendert = false;
     if (!ev.brotStufe && p.brot && p.brot !== 'normal') { ev.brotStufe = p.brot; geaendert = true; }
     if (ev.vegAnteil == null && p.vegAnteil != null) { ev.vegAnteil = p.vegAnteil; geaendert = true; }
+    if (!ev.modus && p.modus) { ev.modus = p.modus; geaendert = true; }
     return geaendert;
   }
   // Lagerhinweis für die Einkaufsliste: welche Zutat ist (teilweise) schon da?

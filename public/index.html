@@ -80,6 +80,9 @@
         <label>Personen (gesamt)<input type="number" id="evPersonen" min="1"></label>
       </div>
       <div class="field-row">
+        <label>Kalkulation (Regelsatz)<select id="evModus"><option value="mittag">Mittag / Business</option><option value="abend">Abend / Privat</option></select></label>
+      </div>
+      <div class="field-row">
         <label>Brotverbrauch<select id="evBrot"><option value="">normal</option><option value="weniger">weniger Brot (×0,8)</option><option value="mehr">mehr Brot (×1,25)</option><option value="vielmehr">viel mehr Brot (×1,5)</option></select></label>
         <label>Vegetarisch-Anteil Hauptgang (%)<input type="number" id="evVeg" min="0" max="100" placeholder="Standard 33"></label>
       </div>
@@ -192,7 +195,7 @@
   <div class="card">
     <h2>Kalkulationsregeln</h2>
     <p class="hint">Diese Werte steuern die Formel-Berechnung für Gerichte ohne hinterlegtes Rezept.</p>
-    <div id="rulesForm" class="rules-grid"></div>
+    <div id="rulesForm"></div>
     <button id="saveRulesBtn" class="btn-primary">Regeln speichern</button>
     <button id="resetRulesBtn" class="btn-ghost">Zurücksetzen auf Standard</button>
   </div>

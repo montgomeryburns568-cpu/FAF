@@ -41,6 +41,13 @@ const DEFAULT_RULES = {
   fleischVeggieSplitCorp: [50, 50],
 };
 
+// Abend/Privat: eigener Regelsatz (gleiche Felder wie oben, die Werte in DEFAULT_RULES gelten für Mittag/Business).
+// Abends wird mehr Hauptteil kalkuliert (200 g statt 160 g).
+const RULE_KEYS = ['vorspeiseGramm', 'hauptteilGramm', 'saettigungGramm', 'gemueseGramm', 'sosseGramm', 'garverlustStandard', 'garverlustSchmoren', 'garzuwachs',
+  'fingerfoodTeilGramm', 'fingerfoodTeilePerPerson', 'flyingTeilePerPerson', 'brotProPerson', 'pfannenGrammProPortion'];
+DEFAULT_RULES.abend = Object.fromEntries(RULE_KEYS.map(k => [k, DEFAULT_RULES[k]]));
+DEFAULT_RULES.abend.hauptteilGramm = 200;
+
 const FINGERFOOD_TEIL_TABLE = [
   { name: 'Hackfleischbällchen', teil: 0.25 },
   { name: 'Zucchini Röllchen', teil: 0.25 },
@@ -73,7 +80,7 @@ const REFERENCE_NOTES = {
     'Brote: 1 Brot = 10 Personen (50% TK Baguette, 25% Steinofenbaguette, 25% Ciabatta)',
     'Standard-Paket: 150–200g / 2–3 Teile Snacks/Fingerfood/Salate/Vorspeisen pro Gast',
     'Nur Snacks/Fingerfood/Salate/Vorspeisen: 300–350g pro Gast',
-    'Hauptspeise Abends/Privat: 480g (Hauptteil 180g, Sättigung 180g, Gemüse 120g)',
+    'Mittag/Business: Hauptteil 160 g · Abend/Privat: Hauptteil 200 g (Sättigung 180 g, Gemüse 120 g) – beide Regelsätze unter „Regeln“, Auswahl je Angebot (oder je Tag)',
     'Lasagne: GN 1/1 flach = 12 Personen, GN 2/3 flach = 6, GN 1/2 flach = 4',
     'TK Kartoffeltaschen: 5 Stück pro Person',
   ],
@@ -358,5 +365,5 @@ const SEED_RECIPES = [
 ];
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { CATEGORIES, GAR_FACTORS, DEFAULT_RULES, FINGERFOOD_TEIL_TABLE, REFERENCE_NOTES, SEED_RECIPES };
+  module.exports = { RULE_KEYS, CATEGORIES, GAR_FACTORS, DEFAULT_RULES, FINGERFOOD_TEIL_TABLE, REFERENCE_NOTES, SEED_RECIPES };
 }
