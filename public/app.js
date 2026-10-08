@@ -1050,9 +1050,10 @@ function renderTodo() {
   }
   const computed = computeEvent(draftEvent, state.recipes, state.rules);
   draftEvent.todoChecks = draftEvent.todoChecks || {};
-  let html = `<h1>To-Do: ${computed.name}</h1>`;
+  const mehrTage = computed.days.length > 1;
+  let html = `<h1>To-Do: ${computed.name}${mehrTage ? '' : druckIcon(computed.days[0].id)}</h1>`;
   computed.days.forEach(day => {
-    html += `<div class="day-output"><h3>${day.date || 'Tag'}</h3>`;
+    html += `<div class="day-output"><h3>${day.date || 'Tag'}${mehrTage ? druckIcon(day.id) : ''}</h3>`;
     day.dishes.forEach(d => {
       if (d.isPfanne) {
         d.components.forEach(c => {
@@ -1090,6 +1091,15 @@ function renderTodo() {
   });
   out.innerHTML = html;
 }
+// Drucker-Symbol neben dem Namen: Zwischendurch-Label drucken (Name der Veranstaltung, Datum, optionale Zusatzinfo)
+const DRUCKER_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>';
+function druckIcon(dayId) {
+  return ` <button type="button" class="icon-btn todo-print no-print" data-day="${escHtml(dayId)}" title="Label drucken (mit optionaler Zusatzinfo)" aria-label="Label drucken">${DRUCKER_SVG}</button>`;
+}
+document.getElementById('todoOutput').addEventListener('click', e => {
+  const b = e.target.closest('.todo-print'); if (!b) return;
+  Produktion.labelManuell(b.dataset.day);
+});
 function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m])); }
 
 // Zutatenmenge lesbar: g -> kg, ml -> l, sinnvoll gerundet

@@ -102,12 +102,13 @@ const Produktion = (function () {
   function kunde4(name) {
     return String(name || '').replace(/^\s*(frau|herr|dr\.?|prof\.?|familie|fam\.?|firma|fa\.?)\s+/i, '').replace(/[^A-Za-zÄÖÜäöüß]/g, '').slice(0, 4).toUpperCase();
   }
-  function labelText(dayDate, kunde) {
+  function labelText(dayDate, kunde, info) {
     const iso = KarteiLogik.parseDatumDE(dayDate);
     const k = kunde4(kunde);
-    if (!iso) return { l1: k, l2: String(dayDate || '').trim().slice(0, 8) };
+    const l3 = String(info || '').trim().slice(0, 20);   // optionale Zusatzinfo (nur beim Zwischendurch-Label)
+    if (!iso) return { l1: k, l2: String(dayDate || '').trim().slice(0, 8), l3 };
     const wt = WOCHENTAGE[new Date(iso + 'T12:00:00').getDay()];
-    return { l1: `${k} ${wt}`.trim(), l2: `${iso.slice(8, 10)}.${iso.slice(5, 7)}.` };
+    return { l1: `${k} ${wt}`.trim(), l2: `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`, l3 };
   }
   function druckeLabels(text, anzahl) {
     const e = labelEinst();
@@ -124,12 +125,13 @@ const Produktion = (function () {
            display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
            font-family: Arial, Helvetica, sans-serif; font-weight: 700; line-height: 1.05; white-space: nowrap; color: #000; }
       .l:last-child { page-break-after: auto; break-after: auto; }
-    </style></head><body>${Array.from({ length: n }, () => `<div class="l"><div class="a">${esc(text.l1)}</div><div class="b">${esc(text.l2)}</div></div>`).join('')}</body></html>`);
+      .l .c { font-size: .8em; }
+    </style></head><body>${Array.from({ length: n }, () => `<div class="l"><div class="a">${esc(text.l1)}</div><div class="b">${esc(text.l2)}</div>${text.l3 ? `<div class="c">${esc(text.l3)}</div>` : ''}</div>`).join('')}</body></html>`);
     d.close();
     // Schrift so groß wie möglich, aber innerhalb der Label-Breite
     const mm = f.contentWindow.devicePixelRatio ? 96 / 25.4 : 3.78;
     d.querySelectorAll('.l').forEach(l => {
-      let fs = e.hoehe * 0.42;
+      let fs = e.hoehe * (text.l3 ? 0.32 : 0.42);
       const maxW = (e.breite - 1) * mm;
       l.style.fontSize = fs + 'mm';
       for (let i = 0; i < 40 && [...l.children].some(c => c.scrollWidth > maxW); i++) { fs *= 0.95; l.style.fontSize = fs + 'mm'; }
@@ -137,25 +139,31 @@ const Produktion = (function () {
     setTimeout(() => { f.contentWindow.focus(); f.contentWindow.print(); }, 200);
     setTimeout(() => f.remove(), 120000);
   }
-  function labelDialog(titel, dayDate) {
+  function labelDialog(titel, dayDate, mitInfo) {
     const e = labelEinst();
-    const text = labelText(dayDate, draftEvent.name);
+    let text = labelText(dayDate, draftEvent.name);
     const ov = document.createElement('div');
     ov.className = 'kmodal-ov';
     ov.innerHTML = `<div class="kmodal" style="max-width:420px">
       <h3>Labels drucken?</h3>
       <p><strong>${esc(titel)}</strong></p>
       <p class="label-vorschau" style="font:700 16px Arial,sans-serif;display:inline-block;border:1px solid var(--border-strong);padding:6px 10px;border-radius:4px;line-height:1.2;text-align:center">${esc(text.l1)}<br>${esc(text.l2)}</p>
+      ${mitInfo ? '<label>Zusatzinfo auf dem Label (optional, kurz halten)<input type="text" id="lblInfo" maxlength="20" placeholder="z.B. Soße, 2 GN, Allergen"></label>' : ''}
       <label>Anzahl Labels<input type="number" id="lblAnz" min="0" max="99" value="${e.anzahl}" style="font-size:20px"></label>
       <div class="actions-row"><button type="button" class="btn-primary" id="lblDruck">Drucken</button><button type="button" class="btn-ghost" id="lblNein">Kein Label</button></div></div>`;
     document.body.appendChild(ov);
     const zu = () => ov.remove();
     const anz = ov.querySelector('#lblAnz');
-    anz.focus(); anz.select();
+    const info = ov.querySelector('#lblInfo');
+    if (info) info.addEventListener('input', () => {
+      text = labelText(dayDate, draftEvent.name, info.value);
+      ov.querySelector('.label-vorschau').innerHTML = esc(text.l1) + '<br>' + esc(text.l2) + (text.l3 ? '<br><span style="font-size:.8em">' + esc(text.l3) + '</span>' : '');
+    });
+    (info || anz).focus(); if (!info) anz.select();
     const los = () => { const n = parseInt(anz.value, 10) || 0; zu(); if (n > 0) { labelEinstSpeichern({ ...labelEinst(), anzahl: n }); druckeLabels(text, n); } };
     ov.querySelector('#lblDruck').onclick = los;
     ov.querySelector('#lblNein').onclick = zu;
-    anz.addEventListener('keydown', ev => { if (ev.key === 'Enter') los(); if (ev.key === 'Escape') zu(); });
+    [anz, info].filter(Boolean).forEach(el => el.addEventListener('keydown', ev => { if (ev.key === 'Enter') los(); if (ev.key === 'Escape') zu(); }));
     ov.addEventListener('mousedown', ev => { if (ev.target === ov) zu(); });
   }
   function initLabelEinstellungen() {
@@ -200,6 +208,11 @@ const Produktion = (function () {
       }
     });
   }
+  // Zwischendurch-Label (To-Do-Liste): ohne dass eine Komponente auf grün stehen muss, mit optionaler Zusatzinfo
+  function labelManuell(dayId) {
+    const day = (draftEvent.days || []).find(d => d.id === dayId) || (draftEvent.days || [])[0];
+    labelDialog(draftEvent.name || 'Veranstaltung', day ? day.date : '', true);
+  }
   init();
-  return { baue, html, neuZeichnen };
+  return { baue, html, neuZeichnen, labelManuell };
 })();

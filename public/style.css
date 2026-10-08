@@ -434,3 +434,8 @@ button {
 .cr-lbl { width: 42px; font-weight: 600; color: var(--muted); font-size: 12.5px; }
 .cr-line select, .cr-line input { flex: 1 1 140px; min-width: 0; width: auto; }
 .cr-line .cr-wert { flex: 0 1 110px; }
+
+/* Icon-Knopf (z.B. Drucker-Symbol in der To-Do-Liste) */
+.icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; margin-left: 6px; vertical-align: middle; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--panel); color: var(--text); cursor: pointer; }
+.icon-btn:hover { background: var(--panel-2); }
+.icon-btn svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
