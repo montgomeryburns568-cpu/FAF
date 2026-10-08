@@ -14,32 +14,45 @@
   * { box-sizing: border-box; }
   body { margin:0; font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); font-size:15px; }
   button, select, input, textarea { color:var(--text); }
-  header { background:var(--panel); border-bottom:1px solid var(--border); padding:16px 22px; position:sticky; top:0; z-index:5; }
+  header { padding:18px 22px 2px; max-width:1300px; margin:0 auto; }
+  .head-top { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .head-icons { display:flex; align-items:center; gap:2px; margin-left:auto; }
   h1 { margin:0 0 4px; font-size:20px; }
   .sub { color:var(--muted); font-size:13px; }
   .legend, .toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px; }
-  .tabs button, .toolbar button, .toolbar select, .toolbar input { font:inherit; padding:7px 12px; border:1px solid var(--border); border-radius:8px; background:var(--panel); color:var(--text); }
-  .toolbar button:disabled { opacity:.4; cursor:default; }
-  .tabs { display:flex; gap:6px; margin-top:12px; }
-  .tabs button.active, .toolbar button.active { background:var(--accent); color:var(--on-accent); border-color:var(--accent); }
-  .toolbar input { min-width:240px; }
-  #saved { font-size:12.5px; color:var(--ok); }
+  .toolbar select, .toolbar input { font:inherit; padding:7px 12px; border:1px solid var(--border); border-radius:10px; background:var(--panel); color:var(--text); }
+  .toolbar input#q { flex:1 1 240px; min-width:0; }
+  .tabs { display:flex; gap:18px; margin-top:14px; border-bottom:1px solid var(--border); }
+  .tabs button { font:inherit; font-weight:600; padding:7px 2px; margin-bottom:-1px; border:0; border-bottom:2px solid transparent; background:none; color:var(--muted); cursor:pointer; }
+  .tabs button:hover { color:var(--text); }
+  .tabs button.active { color:var(--text); border-bottom-color:var(--text); }
+  .ib { position:relative; width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center; padding:0; border:0; border-radius:10px; background:transparent; color:var(--text); cursor:pointer; flex:none; }
+  .ib:hover { background:var(--panel2); }
+  .ib:disabled { opacity:.3; cursor:default; background:transparent; }
+  .ib.active { background:var(--accent); color:var(--on-accent); }
+  .ib svg { width:20px; height:20px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .ib-n { position:absolute; top:1px; right:0; min-width:16px; height:16px; padding:0 4px; border-radius:999px; background:var(--accent); color:var(--on-accent); font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .ib-n:empty { display:none; }
+  .ib.active .ib-n { background:var(--on-accent); color:var(--accent); }
+  #saved { font-size:12px; margin-right:6px; }
+  #saved { color:var(--ok); }
   #saved.warn { color:var(--danger); }
   main { padding:18px 22px 60px; max-width:1300px; margin:0 auto; }
   h2 { font-size:18px; margin:30px 0 4px; padding-bottom:6px; border-bottom:2px solid var(--accent); }
   h3 { font-size:14px; margin:18px 0 8px; color:var(--h3); text-transform:uppercase; letter-spacing:.04em; }
   .count { color:var(--muted); font-weight:400; font-size:13px; }
-  details.sec, details.legend-box { margin:10px 0; border:1px solid var(--border); border-radius:10px; background:var(--panel); }
-  details.sec > summary, details.legend-box > summary { cursor:pointer; list-style:none; padding:11px 14px; display:flex; align-items:center; gap:10px; font-weight:700; font-size:16px; user-select:none; }
-  details.legend-box > summary { font-size:14px; padding:7px 12px; }
+  details.sec, details.legend-box { margin:4px 0; border:0; background:none; }
+  details.sec > summary, details.legend-box > summary { cursor:pointer; list-style:none; padding:8px 10px; border-radius:12px; display:flex; align-items:center; gap:10px; font-weight:700; font-size:17px; user-select:none; }
+  details.legend-box > summary { font-size:13px; font-weight:600; color:var(--muted); padding:4px 8px; margin-left:-8px; display:inline-flex; }
   details.sec > summary::-webkit-details-marker, details.legend-box > summary::-webkit-details-marker { display:none; }
-  details.sec > summary::before, details.legend-box > summary::before { content:'▸'; color:var(--muted); width:1em; }
+  details.sec > summary::before, details.legend-box > summary::before { content:'▸'; color:var(--muted); width:1em; font-size:13px; }
   details.sec[open] > summary::before, details.legend-box[open] > summary::before { content:'▾'; }
-  details.sec > summary:hover, details.legend-box > summary:hover { background:var(--panel2); border-radius:10px; }
-  details.sec[open] > summary { border-bottom:1px solid var(--border); border-radius:10px 10px 0 0; }
-  details.sec > .grid, details.sec > .sec-body { padding:12px; }
-  details.legend-box > .legend { padding:4px 12px 12px; margin:0; }
+  details.sec > summary:hover, details.legend-box > summary:hover { background:var(--panel2); }
+  .sbar { order:-1; flex:none; width:6px; height:24px; border-radius:999px; background:var(--chev); }
+  details.sec > .grid, details.sec > .sec-body { padding:8px 0 18px; }
+  details.legend-box > .legend { padding:4px 0 8px; margin:0; }
   details.sec.sub > summary { font-size:14px; }
+  details.sec.sub .sbar { height:18px; width:5px; }
   .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(380px, 1fr)); gap:10px; }
   .card { position:relative; background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:10px 14px; }
   .card.modded { border-color:#fdb02e; box-shadow:0 0 0 1px #fdb02e inset; }
@@ -122,7 +135,16 @@
 </head>
 <body>
 <header>
-  <h1>Speisenkatalog <span class="sub" id="stats"></span></h1>
+  <div class="head-top">
+    <h1>Speisenkatalog <span class="sub" id="stats"></span></h1>
+    <div class="head-icons">
+      <span id="saved"></span>
+      <button class="ib" id="undo" title="Rückgängig (Strg+Z)" aria-label="Rückgängig" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span class="ib-n" id="undoN"></span></button>
+      <button class="ib" id="redo" title="Wiederholen (Strg+Y)" aria-label="Wiederholen" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+      <button class="ib" id="disk" title="Sichern, Laden, Exportieren" aria-label="Sichern, Laden, Exportieren"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg></button>
+      <button class="ib" id="infoBtn" title="Hinweise" aria-label="Hinweise"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></button>
+    </div>
+  </div>
   <div class="sub">Komponenten farbig markiert. <b>Klick auf ein Gericht = Details (Tags, Hinzufügen …) · Klick auf eine Komponente = Bearbeiten oder To-Dos ansehen.</b></div>
   <details class="legend-box" id="legendBox"><summary>Farbcodes (Legende)</summary><div class="legend" id="legend"></div></details>
   <div class="tabs"><button id="tabD" class="active">Gerichte</button><button id="tabK">Sammlungen (Komponenten + To-Do)</button></div>
@@ -131,20 +153,12 @@
     <select id="fKueche"><option value="">Alle Küchen</option></select>
     <select id="fGang"><option value="">Alle Gänge</option></select>
     <select id="fSammlung"><option value="">Alle Sammlungen</option></select>
-    <button id="clear">Filter zurücksetzen</button>
-    <button id="secAll" title="Alle Kategorien auf- oder zuklappen">Alle aufklappen</button>
-    <button id="showRem">Entfernte Gerichte (0)</button>
+    <button class="ib" id="clear" title="Filter zurücksetzen" aria-label="Filter zurücksetzen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></button>
+    <button class="ib" id="secAll" title="Alle Kategorien aufklappen" aria-label="Alle Kategorien auf- oder zuklappen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg></button>
+    <button class="ib" id="showRem" title="Entfernte Gerichte (0)" aria-label="Entfernte Gerichte"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span class="ib-n" id="remN"></span></button>
   </div>
-  <div class="toolbar">
-    <button id="undo" disabled>↶ Rückgängig</button>
-    <button id="redo" disabled>↷ Wiederholen</button>
-    <span id="saved"></span>
-    <button id="exp">Komplett als JSON exportieren</button>
-    <button id="bkExp">Sicherung der Änderungen speichern</button>
-    <button id="bkImp">Sicherung laden …</button>
-    <input type="file" id="bkFile" accept=".json,application/json" style="display:none">
-  </div>
-  <div class="note">Tags mit gestrichelter Kontur sind <b>automatisch aus den Namen abgeleitet</b> (v. a. Helal, vegan/vegetarisch, gluten frei, Laktose frei, Allergene) und müssen mit der echten Rezeptur geprüft werden. Rote Tags mit „(-)“ sind negative Merkmale. Alle Änderungen werden sofort im Browser gespeichert; mit „Sicherung speichern“ legst du zusätzlich eine Datei an.</div>
+  <button id="exp" style="display:none"></button><button id="bkExp" style="display:none"></button><button id="bkImp" style="display:none"></button>
+  <input type="file" id="bkFile" accept=".json,application/json" style="display:none">
 </header>
 <main id="main"></main>
 <div id="toast"></div>
@@ -220,9 +234,9 @@ const remote = { ok: null, timer: null, localOk: true, time: '' };
 function updateSavedText() {
   const el = document.getElementById('saved');
   if (!remote.time) return;
-  if (remote.ok === false) { el.className = 'warn'; el.textContent = '⚠ Nur im Browser gespeichert (Server nicht erreichbar) ' + remote.time; }
-  else if (!remote.localOk && remote.ok !== true) { el.className = 'warn'; el.textContent = '⚠ Speichern im Browser nicht möglich – bitte „Sicherung speichern“ benutzen'; }
-  else { el.className = ''; el.textContent = (remote.ok ? '✓ Auf dem Server gespeichert ' : '✓ Gespeichert ') + remote.time; }
+  if (remote.ok === false) { el.className = 'warn'; el.textContent = '⚠ nur im Browser gespeichert'; el.title = 'Server nicht erreichbar (' + remote.time + ')'; }
+  else if (!remote.localOk && remote.ok !== true) { el.className = 'warn'; el.textContent = '⚠ Speichern nicht möglich'; el.title = 'Speichern im Browser nicht möglich – bitte über das Disketten-Symbol eine Sicherung speichern'; }
+  else { el.className = ''; el.textContent = '✓ gespeichert'; el.title = (remote.ok ? 'Auf dem Server gespeichert ' : 'Im Browser gespeichert ') + remote.time; }
 }
 async function pushRemote() {
   try {
@@ -257,7 +271,8 @@ function doRedo() { if (!redoStack.length) return; undoStack.push(snapshot()); r
 function updateUndoUi() {
   const u = document.getElementById('undo'), r = document.getElementById('redo');
   u.disabled = !undoStack.length; r.disabled = !redoStack.length;
-  u.textContent = '↶ Rückgängig' + (undoStack.length ? ' (' + undoStack.length + ')' : '');
+  u.title = 'Rückgängig (Strg+Z)' + (undoStack.length ? ' – ' + undoStack.length + ' Schritte' : '');
+  document.getElementById('undoN').textContent = undoStack.length || '';
 }
 const todoOf = c => (TODOS[c.id] != null && String(TODOS[c.id]).trim() !== '') ? TODOS[c.id] : (c.todo || '');
 
@@ -523,6 +538,7 @@ function legendHtml() {
 }
 document.getElementById('legend').innerHTML = legendHtml();
 // Auf-/Zuklappzustand der Kategorien (pro Gerät gemerkt). Ohne Eintrag: zugeklappt, bei aktivem Filter/Suche aufgeklappt.
+const ICON = { expand: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m7 15 5 5 5-5\"/><path d=\"m7 9 5-5 5 5\"/></svg>", collapse: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m7 20 5-5 5 5\"/><path d=\"m7 4 5 5 5-5\"/></svg>" };
 let SEC = {};
 try { SEC = JSON.parse(localStorage.getItem('ks_katalog_sec') || '{}'); } catch (e) { SEC = {}; }
 const saveSec = () => { try { localStorage.setItem('ks_katalog_sec', JSON.stringify(SEC)); } catch (e) { /* ohne Speicher */ } };
@@ -530,8 +546,8 @@ const filterAktiv = () => !!(state.q || state.kueche || state.gang || state.samm
 const secOffen = (key, standard) => key in SEC ? SEC[key] : (standard !== undefined ? standard : filterAktiv());
 function secHtml(key, titel, count, inner, opts) {
   opts = opts || {};
-  const stripe = opts.farbe ? ' style="border-left:6px solid ' + opts.farbe + '"' : '';
-  return `<details class="sec ${opts.cls || ''}" data-sec="${esc(key)}"${secOffen(key, opts.standard) ? ' open' : ''}><summary${stripe}><span class="sname">${esc(titel)}</span> <span class="count">${count}</span></summary>${inner}</details>`;
+  const bar = '<span class="sbar"' + (opts.farbe ? ' style="background:' + opts.farbe + '"' : '') + '></span>';
+  return `<details class="sec ${opts.cls || ''}" data-sec="${esc(key)}"${secOffen(key, opts.standard) ? ' open' : ''}><summary>${bar}<span class="sname">${esc(titel)}</span> <span class="count">${count}</span></summary>${inner}</details>`;
 }
 function render() {
   const m = document.getElementById('main');
@@ -541,7 +557,8 @@ function render() {
   const nMod = active.filter(e => e.mod).length;
   document.getElementById('stats').textContent = `· ${active.length} Gerichte${REMOVED.size ? ' (' + REMOVED.size + ' entfernt)' : ''}${nMod ? ' · ' + nMod + ' angepasst' : ''} · ${DB.komponenten.length} Komponenten`;
   const rb = document.getElementById('showRem');
-  rb.textContent = state.showRemoved ? 'Zurück zu den Gerichten' : `Entfernte Gerichte (${REMOVED.size})`;
+  rb.title = state.showRemoved ? 'Zurück zu den Gerichten' : `Entfernte Gerichte (${REMOVED.size})`;
+  document.getElementById('remN').textContent = REMOVED.size || '';
   rb.classList.toggle('active', state.showRemoved);
   updateUndoUi();
   let html = '';
@@ -834,6 +851,16 @@ document.getElementById('fSammlung').onchange = e => { state.sammlung = e.target
 document.getElementById('showRem').onclick = () => { state.showRemoved = !state.showRemoved; setTab('D'); };
 document.getElementById('clear').onclick = () => { Object.assign(state, { q: '', kueche: '', gang: '', sammlung: '', tag: '', comp: '' }); document.getElementById('q').value = ''; ['fKueche', 'fGang', 'fSammlung'].forEach(i => document.getElementById(i).value = ''); render(); };
 document.getElementById('undo').onclick = doUndo;
+document.getElementById('disk').onclick = () => dlgOpen({
+  title: 'Sicherung', sub: 'Alle Änderungen werden automatisch gespeichert. Hier kannst du zusätzlich eine Sicherungsdatei anlegen oder laden.',
+  buttons: [
+    { label: 'Sicherung speichern', cls: 'primary', fn: () => document.getElementById('bkExp').click() },
+    { label: 'Sicherung laden …', fn: () => document.getElementById('bkImp').click() },
+    { label: 'Komplett als JSON exportieren', fn: () => document.getElementById('exp').click() },
+    { label: 'Abbrechen' }
+  ]
+});
+document.getElementById('infoBtn').onclick = () => dlgOpen({ title: 'Hinweise', body: '<div class="note" style="margin:0">' + "Tags mit gestrichelter Kontur sind <b>automatisch aus den Namen abgeleitet</b> (v. a. Helal, vegan/vegetarisch, gluten frei, Laktose frei, Allergene) und müssen mit der echten Rezeptur geprüft werden. Rote Tags mit „(-)“ sind negative Merkmale. Alle Änderungen werden sofort gespeichert; über das Disketten-Symbol legst du zusätzlich eine Sicherungsdatei an oder lädst eine." + '</div>', buttons: [{ label: 'Schließen', cls: 'primary' }] });
 document.getElementById('redo').onclick = doRedo;
 document.getElementById('main').addEventListener('click', e => {
   const sm = e.target.closest('summary');
@@ -845,7 +872,9 @@ document.getElementById('secAll').addEventListener('click', () => {
   const auf = alle.some(d => !d.open);
   alle.forEach(d => { d.open = auf; SEC[d.dataset.sec] = auf; });
   saveSec();
-  document.getElementById('secAll').textContent = auf ? 'Alle zuklappen' : 'Alle aufklappen';
+  const sa = document.getElementById('secAll');
+  sa.innerHTML = auf ? ICON.collapse : ICON.expand;
+  sa.title = auf ? 'Alle Kategorien zuklappen' : 'Alle Kategorien aufklappen';
 });
 document.getElementById('main').addEventListener('click', e => {
   const td = e.target.closest('[data-tagdel]');
@@ -907,7 +936,7 @@ document.getElementById('bkFile').onchange = e => {
 window.addEventListener('beforeunload', () => { if (remote.timer) { clearTimeout(remote.timer); remote.timer = null; pushRemote(); } });
 const hasChanges = () => Object.values(KEYS()).some(v => Array.isArray(v) ? v.length : Object.keys(v).length);
 render();
-document.getElementById('saved').textContent = 'Änderungen werden automatisch gespeichert';
+document.getElementById('saved').textContent = '✓ automatisch gespeichert';
 if (migriert) saveAll();
 // Stand vom Server holen (falls vorhanden); sonst den lokalen Stand einmalig hochladen
 loadRemote().then(j => {
