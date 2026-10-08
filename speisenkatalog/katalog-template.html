@@ -29,6 +29,17 @@
   h2 { font-size:18px; margin:30px 0 4px; padding-bottom:6px; border-bottom:2px solid var(--accent); }
   h3 { font-size:14px; margin:18px 0 8px; color:var(--h3); text-transform:uppercase; letter-spacing:.04em; }
   .count { color:var(--muted); font-weight:400; font-size:13px; }
+  details.sec, details.legend-box { margin:10px 0; border:1px solid var(--border); border-radius:10px; background:var(--panel); }
+  details.sec > summary, details.legend-box > summary { cursor:pointer; list-style:none; padding:11px 14px; display:flex; align-items:center; gap:10px; font-weight:700; font-size:16px; user-select:none; }
+  details.legend-box > summary { font-size:14px; padding:7px 12px; }
+  details.sec > summary::-webkit-details-marker, details.legend-box > summary::-webkit-details-marker { display:none; }
+  details.sec > summary::before, details.legend-box > summary::before { content:'▸'; color:var(--muted); width:1em; }
+  details.sec[open] > summary::before, details.legend-box[open] > summary::before { content:'▾'; }
+  details.sec > summary:hover, details.legend-box > summary:hover { background:var(--panel2); border-radius:10px; }
+  details.sec[open] > summary { border-bottom:1px solid var(--border); border-radius:10px 10px 0 0; }
+  details.sec > .grid, details.sec > .sec-body { padding:12px; }
+  details.legend-box > .legend { padding:4px 12px 12px; margin:0; }
+  details.sec.sub > summary { font-size:14px; }
   .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(380px, 1fr)); gap:10px; }
   .card { position:relative; background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:10px 14px; }
   .card.modded { border-color:#fdb02e; box-shadow:0 0 0 1px #fdb02e inset; }
@@ -113,7 +124,7 @@
 <header>
   <h1>Speisenkatalog <span class="sub" id="stats"></span></h1>
   <div class="sub">Komponenten farbig markiert. <b>Klick auf ein Gericht = Details (Tags, Hinzufügen …) · Klick auf eine Komponente = Bearbeiten oder To-Dos ansehen.</b></div>
-  <div class="legend" id="legend"></div>
+  <details class="legend-box" id="legendBox"><summary>Farbcodes (Legende)</summary><div class="legend" id="legend"></div></details>
   <div class="tabs"><button id="tabD" class="active">Gerichte</button><button id="tabK">Sammlungen (Komponenten + To-Do)</button></div>
   <div class="toolbar">
     <input id="q" placeholder="Suchen (Gericht oder Komponente)…">
@@ -121,6 +132,7 @@
     <select id="fGang"><option value="">Alle Gänge</option></select>
     <select id="fSammlung"><option value="">Alle Sammlungen</option></select>
     <button id="clear">Filter zurücksetzen</button>
+    <button id="secAll" title="Alle Kategorien auf- oder zuklappen">Alle aufklappen</button>
     <button id="showRem">Entfernte Gerichte (0)</button>
   </div>
   <div class="toolbar">
@@ -510,6 +522,17 @@ function legendHtml() {
     [['rS','Soße'],['rB1','Beilage: Kartoffeln & Knödel'],['rB2','Beilage: Reis, Nudeln & Getreide'],['rG','Gemüse'],['rE','Extra']].map(([c, t]) => `<span class="lg ${c}">${t}</span>`).join('');
 }
 document.getElementById('legend').innerHTML = legendHtml();
+// Auf-/Zuklappzustand der Kategorien (pro Gerät gemerkt). Ohne Eintrag: zugeklappt, bei aktivem Filter/Suche aufgeklappt.
+let SEC = {};
+try { SEC = JSON.parse(localStorage.getItem('ks_katalog_sec') || '{}'); } catch (e) { SEC = {}; }
+const saveSec = () => { try { localStorage.setItem('ks_katalog_sec', JSON.stringify(SEC)); } catch (e) { /* ohne Speicher */ } };
+const filterAktiv = () => !!(state.q || state.kueche || state.gang || state.sammlung || state.tag || state.comp);
+const secOffen = (key, standard) => key in SEC ? SEC[key] : (standard !== undefined ? standard : filterAktiv());
+function secHtml(key, titel, count, inner, opts) {
+  opts = opts || {};
+  const stripe = opts.farbe ? ' style="border-left:6px solid ' + opts.farbe + '"' : '';
+  return `<details class="sec ${opts.cls || ''}" data-sec="${esc(key)}"${secOffen(key, opts.standard) ? ' open' : ''}><summary${stripe}><span class="sname">${esc(titel)}</span> <span class="count">${count}</span></summary>${inner}</details>`;
+}
 function render() {
   const m = document.getElementById('main');
   const all = allDishes().map(eff);
@@ -527,7 +550,8 @@ function render() {
     const by = {};
     list.forEach(e => (by[e.sammlung] = by[e.sammlung] || []).push(e));
     const keys = ORDER.filter(k => by[k]).concat(Object.keys(by).filter(k => !ORDER.includes(k)).sort());
-    keys.forEach(k => { html += `<h2>${esc(k)} <span class="count">${by[k].length} Gerichte</span></h2><div class="grid">${by[k].map(dishHtml).join('')}</div>`; });
+    if (neueVariante) { const g0 = dishOf(neueVariante); if (g0) SEC['D:' + eff(g0).sammlung] = true; }
+    keys.forEach(k => { html += secHtml('D:' + k, k, by[k].length + ' Gerichte', `<div class="grid">${by[k].map(dishHtml).join('')}</div>`, { farbe: HCOL[k] && HCOL[k][0], standard: state.showRemoved ? true : undefined }); });
     if (!list.length) html = `<div class="empty">${state.showRemoved ? 'Keine entfernten Gerichte.' : 'Keine Gerichte für diesen Filter.'}</div>`;
   } else {
     const uses = {};
@@ -540,7 +564,7 @@ function render() {
       const groups = {};
       cs.forEach(c => (groups[c.gruppe] = groups[c.gruppe] || []).push(c));
       Object.keys(groups).forEach(gr => {
-        html += `<h3>${esc(gr)} · ${groups[gr].length}</h3><div class="grid">${groups[gr].sort((a, b) => a.name.localeCompare(b.name, 'de')).map(c => compHtml(c, uses)).join('')}</div>`;
+        html += secHtml('K:' + r + ':' + gr, gr, groups[gr].length + ' Komponenten', `<div class="grid">${groups[gr].sort((a, b) => a.name.localeCompare(b.name, 'de')).map(c => compHtml(c, uses)).join('')}</div>`, { cls: 'sub', farbe: HCOL[gr] && HCOL[gr][0] });
       });
     });
     if (!list.length) html = '<div class="empty">Keine Komponenten für diesen Filter.</div>';
@@ -811,6 +835,18 @@ document.getElementById('showRem').onclick = () => { state.showRemoved = !state.
 document.getElementById('clear').onclick = () => { Object.assign(state, { q: '', kueche: '', gang: '', sammlung: '', tag: '', comp: '' }); document.getElementById('q').value = ''; ['fKueche', 'fGang', 'fSammlung'].forEach(i => document.getElementById(i).value = ''); render(); };
 document.getElementById('undo').onclick = doUndo;
 document.getElementById('redo').onclick = doRedo;
+document.getElementById('main').addEventListener('click', e => {
+  const sm = e.target.closest('summary');
+  if (sm && sm.parentElement.dataset.sec) { SEC[sm.parentElement.dataset.sec] = !sm.parentElement.open; saveSec(); return; }
+}, true);
+document.getElementById('secAll').addEventListener('click', () => {
+  const alle = [...document.querySelectorAll('#main details.sec')];
+  if (!alle.length) return;
+  const auf = alle.some(d => !d.open);
+  alle.forEach(d => { d.open = auf; SEC[d.dataset.sec] = auf; });
+  saveSec();
+  document.getElementById('secAll').textContent = auf ? 'Alle zuklappen' : 'Alle aufklappen';
+});
 document.getElementById('main').addEventListener('click', e => {
   const td = e.target.closest('[data-tagdel]');
   if (td) { const t = td.dataset.tagdel; tagEdit(td.dataset.owner, m => { if (m.add.includes(t)) m.add = m.add.filter(x => x !== t); else if (!m.del.includes(t)) m.del.push(t); }); return; }
