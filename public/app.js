@@ -58,6 +58,7 @@ async function loadState() {
 const MODI = { mittag: 'Mittag / Business', abend: 'Abend / Privat' };
 function normalizeRules(rules) {
   const r = rules || {};
+  if (!Array.isArray(r.eigene)) r.eigene = [];
   if (!r.abend) { r.abend = {}; RULE_KEYS.forEach(k => { r.abend[k] = r[k] != null ? r[k] : DEFAULT_RULES[k]; }); r.abend.hauptteilGramm = DEFAULT_RULES.abend.hauptteilGramm; }
   else RULE_KEYS.forEach(k => { if (r.abend[k] == null) r.abend[k] = r[k] != null ? r[k] : DEFAULT_RULES.abend[k]; });
   return r;
@@ -65,6 +66,31 @@ function normalizeRules(rules) {
 function regelnFuerModus(rules, modus) {
   if (modus !== 'abend' || !rules.abend) return rules;
   return { ...rules, ...rules.abend };
+}
+// Eigene Wenn-Dann-Regeln: Bedingung (Regelsatz, Kategorie, Stichwörter im Gerichtsnamen) → Wert eines Regelfelds setzen
+// oder multiplizieren bzw. die Personenzahl des Gerichts skalieren. Gibt die für dieses Gericht gültigen Regeln zurück.
+function regelnFuerGericht(rules, dish, modus) {
+  const worte = s => String(s || '').split(',').map(t => normalize(t)).filter(Boolean);
+  const name = normalize(dish.name);
+  const treffer = (rules.eigene || []).filter(r => r.aktiv !== false
+    && (!r.modus || r.modus === 'beide' || r.modus === modus)
+    && (!r.kategorie || r.kategorie === dish.category)
+    && (!worte(r.stichwort).length || worte(r.stichwort).some(w => name.includes(w)))
+    && r.feld && r.wert !== '' && r.wert != null && !isNaN(Number(r.wert)));
+  if (!treffer.length) return { rules, personenFaktor: 1, namen: [] };
+  const eff = { ...rules };
+  let pf = 1;
+  treffer.forEach(r => {
+    const w = Number(r.wert);
+    if (r.feld === 'personenFaktor') pf *= w;
+    else if (r.art === 'mal') eff[r.feld] = (Number(eff[r.feld]) || 0) * w;
+    else eff[r.feld] = w;
+  });
+  return { rules: eff, personenFaktor: pf, namen: treffer.map(r => r.name || regelFeldLabel(r.feld)) };
+}
+function regelFeldLabel(key) {
+  if (key === 'personenFaktor') return 'Personenzahl (Faktor)';
+  const f = RULE_FIELDS.find(x => x.key === key); return f ? f.label : key;
 }
 function baseGramFor(cat, rules) {
   const key = { vorspeise: 'vorspeiseGramm', dessert: 'vorspeiseGramm', hauptgang: 'hauptteilGramm', 'beilage-saettigung': 'saettigungGramm',
@@ -345,7 +371,15 @@ function computeEvent(event, recipes, rules) {
       const r = regelnFuerModus(rules, modus);   // Abend/Privat rechnet mit eigenem Regelsatz
       return {
         id: day.id, date: day.date, personen: day.personen, modus,
-        dishes: day.dishes.map(d => computeDish(event.brotStufe ? { ...d, brotFaktor: KarteiLogik.brotFaktorWert(event.brotStufe) } : d, recipes, r)),
+        dishes: day.dishes.map(d0 => {
+          const d = event.brotStufe ? { ...d0, brotFaktor: KarteiLogik.brotFaktorWert(event.brotStufe) } : d0;
+          const g = regelnFuerGericht(r, d, modus);   // eigene Regeln (Regeln-Tab)
+          const dd = g.personenFaktor !== 1 ? { ...d, personen: Math.round((d.personen || 0) * g.personenFaktor) } : d;
+          const res = computeDish(dd, recipes, g.rules);
+          res.personen = d.personen || 0;          // angezeigt wird die Personenzahl aus dem Angebot
+          if (g.namen.length) res.eigeneRegeln = g.namen;
+          return res;
+        }),
       };
     }),
   };
@@ -765,7 +799,7 @@ function renderDishCard(d, dayId) {
   const cat = catById(d.category);
   let html = `<div class="dish-card ${d.missing ? 'missing' : ''}" data-day-id="${dayId}" data-dish-id="${d.id}">`;
   html += `<div class="dish-title"><span>${d.name || '(ohne Namen)'}</span><span>${d.totalLabel || ''}</span></div>`;
-  html += `<div class="dish-meta">${d.personen} Personen${d.temp ? ' · ' + d.temp : ''}${d.allergene ? ' · Allergene: ' + d.allergene : ''}</div>`;
+  html += `<div class="dish-meta">${d.personen} Personen${d.eigeneRegeln ? ' · ⚙ Regel: ' + escHtml(d.eigeneRegeln.join(', ')) : ''}${d.temp ? ' · ' + d.temp : ''}${d.allergene ? ' · Allergene: ' + d.allergene : ''}</div>`;
 
   if (d.isPfanne) {
     d.components.forEach(c => { html += renderComponentBlock(c); });
@@ -1328,7 +1362,7 @@ const RULE_FIELDS = [
   { key: 'gemueseGramm', label: 'Gemüsebeilage: Gramm pro Portion' },
   { key: 'sosseGramm', label: 'Soße: ml pro Portion (Hauptgang)' },
   { key: 'garverlustStandard', label: 'Garverlust-Faktor (Standard)' },
-  { key: 'garverlustSchmoren', label: 'Garverlust-Faktor (Schmoren/Braten)' },
+  { key: 'garverlustSchmoren', label: 'Garverlust-Faktor (Schmoren)' },
   { key: 'garzuwachs', label: 'Garzuwachs-Faktor' },
   { key: 'fingerfoodTeilGramm', label: 'Fingerfood: Gramm pro Teil' },
   { key: 'fingerfoodTeilePerPerson', label: 'Fingerfood: Teile pro Person' },
@@ -1352,7 +1386,54 @@ function renderRulesForm() {
       ${RULE_FIELDS.map(f => `<label>${f.label}<input type="number" step="any" data-rule="${f.key}" data-modus="${m}" value="${wert(m, f.key)}"></label>`).join('')}
     </div>`).join('')}`;
   syncCategoryBaseGrams();
+  renderCustomRules();
 }
+//---------- Eigene Regeln (Wenn-Dann) ----------
+const EIGENE_FELDER = () => RULE_FIELDS.map(f => ({ key: f.key, label: f.label })).concat([{ key: 'personenFaktor', label: 'Personenzahl des Gerichts (Faktor)' }]);
+function renderCustomRules() {
+  const box = document.getElementById('customRules');
+  const liste = state.rules.eigene || [];
+  const felder = EIGENE_FELDER();
+  box.innerHTML = liste.map(r => `<div class="cr-row" data-id="${escHtml(r.id)}">
+    <div class="cr-head">
+      <label class="cr-aktiv"><input type="checkbox" class="cr-on" ${r.aktiv !== false ? 'checked' : ''}> aktiv</label>
+      <input type="text" class="cr-name" value="${escHtml(r.name || '')}" placeholder="Name der Regel (z.B. Spargel-Portion)">
+      <button type="button" class="btn-ghost small-btn cr-del" title="Regel löschen">✕</button>
+    </div>
+    <div class="cr-line"><span class="cr-lbl">Wenn</span>
+      <select class="cr-modus"><option value="beide" ${(r.modus || 'beide') === 'beide' ? 'selected' : ''}>Mittag &amp; Abend</option><option value="mittag" ${r.modus === 'mittag' ? 'selected' : ''}>Mittag / Business</option><option value="abend" ${r.modus === 'abend' ? 'selected' : ''}>Abend / Privat</option></select>
+      <select class="cr-kat"><option value="">jede Kategorie</option>${CATEGORIES.map(c => `<option value="${c.id}" ${r.kategorie === c.id ? 'selected' : ''}>${c.label}</option>`).join('')}</select>
+      <input type="text" class="cr-wort" value="${escHtml(r.stichwort || '')}" placeholder="Name enthält … (Komma = oder)">
+    </div>
+    <div class="cr-line"><span class="cr-lbl">Dann</span>
+      <select class="cr-feld">${felder.map(f => `<option value="${f.key}" ${r.feld === f.key ? 'selected' : ''}>${escHtml(f.label)}</option>`).join('')}</select>
+      <select class="cr-art" style="${r.feld === 'personenFaktor' ? 'display:none' : ''}"><option value="setzen" ${r.art !== 'mal' ? 'selected' : ''}>setzen auf</option><option value="mal" ${r.art === 'mal' ? 'selected' : ''}>mal (×)</option></select>
+      <input type="number" step="any" class="cr-wert" value="${r.wert ?? ''}" placeholder="Wert">
+    </div>
+  </div>`).join('') || '<p class="hint">Noch keine eigenen Regeln.</p>';
+}
+function sammleCustomRules() {
+  return Array.from(document.querySelectorAll('#customRules .cr-row')).map(row => ({
+    id: row.dataset.id, aktiv: row.querySelector('.cr-on').checked, name: row.querySelector('.cr-name').value.trim(),
+    modus: row.querySelector('.cr-modus').value, kategorie: row.querySelector('.cr-kat').value, stichwort: row.querySelector('.cr-wort').value.trim(),
+    feld: row.querySelector('.cr-feld').value, art: row.querySelector('.cr-art').value,
+    wert: row.querySelector('.cr-wert').value === '' ? '' : parseFloat(row.querySelector('.cr-wert').value),
+  }));
+}
+document.getElementById('addRuleBtn').addEventListener('click', () => {
+  state.rules.eigene = sammleCustomRules();   // bereits Eingetipptes nicht verlieren
+  state.rules.eigene.push({ id: uid(), aktiv: true, name: '', modus: 'beide', kategorie: '', stichwort: '', feld: 'hauptteilGramm', art: 'setzen', wert: '' });
+  renderCustomRules();
+});
+document.getElementById('customRules').addEventListener('click', e => {
+  const del = e.target.closest('.cr-del'); if (!del) return;
+  state.rules.eigene = sammleCustomRules().filter(r => r.id !== del.closest('.cr-row').dataset.id);
+  renderCustomRules();
+});
+document.getElementById('customRules').addEventListener('change', e => {
+  if (!e.target.classList.contains('cr-feld')) return;
+  e.target.closest('.cr-row').querySelector('.cr-art').style.display = e.target.value === 'personenFaktor' ? 'none' : '';
+});
 document.getElementById('rulesForm').addEventListener('click', e => {
   const b = e.target.closest('#rulesSubnav .subtab-btn'); if (!b) return;
   rulesModus = b.dataset.modus;
@@ -1370,6 +1451,7 @@ function syncCategoryBaseGrams() {
 }
 document.getElementById('saveRulesBtn').addEventListener('click', async () => {
   normalizeRules(state.rules);
+  state.rules.eigene = sammleCustomRules().filter(r => r.feld && (r.name || r.stichwort || r.kategorie || r.wert !== ''));
   document.querySelectorAll('[data-rule]').forEach(inp => {
     const v = parseFloat(inp.value) || 0;
     if (inp.dataset.modus === 'abend') state.rules.abend[inp.dataset.rule] = v; else state.rules[inp.dataset.rule] = v;
@@ -1381,8 +1463,9 @@ document.getElementById('saveRulesBtn').addEventListener('click', async () => {
   alert('Regeln gespeichert.');
 });
 document.getElementById('resetRulesBtn').addEventListener('click', async () => {
-  if (!confirm('Regeln auf Standardwerte zurücksetzen?')) return;
+  if (!confirm('Die Standardwerte (Mittag/Business und Abend/Privat) auf die Ausgangswerte zurücksetzen? Eigene Regeln bleiben erhalten.')) return;
   const fresh = JSON.parse(JSON.stringify(DEFAULT_RULES));
+  fresh.eigene = (state.rules.eigene || []);
   state.rules = normalizeRules(await API.send('PUT', '/api/rules', fresh));
   renderRulesForm();
 });

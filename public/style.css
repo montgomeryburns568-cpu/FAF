@@ -423,3 +423,14 @@ button {
 /* Rezepte: Handy */
 .recipe-back { display: none; }
 @media (max-width: 900px) { .recipe-back { display: inline-block; } .recipe-list { max-height: 45vh; } #recipeFormTitle { scroll-margin-top: 80px; } }
+
+/* Eigene Regeln */
+.cr-row { border: 1px solid var(--border-strong); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; background: var(--panel-2); }
+.cr-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.cr-head .cr-name { flex: 1; }
+.cr-aktiv { display: flex; align-items: center; gap: 4px; margin: 0; white-space: nowrap; }
+.cr-aktiv input { width: auto; margin: 0; }
+.cr-line { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+.cr-lbl { width: 42px; font-weight: 600; color: var(--muted); font-size: 12.5px; }
+.cr-line select, .cr-line input { flex: 1 1 140px; min-width: 0; width: auto; }
+.cr-line .cr-wert { flex: 0 1 110px; }

@@ -28,7 +28,7 @@ const Produktion = (function () {
           id: c.id, label: c.label,
           dishes: byCat[c.id].map(d => ({
             id: d.id, name: d.name || '(ohne Namen)', personen: d.personen, label: d.totalLabel || '',
-            comps: komponentenVon(d), unklar: (d.komponentenRest || []).join(', '),
+            regeln: d.eigeneRegeln || [], comps: komponentenVon(d), unklar: (d.komponentenRest || []).join(', '),
             erkannt: !!((d.komponenten && d.komponenten.length) || d.isPfanne),
           })),
         })),
@@ -73,7 +73,7 @@ const Produktion = (function () {
           const cls = st.length && fertig === st.length ? 'all-done' : st.includes('rot') ? 'has-rot' : st.some(s => s === 'gelb' || s === 'gruen') ? 'in-arbeit' : '';
           h += `<div class="prod-dish ${cls}">
             <div class="prod-dish-head"><span class="prod-dish-name">${esc(d.name)}</span>
-              <span class="prod-anzahl">${d.personen || 0} Pers.${d.label ? ' · ' + esc(d.label) : ''}</span>
+              <span class="prod-anzahl">${d.personen || 0} Pers.${d.label ? ' · ' + esc(d.label) : ''}${d.regeln.length ? ` <span title="Eigene Regel: ${esc(d.regeln.join(', '))}">⚙</span>` : ''}</span>
               ${d.comps.length > 1 ? `<span class="prod-progress">${fertig}/${d.comps.length}</span>` : ''}
               <button type="button" class="btn-ghost small-btn prod-label-btn no-print" data-name="${esc(d.name)}" data-date="${esc(day.date || '')}" title="Labels für dieses Gericht drucken">🏷 Label</button></div>
             <div class="prod-chips">${d.comps.map(k => chipHTML(day.id, d, k)).join('')}</div>

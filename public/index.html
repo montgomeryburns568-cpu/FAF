@@ -197,6 +197,11 @@
     <h2>Kalkulationsregeln</h2>
     <p class="hint">Diese Werte steuern die Formel-Berechnung für Gerichte ohne hinterlegtes Rezept.</p>
     <div id="rulesForm"></div>
+    <h3 style="margin-top:22px">Eigene Regeln</h3>
+    <p class="hint">Zusätzliche Wenn-Dann-Regeln, die die Kalkulation verändern – für alle Gerichte, die zu den Bedingungen passen. Beispiele: <em>Name enthält „Spargel“ → Hauptteil setzen auf 250 g</em> · <em>Kategorie Dessert → Personenzahl × 0,8</em> · <em>Abend/Privat, Name enthält „Lasagne“ → Hauptteil × 1,2</em>. Mehrere passende Regeln werden nacheinander angewendet.</p>
+    <div id="customRules"></div>
+    <button type="button" id="addRuleBtn" class="btn-ghost">+ Regel hinzufügen</button>
+    <div style="margin-top:14px"></div>
     <button id="saveRulesBtn" class="btn-primary">Regeln speichern</button>
     <button id="resetRulesBtn" class="btn-ghost">Zurücksetzen auf Standard</button>
   </div>
