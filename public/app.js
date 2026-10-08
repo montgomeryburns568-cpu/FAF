@@ -1130,12 +1130,20 @@ document.getElementById('printTodoBtn').addEventListener('click', () => window.p
 // ---------- Rezepte tab ----------
 function refreshCategorySelect() {
   document.getElementById('rCategory').innerHTML = categoryOptions('vorspeise');
+  const f = document.getElementById('recipeCatFilter'), cur = f.value;
+  f.innerHTML = '<option value="">Alle Kategorien</option>' + CATEGORIES.map(c => `<option value="${c.id}">${c.label}</option>`).join('');
+  f.value = cur;
 }
+// Handy/Tablet: Liste und Formular stehen untereinander - nach dem Antippen zum Formular springen und wieder zurück
+const einspaltig = () => window.matchMedia('(max-width: 900px)').matches;
+function zumRezeptFormular() { if (einspaltig()) document.getElementById('recipeFormTitle').scrollIntoView({ block: 'start' }); }
+function zurRezeptListe() { if (einspaltig()) document.getElementById('recipeSearch').scrollIntoView({ block: 'center' }); }
 function renderRecipeList() {
   const q = normalize(document.getElementById('recipeSearch').value);
   const listEl = document.getElementById('recipeList');
   const hideStd = document.getElementById('hideStd') && document.getElementById('hideStd').checked;
-  const items = state.recipes.filter(r => (!q || normalize(r.name).includes(q)) && !(hideStd && r.standard));
+  const cat = document.getElementById('recipeCatFilter').value;
+  const items = state.recipes.filter(r => (!q || normalize(r.name).includes(q)) && !(hideStd && r.standard) && (!cat || r.category === cat));
   listEl.innerHTML = items.map(r => `
     <div class="recipe-item" data-id="${r.id}">
       <span>${r.name}</span>
@@ -1144,7 +1152,10 @@ function renderRecipeList() {
   `).join('') || '<p class="hint">Keine Rezepte gefunden.</p>';
 }
 document.getElementById('recipeSearch').addEventListener('input', renderRecipeList);
-document.getElementById('hideStd').addEventListener('change', renderRecipeList);
+document.getElementById('recipeCatFilter').addEventListener('change', renderRecipeList);
+try { document.getElementById('hideStd').checked = localStorage.getItem('ks_hideStd') === '1'; } catch (e) { /* ohne Speicher */ }
+document.getElementById('hideStd').addEventListener('change', e => { try { localStorage.setItem('ks_hideStd', e.target.checked ? '1' : '0'); } catch (err) { /* ignorieren */ } renderRecipeList(); });
+document.getElementById('recipeBackBtn').addEventListener('click', zurRezeptListe);
 document.getElementById('stdImportBtn').addEventListener('click', async () => {
   const btn = document.getElementById('stdImportBtn');
   btn.disabled = true;
@@ -1160,6 +1171,7 @@ document.getElementById('recipeList').addEventListener('click', e => {
   const item = e.target.closest('.recipe-item');
   if (!item) return;
   loadRecipeIntoForm(state.recipes.find(r => r.id === item.dataset.id));
+  zumRezeptFormular();
 });
 
 function stufeRowHTML(s) {
@@ -1302,6 +1314,10 @@ document.getElementById('recipeForm').addEventListener('submit', async e => {
   if (idx === -1) state.recipes.push(recipe); else state.recipes[idx] = recipe;
   renderRecipeList();
   loadRecipeIntoForm(recipe);
+  const st = document.getElementById('recipeSaveStatus');
+  st.textContent = '✅ Rezept gespeichert (' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ')';
+  st.style.color = 'var(--success)';
+  zurRezeptListe();
 });
 
 // ---------- Regeln tab ----------

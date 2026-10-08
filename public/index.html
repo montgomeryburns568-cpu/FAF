@@ -141,11 +141,11 @@
         <button id="stdImportBtn" class="btn-ghost small-btn" title="Fehlende Standardrezepte aus dem Speisenkatalog (Bezugsmenge 200 g/ml) ergänzen">Standardrezepte ergänzen</button>
         <label class="hint" style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="hideStd" style="width:auto;margin:0"> Standardrezepte ausblenden</label>
       </div>
-      <input type="text" id="recipeSearch" placeholder="Suchen...">
+      <div class="field-row" style="gap:8px"><input type="text" id="recipeSearch" placeholder="Suchen..."><select id="recipeCatFilter" title="Nach Kategorie filtern"></select></div>
       <div id="recipeList" class="recipe-list"></div>
     </div>
     <div class="card">
-      <h2 id="recipeFormTitle">Rezept</h2>
+      <div class="output-toolbar"><h2 id="recipeFormTitle">Rezept</h2><button type="button" id="recipeBackBtn" class="btn-ghost small-btn recipe-back">↑ Zur Rezeptliste</button></div>
       <form id="recipeForm">
         <label>Name<input type="text" id="rName" required></label>
         <div class="actions-row" style="margin:-4px 0 10px">
@@ -182,6 +182,7 @@
           <button type="button" id="deleteRecipeBtn" class="btn-danger">Löschen</button>
           <button type="button" id="clearRecipeFormBtn" class="btn-ghost">Neu / Leeren</button>
         </div>
+        <p class="hint" id="recipeSaveStatus" style="margin-top:8px"></p>
       </form>
     </div>
   </div>

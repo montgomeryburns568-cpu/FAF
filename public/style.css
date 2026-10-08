@@ -419,3 +419,7 @@ button {
 .komp-chip { display: inline-block; padding: 1px 9px; margin: 2px 4px 2px 0; border-radius: 999px; font-size: 12px; background: #fdb02e; color: #10206b; }
 .komp-S { background: #00e5b8; color: #1c1c80; } .komp-B { background: #0a2cff; color: #fff; } .komp-G { background: #96e5b8; color: #0b3d1e; }
 .komp-none { color: var(--muted); font-style: italic; }
+
+/* Rezepte: Handy */
+.recipe-back { display: none; }
+@media (max-width: 900px) { .recipe-back { display: inline-block; } .recipe-list { max-height: 45vh; } #recipeFormTitle { scroll-margin-top: 80px; } }
