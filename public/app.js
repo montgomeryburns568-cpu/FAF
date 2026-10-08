@@ -760,7 +760,8 @@ function renderKueche() {
   const computed = computeEvent(draftEvent, state.recipes, state.rules);
   let html = `<h1>${computed.name}</h1>`;
   if (computed.notiz) html += `<p class="hint">${computed.notiz}</p>`;
-  if (computed.personen) html += `<p><strong>Gesamt-Personen:</strong> ${computed.personen}</p>`;
+  // Zeile mit Gesamt-Personen und (bei eintägigen Angeboten) einmalig dem Drucker-Symbol für Zwischendurch-Labels
+  html += `<div class="kueche-meta-row"><span>${computed.personen ? `<strong>Gesamt-Personen:</strong> ${computed.personen}` : ''}</span>${computed.days.length === 1 ? druckIcon(computed.days[0].id) : ''}</div>`;
 
   // Produktionsliste: alle Gerichte mit Anzahl, Komponenten per Touch einfärbbar (siehe produktion.js)
   Produktion.baue(computed);

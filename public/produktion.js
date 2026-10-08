@@ -64,7 +64,7 @@ const Produktion = (function () {
       <p class="hint no-print" style="margin:6px 0 0">Komponente antippen: grau → gelb → grün → rot → grau.</p>
     </div>`;
     model.forEach(day => {
-      h += `<div class="prod-day"><h3>${esc(day.date || 'Tag')}${day.personen ? ' · ' + day.personen + ' Personen' : ''}${day.modus === 'abend' ? ' · <span class="badge">Abend / Privat</span>' : ''}</h3>`;
+      h += `<div class="prod-day"><h3>${esc(day.date || 'Tag')}${day.personen ? ' · ' + day.personen + ' Personen' : ''}${day.modus === 'abend' ? ' · <span class="badge">Abend / Privat</span>' : ''}${model.length > 1 ? druckIcon(day.id) : ''}</h3>`;
       day.cats.forEach(c => {
         h += `<h4 class="prod-cat">${esc(c.label)}</h4>`;
         c.dishes.forEach(d => {
@@ -74,8 +74,7 @@ const Produktion = (function () {
           h += `<div class="prod-dish ${cls}">
             <div class="prod-dish-head"><span class="prod-dish-name">${esc(d.name)}</span>
               <span class="prod-anzahl">${d.personen || 0} Pers.${d.label ? ' · ' + esc(d.label) : ''}${d.regeln.length ? ` <span title="Eigene Regel: ${esc(d.regeln.join(', '))}">⚙</span>` : ''}</span>
-              ${d.comps.length > 1 ? `<span class="prod-progress">${fertig}/${d.comps.length}</span>` : ''}
-              <button type="button" class="btn-ghost small-btn prod-label-btn no-print" data-name="${esc(d.name)}" data-date="${esc(day.date || '')}" title="Labels für dieses Gericht drucken">🏷 Label</button></div>
+              ${d.comps.length > 1 ? `<span class="prod-progress">${fertig}/${d.comps.length}</span>` : ''}</div>
             <div class="prod-chips">${d.comps.map(k => chipHTML(day.id, d, k)).join('')}</div>
             ${!d.erkannt && !['brot'].includes(c.id) ? '<div class="prod-unklar">Nicht im Speisenkatalog erkannt – nur als ganzes Gericht abhakbar.</div>' : ''}
           </div>`;
@@ -198,8 +197,8 @@ const Produktion = (function () {
         }
         return;
       }
-      const lb = e.target.closest('.prod-label-btn');
-      if (lb) { labelDialog(lb.dataset.name, lb.dataset.date); return; }
+      const lb = e.target.closest('.todo-print');   // Drucker-Symbol oben beim Namen: Zwischendurch-Label
+      if (lb) { labelManuell(lb.dataset.day); return; }
       if (e.target.closest('.prod-reset')) {
         if (!confirm('Alle Farbmarkierungen dieses Angebots zurücksetzen?')) return;
         draftEvent.kompStatus = {};
