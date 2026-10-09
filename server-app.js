@@ -296,6 +296,14 @@ app.get('/api/archiv', requireAuth, async (req, res) => {
   res.json(await archivSynchronisieren());
 });
 
+// --- Vorrat (Basisartikel) ---
+app.get('/api/vorrat', requireAuth, async (req, res) => { res.setHeader('Cache-Control', 'no-store'); res.json(await store.getVorrat()); });
+app.put('/api/vorrat', requireAuth, async (req, res) => {
+  if (!Array.isArray(req.body)) return res.status(400).json({ error: 'Liste erwartet.' });
+  await store.setVorrat(req.body);
+  res.json(req.body);
+});
+
 // --- Kundenkartei: manuell gepflegte Profile (Vorlieben, Tags, Brot-Faktor ...) ---
 app.get('/api/kunden', requireAuth, async (req, res) => { res.setHeader('Cache-Control', 'no-store'); res.json(await store.getKunden()); });
 app.put('/api/kunden', requireAuth, async (req, res) => {

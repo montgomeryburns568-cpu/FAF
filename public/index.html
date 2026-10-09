@@ -45,7 +45,7 @@
     <button class="tab-btn" data-tab="kuechensheet">Küchensheet</button>
     <button class="tab-btn" data-tab="todo">To-Do</button>
     <button class="tab-btn" data-tab="einkaufsliste">Einkaufsliste</button>
-    <button class="tab-btn" data-tab="rezepte">Rezepte</button>
+    <button class="tab-btn" data-tab="vorrat">Vorrat</button>
     <button class="tab-btn" data-tab="speisenkatalog">Speisenkatalog</button>
     <button class="tab-btn" data-tab="regeln">Regeln</button>
     <button class="tab-btn" data-tab="archiv">Archiv<span id="archivBadge" class="tab-badge" style="display:none"></span></button>
@@ -126,6 +126,21 @@
       <textarea id="bestelllisteText" rows="10" readonly></textarea>
       <p class="hint">Diese Liste im laufenden Claude-Gespräch teilen ("fülle den Selgros-Warenkorb mit dieser Liste") – Claude trägt die Artikel dann im Browser in den Warenkorb ein, bestellt aber nichts ab.</p>
     </div>
+  </div>
+</section>
+
+<section id="tab-vorrat" class="tabpanel">
+  <div class="card">
+    <div class="output-toolbar">
+      <h2>Vorrat – Basisartikel</h2>
+      <div class="toolbar-inline">
+        <button type="button" id="vorratStandard" class="btn-ghost small-btn">Standardartikel ergänzen</button>
+        <button type="button" id="vorratAdd" class="btn-primary small-btn">+ Artikel</button>
+      </div>
+    </div>
+    <p class="hint">Artikel, die du dauerhaft auf Lager hast (Salz, Pfeffer, Öl …), stehen nicht bei jedem Auftrag auf der Einkaufsliste. Jede Zutat aus Rezepten und To-Dos wird zuerst mit diesem Vorrat und der Überproduktion verrechnet – nur was fehlt, kommt auf die Einkaufsliste. Der Verbrauch wird im Hintergrund automatisch vom Bestand abgezogen, sobald ein Angebot gespeichert bzw. das To-Do erzeugt wird (bei Änderungen am Angebot passt sich die Buchung an, beim Löschen wird sie zurückgegeben); fällt ein Artikel unter den <b>Mindestbestand</b>, wird er zur Nachbestellung vorgeschlagen. Neue Artikel kannst du jederzeit mit „+ Artikel“ ergänzen. Die <b>Suchbegriffe</b> bestimmen, welche Zutatennamen zum Artikel gehören (z. B. „öl, olivenöl, rapsöl“).</p>
+    <p id="vorratStatus" class="hint" style="color:var(--danger)"></p>
+    <div id="vorratListe"></div>
   </div>
 </section>
 
@@ -305,11 +320,13 @@
 </div>
 
 <script src="seed-data.js"></script>
+<script src="vorrat-logik.js"></script>
 <script src="parser.js"></script>
 <script src="katalog-todo.js"></script>
 <script src="kartei-logik.js"></script>
 <script src="app.js"></script>
 <script src="kartei.js"></script>
 <script src="produktion.js"></script>
+<script src="vorrat.js"></script>
 </body>
 </html>

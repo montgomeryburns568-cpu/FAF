@@ -46,11 +46,11 @@ const API = {
 };
 
 async function loadState() {
-  const [recipes, rules, events, archiv, artikelzuordnung, kunden] = await Promise.all([
+  const [recipes, rules, events, archiv, artikelzuordnung, kunden, vorrat] = await Promise.all([
     API.get('/api/recipes'), API.get('/api/rules'), API.get('/api/events'), API.get('/api/archiv'),
-    API.get('/api/artikelzuordnung'), API.get('/api/kunden').catch(() => []),
+    API.get('/api/artikelzuordnung'), API.get('/api/kunden').catch(() => []), API.get('/api/vorrat').catch(() => []),
   ]);
-  return { recipes, rules: normalizeRules(rules), events, archiv: archiv.filter(e => !e.ausgeblendet), kunden, artikelzuordnung, currentEventId: getCurrentEventId() };
+  return { recipes, rules: normalizeRules(rules), events, archiv: archiv.filter(e => !e.ausgeblendet), kunden, vorrat, artikelzuordnung, currentEventId: getCurrentEventId() };
 }
 
 // ---------- Regelsätze: Mittag/Business (Basis) und Abend/Privat ----------
@@ -409,6 +409,7 @@ document.getElementById('tabnav').addEventListener('click', e => {
   if (!btn) return;
   switchTab(btn.dataset.tab);
   if (btn.dataset.tab === 'einkaufsliste') renderEinkaufsliste();
+  if (btn.dataset.tab === 'vorrat') Vorrat.renderVorrat();
   if (btn.dataset.tab === 'speisenkatalog') loadKatalog();
   if (btn.dataset.tab === 'archiv') Kartei.ladeArchiv().then(() => Kartei.render());
   if (btn.dataset.tab === 'angebot') Kartei.renderLagerHinweis();
@@ -701,6 +702,7 @@ document.getElementById('deleteEventBtn').addEventListener('click', async () => 
   const idx = state.events.findIndex(e => e.id === draftEvent.id);
   if (idx === -1) return;
   if (!confirm(`Angebot "${draftEvent.name}" wirklich löschen?`)) return;
+  if (typeof Vorrat !== 'undefined') await Vorrat.freigeben(state.events[idx]);   // gebuchten Verbrauch wieder dem Bestand gutschreiben
   await API.send('DELETE', '/api/events/' + draftEvent.id);
   state.events.splice(idx, 1);
   draftEvent = newDraftEvent();
@@ -723,6 +725,8 @@ async function persistEvent() {
   refreshEventSelect();
   // Der Server legt/aktualisiert dazu den Archiv-Eintrag – Archiv, Kartei und Lagerhinweise neu laden
   if (typeof Kartei !== 'undefined') Kartei.ladeArchiv().then(() => Kartei.render());
+  // To-Do/Einkaufsliste stehen fest: Verbrauch an Vorratsartikeln und Überproduktion im Hintergrund vom Bestand abziehen
+  if (typeof Vorrat !== 'undefined') await Vorrat.sync(draftEvent);
   return true;
 }
 document.getElementById('saveEventBtn').addEventListener('click', async () => {
@@ -848,8 +852,16 @@ function aggregateIngredients(computed) {
     map[key] = (map[key] || 0) + (i.amount || 0);
   });
   computed.days.forEach(day => day.dishes.forEach(d => {
-    if (d.isPfanne) d.components.forEach(c => addAll(c.ingredients));
-    else addAll(d.ingredients);
+    if (d.isPfanne) { d.components.forEach(c => addAll(c.ingredients)); return; }
+    // Gericht mit erkannten Speisenkatalog-Komponenten: Zutaten der Komponenten (Rezept bzw. Standardrezept, auf die Menge gerechnet) - wie in der To-Do-Liste
+    const kz = (d.komponenten || []).flatMap(k => (k.zutaten || []).filter(z => z.amount != null));
+    if (kz.length) {
+      addAll(kz);
+      // To-Do 'in Salzwasser kochen': Salz ca. 10 g je kg Komponente, falls es nicht ohnehin im Rezept steht
+      d.komponenten.forEach(k => {
+        if (k.grams > 0 && /salzwasser/i.test(k.todo || '') && !(k.zutaten || []).some(z => /salz/i.test(z.name))) addAll([{ name: 'Salz', amount: Math.round(k.grams / 1000 * 10), unit: 'g' }]);
+      });
+    } else addAll(d.ingredients);
   }));
   return Object.entries(map).map(([key, amount]) => {
     const [name, unit] = key.split('||');
@@ -936,11 +948,15 @@ function renderEinkaufsliste() {
   const computed = computeEvent(draftEvent, state.recipes, state.rules);
   const totals = aggregateIngredients(computed);
   if (!totals.length) { out.innerHTML = '<p class="hint">Keine Zutaten gefunden.</p>'; return; }
+  // Erst mit Vorrat (Basisartikel) und Überproduktion verrechnen - nur der Rest wird bestellt (siehe vorrat.js)
+  const verr = Vorrat.verrechne(draftEvent, totals);
+  const bestellen = verr.rows.filter(r => !r.gedeckt).map(r => ({ name: r.name, unit: r.unit, amount: r.rest, row: r }))
+    .concat(verr.nachbestellen.map(n => ({ name: n.item.name, unit: n.item.einheit, amount: n.menge, nach: n })));
 
   let html = `<table class="summary-table"><thead><tr>
-    <th>Zutat</th><th>Benötigt (aggregiert aus allen Gerichten)</th><th>Selgros Art.-Nr.</th><th>Packung</th><th>Bestellmenge</th><th>Aufnehmen</th>
+    <th>Zutat</th><th>Zu bestellen (Bedarf abzüglich Vorrat/Überproduktion)</th><th>Selgros Art.-Nr.</th><th>Packung</th><th>Bestellmenge</th><th>Aufnehmen</th>
   </tr></thead><tbody>`;
-  totals.forEach(i => {
+  bestellen.forEach(i => {
     const key = normalize(i.name);
     const match = findArtikelForIngredient(i.name, state.artikelzuordnung);
     const z = (match && match.entry) || {};
@@ -949,7 +965,9 @@ function renderEinkaufsliste() {
     const qty = z.qty != null ? z.qty : autoQty;
     html += `<tr data-key="${key}" data-needed-amount="${i.amount}" data-needed-unit="${i.unit}" class="${suggested ? 'ez-suggested' : ''}">
       <td>${i.name}</td>
-      <td>${fmtAmount(i.amount)} ${i.unit}${lagerHinweisHTML(i.name)}</td>
+      <td>${fmtAmount(i.amount)} ${i.unit}${i.nach
+        ? `<div class="lager-hint">🔁 Nachbestellung Basisartikel: Bestand nach allen Aufträgen ${fmtAmount(Math.max(0, i.nach.prognose))} ${escHtml(i.unit)} – unter Mindestbestand ${fmtAmount(i.nach.item.mindest)} ${escHtml(i.unit)}</div>`
+        : (Vorrat.zeileHinweis(i.row) || lagerHinweisHTML(i.name))}</td>
       <td><input type="text" class="ez-artnr" value="${z.artNr || ''}" placeholder="Art.-Nr.">${suggested ? `<div class="hint">Vorschlag: ${z.name}</div>` : ''}</td>
       <td><input type="number" step="any" class="ez-packamount" value="${z.packAmount ?? ''}" placeholder="Menge" style="width:70px">
           <input type="text" class="ez-packunit" value="${z.packUnit || ''}" placeholder="Einheit" style="width:60px"></td>
@@ -959,6 +977,9 @@ function renderEinkaufsliste() {
   });
   html += `</tbody></table>
   <p class="hint">Orange markierte Zeilen sind automatische Vorschläge (per Wortabgleich aus euren Selgros-Bestellungen) und noch nicht bestätigt. Beim Ändern/Speichern einer Zeile wird die Zuordnung fest für diese Zutat gemerkt.</p>`;
+  if (!bestellen.length) html = '<p class="hint">✅ Alles aus Vorrat und Überproduktion gedeckt – nichts zu bestellen.</p>';
+  html += Vorrat.gedecktHTML(verr.rows.filter(r => r.gedeckt));
+  html += Vorrat.buchungHTML(draftEvent);
   out.innerHTML = html;
 }
 
@@ -1160,6 +1181,7 @@ document.getElementById('todoOutput').addEventListener('change', e => {
     dish.compGar = dish.compGar || {};
     dish.compGar[e.target.dataset.comp] = e.target.value;
     persistDraftSoon();
+    if (typeof Vorrat !== 'undefined' && draftEvent.lagerGebucht) setTimeout(() => Vorrat.sync(draftEvent), 900);   // Mengen ändern sich -> Buchung nachziehen
     renderTodo();
     return;
   }
@@ -1537,6 +1559,7 @@ async function boot() {
     state = await loadState();
     await KatalogTodo.load();   // Speisenkatalog (Komponenten + To-Dos) für die To-Do-Liste
     render();
+    Vorrat.syncAlle();          // Verbrauch aller anstehenden Aufträge im Hintergrund vom Vorrat abziehen
   } catch (err) {
     console.error(err);
   }

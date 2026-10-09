@@ -502,6 +502,44 @@ const Kartei = (function () {
           <button type="button" class="btn-ghost small-btn" data-act="keiner" title="Kein Nachtrag nötig (z.B. Probeessen)">kein Nachtrag nötig</button></div>`).join('')}` : '');
     updateBadges();
   }
+  // Für die Verrechnung mit dem Einkauf: offene, nicht abgelaufene Überproduktion mit bekannter Menge
+  // zusatz = [{key, menge}]: bereits für den eigenen Auftrag gebuchte Mengen, die wieder mitzählen (auch bei inzwischen "verbraucht")
+  function ueberFuerVerrechnung(zusatz) {
+    const out = bestand(false).filter(r => r.ampel !== 'abgelaufen' && r.menge != null && r.menge > 0).map(r => ({ key: r.eintragId + '|' + r.itemId, name: r.name, menge: r.menge, einheit: r.einheit }));
+    (zusatz || []).forEach(z => {
+      const hit = out.find(o => o.key === z.key);
+      if (hit) { hit.menge += z.menge; return; }
+      const [eid, iid] = z.key.split('|'); const { it } = lagerPosten(eid, iid);
+      if (it) out.push({ key: z.key, name: it.name, menge: (it.menge || 0) + z.menge, einheit: it.einheit });
+    });
+    return out;
+  }
+  const EINHEITS_FAKTOR = { kg: 1000, g: 1, l: 1000, ml: 1, stk: 1, packung: 1 };
+  // Überproduktion verbrauchen: liste = [{key, basis}] (Basiseinheit g/ml/Stk); gibt die gebuchten Mengen in der Einheit des Postens zurück
+  async function ueberReduzieren(liste) {
+    const out = [];
+    for (const { key, basis } of liste) {
+      const [eid, iid] = key.split('|'); const { e, it } = lagerPosten(eid, iid); if (!it || !(it.menge > 0)) continue;
+      const f = EINHEITS_FAKTOR[String(it.einheit).toLowerCase()] || 1;
+      const m = Math.min(it.menge, basis / f);
+      it.menge = Math.round((it.menge - m) * 1000) / 1000;
+      const warOffen = (it.status || 'offen') === 'offen';
+      if (it.menge <= 0) it.status = 'verbraucht';
+      await speichereEintrag(e);
+      out.push({ key, menge: m, warOffen });
+    }
+    render();
+    return out;
+  }
+  async function ueberZurueck(liste) {
+    for (const { key, menge, warOffen } of liste) {
+      const [eid, iid] = key.split('|'); const { e, it } = lagerPosten(eid, iid); if (!it) continue;
+      it.menge = Math.round(((it.menge || 0) + menge) * 1000) / 1000;
+      if (warOffen && it.status === 'verbraucht') it.status = 'offen';
+      await speichereEintrag(e);
+    }
+    render();
+  }
   function lagerPosten(eid, iid) {
     const e = eintragById(eid); if (!e || !e.nachtrag) return {};
     return { e, it: (e.nachtrag.ueberproduktion || []).find(x => x.id === iid) };
@@ -668,5 +706,5 @@ const Kartei = (function () {
   }
   init();
 
-  return { render, renderLagerHinweis, renderKundenHinweis, profilAufEvent, lagerFuerZutat, ladeArchiv, gruppeFuerName, BROT_STUFEN, nachtragFuerAktuellesEvent };
+  return { ueberFuerVerrechnung, ueberReduzieren, ueberZurueck, render, renderLagerHinweis, renderKundenHinweis, profilAufEvent, lagerFuerZutat, ladeArchiv, gruppeFuerName, BROT_STUFEN, nachtragFuerAktuellesEvent };
 })();

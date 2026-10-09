@@ -441,3 +441,11 @@ button {
 .icon-btn svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 .kueche-meta-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0; }
+
+/* Vorrat */
+.vorrat-table td { vertical-align: top; }
+.vorrat-table input[type=text] { min-width: 150px; }
+.vorrat-box { margin-top: 14px; padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--panel-2); font-size: 13px; }
+.vorrat-gedeckt { margin-top: 14px; }
+.vorrat-gedeckt summary { cursor: pointer; font-weight: 600; }
+.vorrat-gedeckt ul { margin: 6px 0 0; padding-left: 20px; line-height: 1.6; }
