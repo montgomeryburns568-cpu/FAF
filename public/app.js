@@ -1481,19 +1481,6 @@ document.getElementById('resetRulesBtn').addEventListener('click', async () => {
   renderRulesForm();
 });
 
-// ---------- Referenz tab ----------
-function renderReferenz() {
-  const sections = [
-    ['Portionen & Grammangaben', REFERENCE_NOTES.portionen],
-    ['Garverlust / Garzuwachs / Schälverlust', REFERENCE_NOTES.garverlust],
-    ['Pfannen-Kompositionsregeln', REFERENCE_NOTES.pfannen],
-    ['Synergie-Muster (Produktionstemperaturen & Resteverwertung)', REFERENCE_NOTES.synergie],
-  ];
-  document.getElementById('referenzOutput').innerHTML = sections.map(([title, items]) => `
-    <div class="ref-section"><h3>${title}</h3><ul>${items.map(i => `<li>${i}</li>`).join('')}</ul></div>
-  `).join('');
-}
-
 // ---------- Archiv, Kundenkartei, Nachtrag, Überproduktions-Lager: siehe kartei.js ----------
 
 // ---------- login gate ----------
@@ -1534,7 +1521,6 @@ function render() {
   clearRecipeForm();
   renderRecipeList();
   renderRulesForm();
-  renderReferenz();
 
   const savedId = state.currentEventId;
   const saved = savedId ? state.events.find(e => e.id === savedId) : null;
