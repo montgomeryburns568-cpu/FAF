@@ -455,3 +455,29 @@ button {
 .vorraetig-box .summary-table { margin-top: 8px; }
 .vorraetig-aus td { opacity: .75; }
 .vorraetig-cb { width: 20px; height: 20px; }
+
+/* Planung */
+.sammel-ergebnis { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--panel-2); }
+.pl-ergebnis { margin: 6px 0 10px; padding-left: 18px; line-height: 1.7; font-size: 13px; }
+.pl-summe { margin: 6px 0 12px; font-size: 14px; }
+.pl-woche { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.pl-tag { border: 1px solid var(--border-strong); border-radius: 12px; padding: 10px 12px; background: var(--panel); }
+.pl-tag.pl-heute { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
+.pl-tag.pl-leer { opacity: .6; }
+.pl-tag-kopf { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; margin-bottom: 6px; }
+.pl-tag-link { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--text); cursor: pointer; text-decoration: underline dotted; }
+.pl-auftrag { padding: 6px 0; border-top: 1px dashed var(--border-strong); font-size: 13px; }
+.pl-gerichte { font-size: 12px; margin: 3px 0; color: var(--muted); }
+.pl-fort { font-size: 12px; display: inline-flex; gap: 6px; align-items: center; }
+.pl-bar { display: inline-block; width: 60px; height: 7px; border-radius: 99px; background: var(--panel-3); overflow: hidden; }
+.pl-bar > span { display: block; height: 100%; background: #22c55e; }
+.pl-comp { border: 1px solid var(--border-strong); border-left-width: 5px; border-radius: 10px; margin-bottom: 8px; padding: 8px 12px; background: var(--panel); }
+.pl-comp summary { cursor: pointer; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.pl-menge { font-weight: 700; }
+.pl-quellen { margin: 8px 0 4px; padding-left: 20px; font-size: 13px; }
+.pl-zutaten { margin-top: 16px; }
+.pl-zutaten summary { cursor: pointer; }
+.pl-titel { font-size: 20px; }
+.pl-rolle { display: inline-block; width: 6px; height: 16px; border-radius: 99px; background: var(--chev, #9ca3af); align-self: center; }
+.pl-rolle.rolle-H { background: #fdb02e; } .pl-rolle.rolle-S { background: #00c9a0; } .pl-rolle.rolle-B { background: #2f4bff; } .pl-rolle.rolle-G { background: #6fcf97; }
+@media print { .pl-woche { grid-template-columns: repeat(2, 1fr); } .pl-comp { break-inside: avoid; } }

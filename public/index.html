@@ -42,7 +42,7 @@
   </div>
   <nav class="tabs" id="tabnav">
     <button class="tab-btn active" data-tab="angebot">Angebot</button>
-    <button class="tab-btn" data-tab="kuechensheet">Küchensheet</button>
+    <button class="tab-btn" data-tab="planung">Planung</button>
     <button class="tab-btn" data-tab="todo">To-Do</button>
     <button class="tab-btn" data-tab="einkaufsliste">Einkaufsliste</button>
     <button class="tab-btn" data-tab="vorrat">Vorrat</button>
@@ -66,9 +66,10 @@
   <div class="grid-2">
     <div class="card">
       <h2>Angebot einlesen</h2>
-      <p class="hint">Text einfügen oder .txt-/.pdf-Datei hochladen. Format wie im "Vom Büro bestätigten Angebot": Kunde, Datum, Personen, dann pro Tag Kategorien (Vorspeise/Hauptgang/Beilagen/Dessert) mit Gerichten.</p>
-      <input type="file" id="fileInput" accept=".txt,.pdf">
+      <p class="hint">Text einfügen oder .txt-/.pdf-Datei hochladen – <b>mehrere Dateien auf einmal</b> werden als Sammelimport eingelesen, gespeichert und in die Planung einsortiert. Format wie im "Vom Büro bestätigten Angebot": Kunde, Datum, Personen, dann pro Tag Kategorien (Vorspeise/Hauptgang/Beilagen/Dessert) mit Gerichten.</p>
+      <input type="file" id="fileInput" accept=".txt,.pdf" multiple>
       <span class="hint" id="fileImportStatus"></span>
+      <div id="sammelErgebnis" class="sammel-ergebnis" style="display:none"></div>
       <textarea id="angebotText" rows="16" placeholder="Angebotstext hier einfügen..."></textarea>
       <button id="parseBtn" class="btn-primary">Angebot einlesen</button>
     </div>
@@ -94,6 +95,23 @@
       </div>
     </div>
   </div>
+</section>
+
+<section id="tab-planung" class="tabpanel">
+  <div class="output-toolbar no-print">
+    <h2>Planung</h2>
+    <div class="toolbar-inline">
+      <span id="planungAnsicht" class="subtabs" style="margin:0"><button type="button" class="subtab-btn" data-a="woche">Woche</button><button type="button" class="subtab-btn" data-a="tag">Tag</button></span>
+      <button type="button" class="btn-ghost small-btn" id="planungPrev" title="Zurück">◀</button>
+      <strong id="planungLabel" style="min-width:150px;text-align:center"></strong>
+      <button type="button" class="btn-ghost small-btn" id="planungNext" title="Weiter">▶</button>
+      <button type="button" class="btn-ghost small-btn" id="planungHeute">Heute</button>
+      <input type="date" id="planungDatum" style="width:auto">
+      <button type="button" class="btn-ghost small-btn" id="planungDruck">Drucken / PDF</button>
+    </div>
+  </div>
+  <p class="hint no-print">Alle Aufträge mit Datum werden automatisch zu Wochen- und Tagesplänen zusammengefasst: Wer kommt wann, was ist insgesamt zu produzieren (Komponenten über alle Aufträge addiert) und welche Zutaten werden gebraucht.</p>
+  <div id="planungOutput" class="output"></div>
 </section>
 
 <section id="tab-kuechensheet" class="tabpanel">
@@ -328,5 +346,6 @@
 <script src="kartei.js"></script>
 <script src="produktion.js"></script>
 <script src="vorrat.js"></script>
+<script src="planung.js"></script>
 </body>
 </html>

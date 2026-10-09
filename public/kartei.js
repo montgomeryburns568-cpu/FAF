@@ -706,5 +706,5 @@ const Kartei = (function () {
   }
   init();
 
-  return { ueberFuerVerrechnung, ueberReduzieren, ueberZurueck, render, renderLagerHinweis, renderKundenHinweis, profilAufEvent, lagerFuerZutat, ladeArchiv, gruppeFuerName, BROT_STUFEN, nachtragFuerAktuellesEvent };
+  return { kundenName, ueberFuerVerrechnung, ueberReduzieren, ueberZurueck, render, renderLagerHinweis, renderKundenHinweis, profilAufEvent, lagerFuerZutat, ladeArchiv, gruppeFuerName, BROT_STUFEN, nachtragFuerAktuellesEvent };
 })();

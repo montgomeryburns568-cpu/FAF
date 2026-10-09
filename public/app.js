@@ -410,6 +410,7 @@ document.getElementById('tabnav').addEventListener('click', e => {
   switchTab(btn.dataset.tab);
   if (btn.dataset.tab === 'einkaufsliste') renderEinkaufsliste();
   if (btn.dataset.tab === 'vorrat') Vorrat.renderVorrat();
+  if (btn.dataset.tab === 'planung') Planung.render();
   if (btn.dataset.tab === 'speisenkatalog') loadKatalog();
   if (btn.dataset.tab === 'archiv') Kartei.ladeArchiv().then(() => Kartei.render());
   if (btn.dataset.tab === 'angebot') Kartei.renderLagerHinweis();
@@ -652,6 +653,8 @@ document.getElementById('parseBtn').addEventListener('click', () => {
   statusEl.style.color = hint ? 'var(--danger)' : '';
 });
 document.getElementById('fileInput').addEventListener('change', async e => {
+  const alle = Array.from(e.target.files || []);
+  if (alle.length > 1) { e.target.value = ''; await Planung.sammelImport(alle); return; }   // mehrere Angebote auf einmal
   const file = e.target.files[0];
   if (!file) return;
   lastUploadedFilename = file.name;
