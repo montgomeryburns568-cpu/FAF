@@ -978,7 +978,7 @@ function renderEinkaufsliste() {
   html += `</tbody></table>
   <p class="hint">Orange markierte Zeilen sind automatische Vorschläge (per Wortabgleich aus euren Selgros-Bestellungen) und noch nicht bestätigt. Beim Ändern/Speichern einer Zeile wird die Zuordnung fest für diese Zutat gemerkt.</p>`;
   if (!bestellen.length) html = '<p class="hint">✅ Alles aus Vorrat und Überproduktion gedeckt – nichts zu bestellen.</p>';
-  html += Vorrat.gedecktHTML(verr.rows.filter(r => r.gedeckt));
+  html += Vorrat.vorraetigHTML(verr.rows);
   html += Vorrat.buchungHTML(draftEvent);
   out.innerHTML = html;
 }
@@ -998,7 +998,7 @@ async function saveEinkaufslisteRow(row) {
 
 document.getElementById('einkaufslisteOutput').addEventListener('change', async (e) => {
   const row = e.target.closest('tr');
-  if (!row) return;
+  if (!row || !row.dataset.key) return;   // nur Zeilen der Bestellliste (nicht der Bereich "Theoretisch vorrätig")
   if (e.target.classList.contains('ez-artnr') || e.target.classList.contains('ez-packamount') || e.target.classList.contains('ez-packunit')) {
     const packAmount = parseFloat(row.querySelector('.ez-packamount').value) || null;
     const packUnit = row.querySelector('.ez-packunit').value.trim();

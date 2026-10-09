@@ -62,11 +62,13 @@
   //  reserviert:  {itemId: Basismenge}  – Bedarf anderer, noch nicht gebuchter Aufträge
   //  ueber:       [{key, name, menge, einheit}] – offene Überproduktion (nicht abgelaufen)
   //  passtFn:     (zutat, ueberName) -> bool
-  function verrechne(totals, vorrat, reserviert, ueber, passtFn) {
+  //  ohne:        Set normalisierter Zutatennamen, die der Nutzer als 'doch nicht vorrätig' markiert hat (werden nicht verrechnet)
+  function verrechne(totals, vorrat, reserviert, ueber, passtFn, ohne) {
     reserviert = reserviert || {};
     const belegtV = {}, belegtU = {};
     const rows = totals.map(t => {
       const row = { name: t.name, unit: t.unit, amount: t.amount, rest: t.amount, ausVorrat: null, ausUeber: [], gedeckt: false };
+      if (ohne && ohne.has(norm(t.name))) { row.ausgeschlossen = true; return row; }
       const b = toBasis(t.unit, t.amount);
       if (!b || b.menge <= EPS) return row;
       let rest = b.menge;

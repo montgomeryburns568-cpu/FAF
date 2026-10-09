@@ -37,6 +37,8 @@ const Vorrat = (function () {
     }
     return out;
   }
+  // Als 'doch nicht vorrätig' abgehakte Zutaten dieses Auftrags (Einkaufsliste, Bereich 'Theoretisch vorrätig')
+  const ohne = ev => new Set(Object.keys(ev.vorratAus || {}));
   // Offene Überproduktion; zusatz = vom eigenen Auftrag bereits gebuchte Mengen (wieder dazurechnen)
   function ueberListe(zusatz) {
     return typeof Kartei === 'undefined' ? [] : Kartei.ueberFuerVerrechnung(zusatz);
@@ -46,7 +48,7 @@ const Vorrat = (function () {
   function verrechne(ev, totals) {
     const g = ev.lagerGebucht;
     const vorr = g ? liste().map(it => { const b = (g.vorrat || []).find(x => x.id === it.id); return b ? { ...it, bestand: (Number(it.bestand) || 0) + b.menge } : it; }) : liste();
-    const r = L.verrechne(totals, vorr, reserviert(ev.id), ueberListe(g ? g.ueber : null), KarteiLogik.passt);
+    const r = L.verrechne(totals, vorr, reserviert(ev.id), ueberListe(g ? g.ueber : null), KarteiLogik.passt, ohne(ev));
     return { rows: r.rows, nachbestellen: r.nachbestellen, gebucht: !!g };
   }
 
@@ -63,7 +65,7 @@ const Vorrat = (function () {
   }
   async function verbuchen(ev) {
     const totals = bedarfVon(ev);
-    const r = L.verrechne(totals, liste(), reserviert(ev.id), ueberListe(), KarteiLogik.passt);
+    const r = L.verrechne(totals, liste(), reserviert(ev.id), ueberListe(), KarteiLogik.passt, ohne(ev));
     const vSum = {}, uSum = {};
     r.rows.forEach(row => {
       if (row.ausVorrat && row.ausVorrat.menge > 0) vSum[row.ausVorrat.id] = (vSum[row.ausVorrat.id] || 0) + row.ausVorrat.menge;
@@ -128,10 +130,20 @@ const Vorrat = (function () {
     if (row.ausUeber.length) t.push(row.ausUeber.map(u => `${menge(u.menge, u.typ === 'ml' ? 'ml' : u.typ === 'stk' ? 'Stk' : 'g')} aus Überproduktion (${esc(u.name)})`).join(', '));
     return t.length ? `<div class="lager-hint">📦 Bedarf ${fmtAmount(row.amount)} ${esc(row.unit)} – ${t.join(' + ')}</div>` : '';
   }
-  function gedecktHTML(rows) {
-    if (!rows.length) return '';
-    return `<details class="vorrat-gedeckt"><summary>Aus Vorrat / Überproduktion gedeckt (${rows.length}) – nicht bestellen</summary>
-      <ul>${rows.map(r => `<li><strong>${esc(r.name)}</strong> ${fmtAmount(r.amount)} ${esc(r.unit)} <span class="hint">– ${r.ausVorrat && r.ausVorrat.menge > 0 ? 'Vorrat „' + esc(r.ausVorrat.name) + '“' : ''}${r.ausVorrat && r.ausVorrat.menge > 0 && r.ausUeber.length ? ' + ' : ''}${r.ausUeber.length ? 'Überproduktion' : ''}</span></li>`).join('')}</ul></details>`;
+  // Abgetrennter Bereich "Theoretisch vorrätig": durch Vorrat/Überproduktion gedeckte Zutaten mit Haken. Haken weg = doch nicht da,
+  // die benötigte Menge rutscht in die Bestellliste (und wird nicht mehr vom Bestand abgezogen).
+  function vorraetigHTML(rows) {
+    const liste = rows.filter(r => r.gedeckt || r.ausgeschlossen);
+    if (!liste.length) return '';
+    return `<div class="vorraetig-box"><h3>Theoretisch vorrätig</h3>
+      <p class="hint">Diese Zutaten sind laut Vorrat bzw. Überproduktion vorhanden und stehen nicht in der Bestellliste. Ist etwas in Wirklichkeit nicht da: Haken entfernen – die benötigte Menge rutscht dann in die Bestellliste.</p>
+      <table class="summary-table vorraetig-table"><thead><tr><th style="width:44px">Da?</th><th>Zutat</th><th>Benötigt</th><th>Quelle</th></tr></thead><tbody>
+      ${liste.map(r => {
+        const quelle = r.ausgeschlossen ? '<em>als nicht vorrätig markiert – wird bestellt</em>'
+          : [r.ausVorrat && r.ausVorrat.menge > 0 ? `Vorrat „${esc(r.ausVorrat.name)}“` : '', r.ausUeber.length ? 'Überproduktion (' + r.ausUeber.map(u => esc(u.name)).join(', ') + ')' : ''].filter(Boolean).join(' + ');
+        return `<tr class="${r.ausgeschlossen ? 'vorraetig-aus' : ''}"><td style="text-align:center"><input type="checkbox" class="vorraetig-cb" data-name="${esc(r.name)}" ${r.ausgeschlossen ? '' : 'checked'}></td>
+          <td>${esc(r.name)}</td><td>${fmtAmount(r.amount)} ${esc(r.unit)}</td><td class="hint">${quelle}</td></tr>`;
+      }).join('')}</tbody></table></div>`;
   }
 
   // ---------- Reiter "Vorrat" ----------
@@ -196,10 +208,19 @@ const Vorrat = (function () {
         await speichern(); renderVorrat();
       }
     });
+    $('einkaufslisteOutput').addEventListener('change', async e => {
+      const cb = e.target.closest('.vorraetig-cb'); if (!cb || !draftEvent) return;
+      draftEvent.vorratAus = draftEvent.vorratAus || {};
+      const k = L.norm(cb.dataset.name);
+      if (cb.checked) delete draftEvent.vorratAus[k]; else draftEvent.vorratAus[k] = true;
+      // gespeicherte Angebote: Buchung nachziehen (nicht Vorhandenes wird nicht abgezogen); sonst nur neu anzeigen
+      if (state.events.find(x => x.id === draftEvent.id)) await sync(draftEvent); else if (typeof persistDraftSoon === 'function') persistDraftSoon();
+      if (typeof renderEinkaufsliste === 'function') renderEinkaufsliste();
+    });
     $('einkaufslisteOutput').addEventListener('click', async e => {
       if (draftEvent && e.target.closest('.vorrat-neu')) await neuBuchen(draftEvent);
     });
   }
   init();
-  return { verrechne, reserviert, sync, syncAlle, freigeben, buchungHTML, zeileHinweis, gedecktHTML, renderVorrat };
+  return { verrechne, reserviert, sync, syncAlle, freigeben, buchungHTML, zeileHinweis, vorraetigHTML, renderVorrat };
 })();
