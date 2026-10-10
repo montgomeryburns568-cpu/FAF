@@ -400,6 +400,9 @@ async function loadKatalog() {
     const r = await fetch('/api/speisenkatalog/page', { credentials: 'same-origin' });
     if (!r.ok) throw new Error('Status ' + r.status);
     frame.srcdoc = await r.text();
+    frame.onload = () => {   // auch im Katalog keine Scrollbalken (gleiche Herkunft, daher zugänglich)
+      try { const d = frame.contentDocument, s = d.createElement('style'); s.textContent = '*{scrollbar-width:none}*::-webkit-scrollbar{width:0;height:0;display:none}'; d.head.appendChild(s); } catch (e) { /* ignorieren */ }
+    };
     katalogLoaded = true;
   } catch (err) {
     frame.srcdoc = '<p style="font-family:sans-serif;padding:20px">Der Speisenkatalog konnte nicht geladen werden (' + String(err.message).replace(/[<&]/g, '') + '). Bitte Seite neu laden.</p>';

@@ -555,3 +555,69 @@ html { scroll-padding-top: var(--topbar-h, 0px); }
 .topbar.kompakt .brand-logos { display: none; }
 .nav-btn { padding: 6px 9px; line-height: 1; white-space: nowrap; }
 .nav-btn svg { width: 18px; height: 18px; display: block; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- Moderner Anstrich: keine Scrollbalken, weiche Karten, Glas-Kopfzeile, Pillen-Reiter ---------- */
+/* Scrollbalken ausblenden (gescrollt wird weiter normal: Mausrad, Wischen, Tastatur) */
+* { scrollbar-width: none; -ms-overflow-style: none; }
+*::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+:root {
+  --radius: 12px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 8px 24px rgba(16, 24, 40, .07);
+  --ring: color-mix(in srgb, var(--text) 28%, transparent);
+}
+:root[data-theme="dark"] {
+  --border: rgba(255, 255, 255, .08);
+  --border-strong: rgba(255, 255, 255, .16);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .45), 0 12px 32px rgba(0, 0, 0, .35);
+}
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased; line-height: 1.45; letter-spacing: -.003em;
+}
+h1, h2, h3 { letter-spacing: -.012em; }
+h2 { font-weight: 650; }
+
+/* Kopfzeile aus mattem Glas */
+.topbar {
+  background: color-mix(in srgb, var(--panel) 78%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5); backdrop-filter: blur(16px) saturate(1.5);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .02), 0 6px 18px -10px rgba(0, 0, 0, .25);
+}
+/* Reiter als Pillen */
+.tabs { gap: 2px; }
+.tab-btn { border-radius: 999px; padding: 7px 14px; font-weight: 500; transition: background .15s, color .15s; }
+.tab-btn:hover { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text); }
+.tab-btn.active { box-shadow: 0 1px 2px rgba(0, 0, 0, .18); }
+
+/* Karten und Flächen */
+.card, .output { border-radius: 16px; border-color: var(--border); box-shadow: var(--shadow); }
+.card { padding: 20px; }
+.start-scroll .output, .start-acc-body .output { box-shadow: none; }
+.dish-card, .day-block { border-radius: 12px; }
+.start-acc { border-radius: 14px; transition: border-color .15s, box-shadow .15s; }
+.start-acc.aktiv { box-shadow: 0 0 0 1px var(--accent) inset; }
+main { padding: 24px; }
+
+/* Knöpfe und Felder */
+button { border-radius: 10px; transition: background .15s, border-color .15s, transform .08s, box-shadow .15s; }
+button:active:not(:disabled) { transform: scale(.975); }
+.btn-primary { box-shadow: 0 1px 2px rgba(0, 0, 0, .2); }
+input[type=text], input[type=number], input[type=file], textarea, select, .kmodal input[type=date] { border-radius: 10px; transition: border-color .15s, box-shadow .15s; }
+input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring); }
+.badge { padding: 2px 9px; }
+.icon-btn { border-radius: 12px; }
+
+/* Fenster */
+.kmodal-ov { -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
+.kmodal { border-radius: 18px; box-shadow: 0 30px 80px rgba(0, 0, 0, .45); }
+
+@media (max-width: 640px) { main { padding: 14px; } .card { padding: 16px; border-radius: 14px; } }
+
+/* Kopfzeile: Reiter bekommen bei Platzmangel eine eigene Zeile (statt in vier Zeilen zu quetschen) */
+.topbar { gap: 10px 18px; }
+.tabs { flex: 1 1 560px; }
+.event-picker select { min-width: 150px; max-width: 240px; }
+@media (max-width: 1500px) { .brand-title { display: none; } }
