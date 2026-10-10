@@ -88,10 +88,15 @@ const Produktion = (function () {
   function neuZeichnen() { const el = document.getElementById('produktionsliste'); if (el) el.innerHTML = html(); }
 
   // ---------- Etikettendruck ----------
-  // Label: erste 4 Buchstaben des Kunden, Wochentag, Datum - gedruckt über den Browser auf den Standarddrucker dieses PCs.
+  // Hochkant-Label (Brother PT-P700): erste 4 Buchstaben des Kunden, Wochentag, Datum (optional eine Zusatzzeile).
+  // Das Label wird hier im Browser als Schwarz-Weiß-Bild gezeichnet und an das Label-Hilfsprogramm auf diesem PC geschickt
+  // (label-helper/server.js), das die Raster-Befehle für den Drucker baut. Ohne Hilfsprogramm: Druck über den Browser.
   const LABEL_KEY = 'ks_label';
-  const LABEL_STD = { aktiv: true, breite: 15, hoehe: 10, anzahl: 1 };
-  const WOCHENTAGE = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+  const LABEL_STD = { aktiv: true, anzahl: 1, band: 12, laenge: 25, wochentag: 'voll', weg: 'helper', port: 9101, spiegelX: true, spiegelY: false };
+  const BAND_PUNKTE = { 6: 32, 9: 50, 12: 70, 18: 112, 24: 128 };   // bedruckbare Breite in Punkten bei 180 dpi
+  const RAND_PUNKTE = 14, MIN_LAENGE_MM = 24.5;                    // 2 mm Vorschub; kürzestes Stück wegen der Messerposition
+  const WT_VOLL = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+  const WT_KURZ = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
   function labelEinst() {
     let o = {};
     try { o = JSON.parse(localStorage.getItem(LABEL_KEY) || '{}'); } catch (e) { /* ohne Speicher: Standard */ }
@@ -103,40 +108,83 @@ const Produktion = (function () {
   }
   function labelText(dayDate, kunde, info) {
     const iso = KarteiLogik.parseDatumDE(dayDate);
+    const zusatz = String(info || '').trim().slice(0, 20);   // optionale Zusatzinfo (nur beim Zwischendurch-Label)
     const k = kunde4(kunde);
-    const l3 = String(info || '').trim().slice(0, 20);   // optionale Zusatzinfo (nur beim Zwischendurch-Label)
-    if (!iso) return { l1: k, l2: String(dayDate || '').trim().slice(0, 8), l3 };
-    const wt = WOCHENTAGE[new Date(iso + 'T12:00:00').getDay()];
-    return { l1: `${k} ${wt}`.trim(), l2: `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`, l3 };
+    if (!iso) return { kunde: k, wt: '', datum: String(dayDate || '').trim().slice(0, 10), info: zusatz };
+    const wt = (labelEinst().wochentag === 'kurz' ? WT_KURZ : WT_VOLL)[new Date(iso + 'T12:00:00').getDay()];
+    return { kunde: k, wt, datum: `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`, info: zusatz };
   }
-  function druckeLabels(text, anzahl) {
-    const e = labelEinst();
-    const n = Math.max(1, Math.min(99, anzahl | 0));
+  function labelGroesse(e) {
+    const breite = BAND_PUNKTE[e.band] || 70;
+    const gesamt = Math.round(Math.max(parseFloat(e.laenge) || 25, MIN_LAENGE_MM) * 180 / 25.4);
+    return { breite, hoehe: Math.max(40, gesamt - 2 * RAND_PUNKTE) };
+  }
+  // Zeichnet das Label hochkant: Zeilen untereinander, jede so groß wie es in die Breite passt (Zeile 0 = Vorderkante, kommt zuerst aus dem Drucker)
+  function labelBild(text, e, zeilenOverride) {
+    const { breite, hoehe } = labelGroesse(e);
+    const c = document.createElement('canvas'); c.width = breite; c.height = hoehe;
+    const g = c.getContext('2d', { willReadFrequently: true });
+    g.fillStyle = '#fff'; g.fillRect(0, 0, breite, hoehe);
+    g.fillStyle = '#000'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const zeilen = zeilenOverride || [text.kunde, text.wt, text.datum, text.info].map((t, i) => ({ t, gewicht: i === 3 ? 0.75 : 1 })).filter(z => z.t);
+    const slot = hoehe / Math.max(1, zeilen.length);
+    zeilen.forEach((z, i) => {
+      g.font = 'bold 100px Arial, Helvetica, sans-serif';
+      const w100 = g.measureText(z.t).width || 1;
+      const fs = Math.max(6, Math.min(100 * (breite - 4) / w100, slot * 0.8) * (z.gewicht || 1));
+      g.font = `bold ${fs}px Arial, Helvetica, sans-serif`;
+      g.fillText(z.t, z.links ? 2 + g.measureText(z.t).width / 2 : breite / 2, slot * (i + 0.5));
+    });
+    const px = g.getImageData(0, 0, breite, hoehe).data;
+    const stride = Math.ceil(breite / 8), daten = new Uint8Array(stride * hoehe);
+    for (let y = 0; y < hoehe; y++) for (let x = 0; x < breite; x++) {
+      const p = (y * breite + x) * 4;
+      if (px[p] * 0.3 + px[p + 1] * 0.59 + px[p + 2] * 0.11 < 150) daten[y * stride + (x >> 3)] |= 0x80 >> (x & 7);
+    }
+    return { breite, hoehe, daten, url: c.toDataURL('image/png') };
+  }
+  const base64 = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+  const helperUrl = (e, pfad) => `http://127.0.0.1:${e.port}${pfad}`;
+  async function helperAnfrage(e, pfad, body) {
+    const r = await fetch(helperUrl(e, pfad), {
+      method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', 'X-KS-Label': '1' }, body: body ? JSON.stringify(body) : undefined,
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || j.ok === false) throw new Error(j.fehler || ('Fehler ' + r.status));
+    return j;
+  }
+  // Ersatzweg ohne Hilfsprogramm: dasselbe Bild über den Browser-Druckdialog (Papierformat im Druckertreiber passend einstellen)
+  function druckeImBrowser(bild, e, n) {
+    const bandMm = e.band, laenge = Math.max(parseFloat(e.laenge) || 25, MIN_LAENGE_MM);
     const f = document.createElement('iframe');
     f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
     document.body.appendChild(f);
     const d = f.contentDocument;
     d.open();
     d.write(`<!doctype html><html><head><meta charset="utf-8"><title>Labels</title><style>
-      @page { size: ${e.breite}mm ${e.hoehe}mm; margin: 0; }
+      @page { size: ${bandMm}mm ${laenge}mm; margin: 0; }
       html, body { margin: 0; padding: 0; }
-      .l { width: ${e.breite}mm; height: ${e.hoehe}mm; box-sizing: border-box; overflow: hidden; page-break-after: always; break-after: page;
-           display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
-           font-family: Arial, Helvetica, sans-serif; font-weight: 700; line-height: 1.05; white-space: nowrap; color: #000; }
+      .l { width: ${bandMm}mm; height: ${laenge}mm; display: flex; align-items: center; justify-content: center; page-break-after: always; break-after: page; }
       .l:last-child { page-break-after: auto; break-after: auto; }
-      .l .c { font-size: .8em; }
-    </style></head><body>${Array.from({ length: n }, () => `<div class="l"><div class="a">${esc(text.l1)}</div><div class="b">${esc(text.l2)}</div>${text.l3 ? `<div class="c">${esc(text.l3)}</div>` : ''}</div>`).join('')}</body></html>`);
+      img { width: ${bild.breite / 180 * 25.4}mm; height: ${bild.hoehe / 180 * 25.4}mm; image-rendering: pixelated; }
+    </style></head><body>${Array.from({ length: n }, () => `<div class="l"><img src="${bild.url}"></div>`).join('')}</body></html>`);
     d.close();
-    // Schrift so groß wie möglich, aber innerhalb der Label-Breite
-    const mm = f.contentWindow.devicePixelRatio ? 96 / 25.4 : 3.78;
-    d.querySelectorAll('.l').forEach(l => {
-      let fs = e.hoehe * (text.l3 ? 0.32 : 0.42);
-      const maxW = (e.breite - 1) * mm;
-      l.style.fontSize = fs + 'mm';
-      for (let i = 0; i < 40 && [...l.children].some(c => c.scrollWidth > maxW); i++) { fs *= 0.95; l.style.fontSize = fs + 'mm'; }
-    });
-    setTimeout(() => { f.contentWindow.focus(); f.contentWindow.print(); }, 200);
+    setTimeout(() => { f.contentWindow.focus(); f.contentWindow.print(); }, 250);
     setTimeout(() => f.remove(), 120000);
+  }
+  async function druckeLabels(text, anzahl, bildOverride) {
+    const e = labelEinst();
+    const n = Math.max(1, Math.min(99, anzahl | 0));
+    const bild = bildOverride || labelBild(text, e);
+    if (e.weg === 'browser') return druckeImBrowser(bild, e, n);
+    try {
+      await helperAnfrage(e, '/print', {
+        bandMm: e.band, breite: bild.breite, hoehe: bild.hoehe, daten: base64(bild.daten), anzahl: n, rand: RAND_PUNKTE, spiegelX: !!e.spiegelX, spiegelY: !!e.spiegelY,
+      });
+    } catch (err) {
+      const unerreichbar = err instanceof TypeError;   // fetch ohne Antwort: Hilfsprogramm läuft nicht
+      if (confirm((unerreichbar ? 'Das Label-Hilfsprogramm ist nicht erreichbar (Datei label-helper\\start-label-helper.cmd starten).' : 'Drucken fehlgeschlagen: ' + err.message) + '\n\nStattdessen über den Browser drucken?')) druckeImBrowser(bild, e, n);
+    }
   }
   function labelDialog(titel, dayDate, mitInfo) {
     const e = labelEinst();
@@ -146,7 +194,7 @@ const Produktion = (function () {
     ov.innerHTML = `<div class="kmodal" style="max-width:420px">
       <h3>Labels drucken?</h3>
       <p><strong>${esc(titel)}</strong></p>
-      <p class="label-vorschau" style="font:700 16px Arial,sans-serif;display:inline-block;border:1px solid var(--border-strong);padding:6px 10px;border-radius:4px;line-height:1.2;text-align:center">${esc(text.l1)}<br>${esc(text.l2)}</p>
+      <div class="label-vorschau" style="display:inline-block;border:1px solid var(--border-strong);padding:6px;border-radius:4px;background:#fff"><img alt="Label-Vorschau" style="display:block;image-rendering:pixelated"></div>
       ${mitInfo ? '<label>Zusatzinfo auf dem Label (optional, kurz halten)<input type="text" id="lblInfo" maxlength="20" placeholder="z.B. Soße, 2 GN, Allergen"></label>' : ''}
       <label>Anzahl Labels<input type="number" id="lblAnz" min="0" max="99" value="${e.anzahl}" style="font-size:20px"></label>
       <div class="actions-row"><button type="button" class="btn-primary" id="lblDruck">Drucken</button><button type="button" class="btn-ghost" id="lblNein">Kein Label</button></div></div>`;
@@ -154,10 +202,9 @@ const Produktion = (function () {
     const zu = () => ov.remove();
     const anz = ov.querySelector('#lblAnz');
     const info = ov.querySelector('#lblInfo');
-    if (info) info.addEventListener('input', () => {
-      text = labelText(dayDate, draftEvent.name, info.value);
-      ov.querySelector('.label-vorschau').innerHTML = esc(text.l1) + '<br>' + esc(text.l2) + (text.l3 ? '<br><span style="font-size:.8em">' + esc(text.l3) + '</span>' : '');
-    });
+    const vorschau = () => { const b = labelBild(text, e); const img = ov.querySelector('.label-vorschau img'); img.src = b.url; img.style.width = b.breite * 1.6 + 'px'; img.style.height = b.hoehe * 1.6 + 'px'; };
+    vorschau();
+    if (info) info.addEventListener('input', () => { text = labelText(dayDate, draftEvent.name, info.value); vorschau(); });
     (info || anz).focus(); if (!info) anz.select();
     const los = () => { const n = parseInt(anz.value, 10) || 0; zu(); if (n > 0) { labelEinstSpeichern({ ...labelEinst(), anzahl: n }); druckeLabels(text, n); } };
     ov.querySelector('#lblDruck').onclick = los;
@@ -167,15 +214,31 @@ const Produktion = (function () {
   }
   function initLabelEinstellungen() {
     const el = id => document.getElementById(id);
-    if (!el('lblBreite')) return;
+    if (!el('lblBand')) return;
     const e = labelEinst();
-    el('lblBreite').value = e.breite; el('lblHoehe').value = e.hoehe; el('lblAnzahl').value = e.anzahl; el('lblAktiv').checked = !!e.aktiv;
+    el('lblBand').value = String(e.band); el('lblLaenge').value = e.laenge; el('lblAnzahl').value = e.anzahl; el('lblAktiv').checked = !!e.aktiv;
+    el('lblWochentag').value = e.wochentag; el('lblWeg').value = e.weg; el('lblSpiegelX').checked = !!e.spiegelX; el('lblSpiegelY').checked = !!e.spiegelY;
     const speichern = () => labelEinstSpeichern({
-      aktiv: el('lblAktiv').checked, breite: parseFloat(el('lblBreite').value) || LABEL_STD.breite,
-      hoehe: parseFloat(el('lblHoehe').value) || LABEL_STD.hoehe, anzahl: Math.max(0, parseInt(el('lblAnzahl').value, 10) || 0),
+      ...labelEinst(), aktiv: el('lblAktiv').checked, band: parseFloat(el('lblBand').value) || 12,
+      laenge: Math.max(MIN_LAENGE_MM, parseFloat(el('lblLaenge').value) || 25), anzahl: Math.max(0, parseInt(el('lblAnzahl').value, 10) || 0),
+      wochentag: el('lblWochentag').value, weg: el('lblWeg').value, spiegelX: el('lblSpiegelX').checked, spiegelY: el('lblSpiegelY').checked,
     });
-    ['lblBreite', 'lblHoehe', 'lblAnzahl', 'lblAktiv'].forEach(id => el(id).addEventListener('change', speichern));
-    el('lblTest').addEventListener('click', () => { speichern(); druckeLabels(labelText('01.02.2027', 'Testkunde'), 1); });
+    ['lblBand', 'lblLaenge', 'lblAnzahl', 'lblAktiv', 'lblWochentag', 'lblWeg', 'lblSpiegelX', 'lblSpiegelY'].forEach(id => el(id).addEventListener('change', speichern));
+    el('lblTest').addEventListener('click', () => { speichern(); druckeLabels(labelText('13.11.2026', 'Beispiel GmbH'), 1); });
+    // Ausrichtung prüfen: ein "F" links oben und eine Zeile "oben" – so sieht man, ob das Label gespiegelt oder auf dem Kopf kommt
+    el('lblAusrichtung').addEventListener('click', () => {
+      speichern();
+      const e2 = labelEinst();
+      const b = labelBild({}, e2, [{ t: 'oben', gewicht: 0.7 }, { t: 'F', gewicht: 1.4, links: true }, { t: 'unten', gewicht: 0.7 }]);
+      druckeLabels({}, 1, b);
+    });
+    el('lblPruefen').addEventListener('click', async () => {
+      const out = el('lblStatus'); out.textContent = 'prüfe …';
+      try {
+        const s = await helperAnfrage(labelEinst(), '/status');
+        out.textContent = s.gefunden ? `Hilfsprogramm läuft. Drucker: ${s.drucker || '(Trockenlauf)'}` : `Hilfsprogramm läuft, aber kein Brother PT-Drucker gefunden. Vorhanden: ${s.alleDrucker.join(', ') || 'keine'}`;
+      } catch (err) { out.textContent = err instanceof TypeError ? 'Hilfsprogramm nicht erreichbar – label-helper\\start-label-helper.cmd starten.' : 'Fehler: ' + err.message; }
+    });
   }
   function init() {
     initLabelEinstellungen();

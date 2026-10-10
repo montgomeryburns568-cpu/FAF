@@ -1,0 +1,42 @@
+Label-Hilfsprogramm fuer den Brother PT-P700 (Kuechensheet-Generator)
+=====================================================================
+
+Was ist das?
+Ein kleines Programm, das auf dem PC laeuft, an dem der Etikettendrucker haengt. Die KSG-Seite im Browser
+schickt das fertige Label (Kunde, Wochentag, Datum) an dieses Programm, und es druckt direkt auf dem Brother -
+ohne Druckfenster und mit der Label-Laenge, die in der KSG eingestellt ist. Es wird nichts installiert.
+
+Einrichtung (einmalig)
+1. ZIP entpacken (Rechtsklick > "Alle extrahieren"), z.B. nach C:\Label-Helper
+2. Brother-Treiber fuer den PT-P700 installieren (support.brother.com, Modell PT-P700, "Druckertreiber").
+3. Drucker per USB anschliessen und einschalten. Der Schalter "P-Lite" an der Rueckseite muss auf AUS stehen,
+   sonst meldet sich der Drucker als USB-Stick und nicht als Drucker.
+4. 12-mm-TZe-Band einlegen (laminiert, wasserfest). Bei anderer Bandbreite in der KSG einstellen.
+
+Benutzung
+1. Start-Label-Helper.cmd doppelklicken. Es oeffnet sich ein schwarzes Fenster - offen lassen oder minimieren.
+   (Wenn Windows warnt: "Weitere Informationen" > "Trotzdem ausfuehren".)
+2. KSG im Browser oeffnen: Reiter Regeln > "Etikettendruck (dieser PC)".
+   - Bandbreite und Label-Laenge einstellen (mindestens 24,5 mm, kuerzer schneidet das Messer nicht).
+   - "Verbindung pruefen" muss "Hilfsprogramm laeuft. Drucker: Brother PT-P700" melden.
+   - "Ausrichtung testen" druckt ein "F" links oben. Kommt es gespiegelt oder auf dem Kopf heraus, das passende
+     Haekchen setzen und noch einmal testen.
+   - "Test-Label drucken" druckt ein Beispiel.
+3. Ab jetzt fragt die KSG nach dem Gruen-Setzen einer Komponente nach der Anzahl Labels und druckt direkt.
+
+Automatisch starten (optional)
+Verknuepfung auf Start-Label-Helper.cmd anlegen und in den Autostart-Ordner legen (Windows-Taste + R, "shell:startup").
+
+Testlauf ohne Drucker
+Start-Label-Helper.cmd -Trocken   (schreibt nur die Datei letzter-druck.prn, druckt nichts)
+
+Sicherheit
+Das Programm hoert nur auf diesem PC (127.0.0.1, Port 9101) und nimmt nur Auftraege von der KSG-Seite an.
+Hat die KSG eine andere Adresse als https://kuechensheet-generator.vercel.app, beim Start angeben:
+Start-Label-Helper.cmd -ZusaetzlicheOrigin https://deine-adresse
+
+Probleme
+- "Hilfsprogramm nicht erreichbar": Start-Label-Helper.cmd laeuft nicht oder wurde geschlossen.
+- "Kein Brother PT-Drucker gefunden": Drucker aus/nicht angeschlossen, P-Lite-Schalter an, oder Treiber fehlt.
+  Heisst die Druckerwarteschlange anders, beim Start angeben: Start-Label-Helper.cmd -Drucker "Name der Warteschlange"
+- Label zu lang/zu kurz: Laenge in der KSG anpassen. Der Drucker schiebt vorn und hinten je mindestens 2 mm Rand vor.
