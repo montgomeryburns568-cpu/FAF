@@ -92,9 +92,11 @@ const Produktion = (function () {
   // Das Label wird hier im Browser als Schwarz-Weiß-Bild gezeichnet und an das Label-Hilfsprogramm auf diesem PC geschickt
   // (label-helper/server.js), das die Raster-Befehle für den Drucker baut. Ohne Hilfsprogramm: Druck über den Browser.
   const LABEL_KEY = 'ks_label';
-  const LABEL_STD = { aktiv: true, anzahl: 1, band: 12, laenge: 25, wochentag: 'voll', weg: 'helper', schnitt: 'standard', port: 9101, spiegelX: true, spiegelY: false };
+  const LABEL_STD = { aktiv: true, anzahl: 1, band: 12, drucklaenge: 12.5, wochentag: 'voll', weg: 'helper', schnitt: 'standard', port: 9101, spiegelX: true, spiegelY: false };
   const BAND_PUNKTE = { 6: 32, 9: 50, 12: 70, 18: 112, 24: 128 };   // bedruckbare Breite in Punkten bei 180 dpi
-  const RAND_PUNKTE = 14, MIN_LAENGE_MM = 24.5;                    // 2 mm Vorschub; kürzestes Stück wegen der Messerposition
+  // Entlang des Bandes druckt der PT-P700 mit 360 dpi (gemessen am Testdruck), quer dazu mit 180 dpi. Vor jedem Label bleibt wegen des Abstands Druckkopf–Messer
+  // ca. 12 mm Band unbedruckt; ein Stück ist deshalb mindestens 24,5 mm lang.
+  const RAND_PUNKTE = 14, LAENGS_DPI = 360;
   const WT_VOLL = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
   const WT_KURZ = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
   function labelEinst() {
@@ -116,8 +118,8 @@ const Produktion = (function () {
   }
   function labelGroesse(e) {
     const breite = BAND_PUNKTE[e.band] || 70;
-    const gesamt = Math.round(Math.max(parseFloat(e.laenge) || 25, MIN_LAENGE_MM) * 180 / 25.4);
-    return { breite, hoehe: Math.max(40, gesamt - 2 * RAND_PUNKTE) };
+    const gesamt = Math.round(Math.max(parseFloat(e.drucklaenge) || 12.5, 6) * LAENGS_DPI / 25.4);
+    return { breite, hoehe: Math.max(40, gesamt - 2 * RAND_PUNKTE) };   // Zeilen entlang des Bandes (halbe Zeilenhöhe gegenüber der Breite)
   }
   // Zeichnet das Label hochkant: Zeilen untereinander, jede so groß wie es in die Breite passt (Zeile 0 = Vorderkante, kommt zuerst aus dem Drucker)
   function labelBild(text, e, zeilenOverride) {
@@ -125,9 +127,11 @@ const Produktion = (function () {
     const c = document.createElement('canvas'); c.width = breite; c.height = hoehe;
     const g = c.getContext('2d', { willReadFrequently: true });
     g.fillStyle = '#fff'; g.fillRect(0, 0, breite, hoehe);
+    g.scale(1, LAENGS_DPI / 180);   // gezeichnet wird in 180-dpi-Einheiten, damit die Buchstaben nicht gestaucht werden
+    const lh = hoehe * 180 / LAENGS_DPI;
     g.fillStyle = '#000'; g.textAlign = 'center'; g.textBaseline = 'middle';
     const zeilen = zeilenOverride || [text.kunde, text.wt, text.datum, text.info].map((t, i) => ({ t, gewicht: i === 3 ? 0.75 : 1 })).filter(z => z.t);
-    const slot = hoehe / Math.max(1, zeilen.length);
+    const slot = lh / Math.max(1, zeilen.length);
     zeilen.forEach((z, i) => {
       g.font = 'bold 100px Arial, Helvetica, sans-serif';
       const w100 = g.measureText(z.t).width || 1;
@@ -155,7 +159,7 @@ const Produktion = (function () {
   }
   // Ersatzweg ohne Hilfsprogramm: dasselbe Bild über den Browser-Druckdialog (Papierformat im Druckertreiber passend einstellen)
   function druckeImBrowser(bild, e, n) {
-    const bandMm = e.band, laenge = Math.max(parseFloat(e.laenge) || 25, MIN_LAENGE_MM);
+    const bandMm = e.band, laenge = Math.max(bild.hoehe / LAENGS_DPI * 25.4, 24.5);
     const f = document.createElement('iframe');
     f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
     document.body.appendChild(f);
@@ -166,7 +170,7 @@ const Produktion = (function () {
       html, body { margin: 0; padding: 0; }
       .l { width: ${bandMm}mm; height: ${laenge}mm; display: flex; align-items: center; justify-content: center; page-break-after: always; break-after: page; }
       .l:last-child { page-break-after: auto; break-after: auto; }
-      img { width: ${bild.breite / 180 * 25.4}mm; height: ${bild.hoehe / 180 * 25.4}mm; image-rendering: pixelated; }
+      img { width: ${bild.breite / 180 * 25.4}mm; height: ${bild.hoehe / LAENGS_DPI * 25.4}mm; image-rendering: pixelated; }
     </style></head><body>${Array.from({ length: n }, () => `<div class="l"><img src="${bild.url}"></div>`).join('')}</body></html>`);
     d.close();
     setTimeout(() => { f.contentWindow.focus(); f.contentWindow.print(); }, 250);
@@ -202,7 +206,7 @@ const Produktion = (function () {
     const zu = () => ov.remove();
     const anz = ov.querySelector('#lblAnz');
     const info = ov.querySelector('#lblInfo');
-    const vorschau = () => { const b = labelBild(text, e); const img = ov.querySelector('.label-vorschau img'); img.src = b.url; img.style.width = b.breite * 1.6 + 'px'; img.style.height = b.hoehe * 1.6 + 'px'; };
+    const vorschau = () => { const b = labelBild(text, e); const img = ov.querySelector('.label-vorschau img'); img.src = b.url; img.style.width = b.breite * 1.6 + 'px'; img.style.height = b.hoehe * 180 / LAENGS_DPI * 1.6 + 'px'; };
     vorschau();
     if (info) info.addEventListener('input', () => { text = labelText(dayDate, draftEvent.name, info.value); vorschau(); });
     (info || anz).focus(); if (!info) anz.select();
@@ -216,11 +220,11 @@ const Produktion = (function () {
     const el = id => document.getElementById(id);
     if (!el('lblBand')) return;
     const e = labelEinst();
-    el('lblBand').value = String(e.band); el('lblLaenge').value = e.laenge; el('lblAnzahl').value = e.anzahl; el('lblAktiv').checked = !!e.aktiv;
+    el('lblBand').value = String(e.band); el('lblLaenge').value = e.drucklaenge; el('lblAnzahl').value = e.anzahl; el('lblAktiv').checked = !!e.aktiv;
     el('lblWochentag').value = e.wochentag; el('lblWeg').value = e.weg; el('lblSchnitt').value = e.schnitt; el('lblSpiegelX').checked = !!e.spiegelX; el('lblSpiegelY').checked = !!e.spiegelY;
     const speichern = () => labelEinstSpeichern({
       ...labelEinst(), aktiv: el('lblAktiv').checked, band: parseFloat(el('lblBand').value) || 12,
-      laenge: Math.max(MIN_LAENGE_MM, parseFloat(el('lblLaenge').value) || 25), anzahl: Math.max(0, parseInt(el('lblAnzahl').value, 10) || 0),
+      drucklaenge: Math.max(6, parseFloat(el('lblLaenge').value) || 12.5), anzahl: Math.max(0, parseInt(el('lblAnzahl').value, 10) || 0),
       wochentag: el('lblWochentag').value, weg: el('lblWeg').value, schnitt: el('lblSchnitt').value, spiegelX: el('lblSpiegelX').checked, spiegelY: el('lblSpiegelY').checked,
     });
     ['lblBand', 'lblLaenge', 'lblAnzahl', 'lblAktiv', 'lblWochentag', 'lblWeg', 'lblSchnitt', 'lblSpiegelX', 'lblSpiegelY'].forEach(id => el(id).addEventListener('change', speichern));

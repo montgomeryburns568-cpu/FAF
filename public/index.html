@@ -265,7 +265,7 @@
     <div class="field-row">
       <label>Bandbreite im Drucker
         <select id="lblBand"><option value="6">6 mm</option><option value="9">9 mm</option><option value="12">12 mm</option><option value="18">18 mm</option><option value="24">24 mm</option></select></label>
-      <label>Label-Länge (mm, mind. 24,5)<input type="number" id="lblLaenge" min="24.5" max="100" step="0.5"></label>
+      <label>Länge des bedruckten Teils (mm)<input type="number" id="lblLaenge" min="6" max="80" step="0.5"></label>
       <label>Standard-Anzahl<input type="number" id="lblAnzahl" min="0" max="99"></label>
       <label>Wochentag<select id="lblWochentag"><option value="voll">ausgeschrieben (Freitag)</option><option value="kurz">kurz (Fr)</option></select></label>
     </div>
@@ -286,7 +286,7 @@
       <button type="button" class="btn-ghost" id="lblTest">Test-Label drucken</button>
     </div>
     <p class="hint" id="lblStatus"></p>
-    <p class="hint"><strong>Einrichtung am Druck-PC:</strong> <a href="downloads/ks-label-helper.zip" download>Label-Hilfsprogramm herunterladen</a> (ZIP entpacken, <code>Start-Label-Helper.cmd</code> starten, Fenster offen lassen – Anleitung liegt bei). Dazu den Brother-Treiber für den PT-P700 installieren und den Drucker einschalten (Schalter „P-Lite“ auf AUS). Das Label ist mindestens 24,5 mm lang, weil das Messer des Druckers nicht kürzer schneidet. „Ausrichtung testen“ druckt ein „F“ links oben: Kommt es gespiegelt oder auf dem Kopf, entsprechendes Häkchen setzen.</p>
+    <p class="hint"><strong>Einrichtung am Druck-PC:</strong> <a href="downloads/ks-label-helper.zip" download>Label-Hilfsprogramm herunterladen</a> (ZIP entpacken, <code>Start-Label-Helper.cmd</code> starten, Fenster offen lassen – Anleitung liegt bei). Dazu den Brother-Treiber für den PT-P700 installieren und den Drucker einschalten (Schalter „P-Lite“ auf AUS). Vor jedem Label bleiben ca. 12 mm Band unbedruckt (Abstand Druckkopf–Messer), ein Stück ist deshalb mindestens 24,5 mm lang; bei längerem Druck wird es entsprechend länger. „Ausrichtung testen“ druckt ein „F“ links oben: Kommt es gespiegelt oder auf dem Kopf, entsprechendes Häkchen setzen.</p>
   </div>
 </section>
 
