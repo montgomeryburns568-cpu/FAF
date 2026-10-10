@@ -41,7 +41,8 @@
     <span class="brand-title">Küchensheet-Generator</span>
   </div>
   <nav class="tabs" id="tabnav">
-    <button class="tab-btn active" data-tab="angebot">Angebot</button>
+    <button class="tab-btn active" data-tab="start">Übersicht</button>
+    <button class="tab-btn" data-tab="angebot">Angebot</button>
     <button class="tab-btn" data-tab="planung">Planung</button>
     <button class="tab-btn" data-tab="todo">To-Do</button>
     <button class="tab-btn" data-tab="einkaufsliste">Einkaufsliste<span id="ekBadge" class="tab-badge" style="display:none"></span></button>
@@ -60,7 +61,27 @@
 
 <main>
 
-<section id="tab-angebot" class="tabpanel active">
+<section id="tab-start" class="tabpanel active">
+  <div class="start-strip-wrap">
+    <div class="start-strip" id="startStrip"></div>
+    <span class="hint" id="startAnz"></span>
+  </div>
+  <div class="start-grid">
+    <div class="start-left">
+      <section class="card start-details" id="startDetails"></section>
+      <section class="card start-kueche">
+        <div class="start-head"><h2>Küchensheet</h2><span class="hint" id="startKuecheHint"></span><button type="button" class="btn-ghost small-btn" data-goto="kuechensheet">Vollansicht</button></div>
+        <div class="start-scroll" id="startKuecheHost"></div>
+      </section>
+    </div>
+    <section class="card start-todo">
+      <div class="start-head"><h2 id="startTodoTitel">To-Do</h2><span class="hint" id="startTodoFort"></span><button type="button" class="btn-ghost small-btn" data-goto="todo">Vollansicht</button></div>
+      <div class="start-scroll" id="startTodoHost"></div>
+    </section>
+  </div>
+</section>
+
+<section id="tab-angebot" class="tabpanel">
   <div id="kundenHinweis" class="card hinweis-card" style="display:none; margin-bottom:18px"></div>
   <div id="lagerHinweis" class="card hinweis-card" style="display:none; margin-bottom:18px"></div>
   <div class="grid-2">
@@ -350,5 +371,6 @@
 <script src="vorrat.js"></script>
 <script src="planung.js"></script>
 <script src="bestellung.js"></script>
+<script src="start.js"></script>
 </body>
 </html>

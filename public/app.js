@@ -389,6 +389,7 @@ function computeEvent(event, recipes, rules) {
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.querySelectorAll('.tabpanel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tab));
+  if (typeof Start !== 'undefined') Start.onTab(tab);   // Startseite leiht sich Küchensheet und To-Do aus den Reitern
 }
 // Speisenkatalog: eigene Seite (vom Server, nur mit Anmeldung), läuft im Rahmen und speichert ihren Stand auf dem Server
 let katalogLoaded = false;
@@ -1572,6 +1573,7 @@ async function boot() {
     render();
     Vorrat.syncAlle();          // Verbrauch aller anstehenden Aufträge im Hintergrund vom Vorrat abziehen
     Bestellung.badge();         // Hinweis am Reiter, wenn eine Bestellfrist naht
+    Start.aktivieren();         // Startseite: nächster Auftrag, Küchensheet und To-Do auf einen Blick
   } catch (err) {
     console.error(err);
   }

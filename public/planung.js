@@ -158,6 +158,12 @@ const Planung = (function () {
     return sum + h + z;
   }
 
+  // Fortschritt eines Auftrags über alle Tage (Farben aus dem Küchensheet)
+  function fortschrittGesamt(ev) {
+    const t = { gesamt: 0, gruen: 0, gelb: 0, rot: 0 };
+    try { berechne(ev).days.forEach(d => { const f = fortschritt(ev, d); Object.keys(t).forEach(k => { t[k] += f[k]; }); }); } catch (e) { /* nicht berechenbar */ }
+    return t;
+  }
   function render() {
     const out = $('planungOutput'); if (!out) return;
     document.querySelectorAll('#planungAnsicht button').forEach(b => b.classList.toggle('active', b.dataset.a === ansicht));
@@ -240,5 +246,5 @@ const Planung = (function () {
     });
   }
   init();
-  return { render, sammelImport };
+  return { render, sammelImport, fortschrittGesamt };
 })();

@@ -132,6 +132,20 @@ const Bestellung = (function () {
     renderEinkaufsliste();
   }
 
+  // Einkaufsstatus eines Auftrags für die Startseite
+  function statusFuerEvent(ev) {
+    const isos = (ev.days || []).map(d => K.parseDatumDE(d.date)).filter(Boolean).sort();
+    if (!isos.length) return null;
+    const start = B.blockStart(isos[0]), info = B.blockInfo(start);
+    const rd = runden().filter(r => r.block === start);
+    if (!rd.some(r => r.abgeschicktAm && r.typ === 'haupt')) {
+      if (B.fristVorbei(info)) return { text: 'Bestellfrist überschritten', klasse: 'ek-rot' };
+      const t = restText(info);
+      return { text: 'Bestellen bis ' + kurz(info.fristTag) + ' ' + info.fristZeit + (t ? ' (' + t + ')' : ''), klasse: B.restZeitMs(info) / 3600000 <= 24 ? 'ek-warn' : 'ek-ok' };
+    }
+    const z = B.blockZustand(info, bedarfFuerBlock(start).positionen, rd);
+    return z.offen.length ? { text: 'Nachbestellung offen', klasse: 'ek-warn' } : { text: '✓ bestellt', klasse: 'ek-ok' };
+  }
   // kleines Warnzeichen am Reiter "Einkaufsliste": Frist heute/morgen ohne abgeschickte Hauptbestellung oder offene Nachbestellung
   function badge() {
     const el = $('ekBadge'); if (!el || !state) return;
@@ -166,5 +180,5 @@ const Bestellung = (function () {
     setInterval(badge, 60000);
   }
   init();
-  return { render, badge, naechsterBlock };
+  return { render, badge, naechsterBlock, statusFuerEvent };
 })();
