@@ -52,6 +52,9 @@ body {
 }
 
 .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;   /* Kopfzeile bleibt beim Scrollen immer sichtbar */
   display: flex;
   align-items: center;
   gap: 24px;
@@ -84,7 +87,7 @@ main { padding: 20px; max-width: 1300px; margin: 0 auto; }
 
 .tabpanel { display: none; }
 .tabpanel.active { display: block; }
-.katalog-frame { width: 100%; height: calc(100vh - 110px); min-height: 520px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); display: block; color-scheme: normal; }
+.katalog-frame { width: 100%; height: calc(100vh - var(--topbar-h, 70px) - 40px); min-height: 520px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); display: block; color-scheme: normal; }
 
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
 @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
@@ -509,9 +512,9 @@ button {
 .start-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .start-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
 .start-head h2 { margin: 0; flex: 1; }
-.start-scroll { max-height: calc(100vh - 230px); overflow: auto; }
-.start-todo { position: sticky; top: 8px; }
-.start-todo .start-scroll { max-height: calc(100vh - 150px); }
+.start-scroll { max-height: calc(100vh - var(--topbar-h, 70px) - 160px); overflow: auto; }
+.start-todo { position: sticky; top: calc(var(--topbar-h, 0px) + 8px); }
+.start-todo .start-scroll { max-height: calc(100vh - var(--topbar-h, 70px) - 90px); }
 .start-scroll .output { border: 0; padding: 0; }
 .sd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 14px; margin-top: 6px; font-size: 13px; }
 .sd-notiz { margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; background: var(--panel-2); font-size: 12.5px; }
@@ -546,3 +549,9 @@ button {
 
 .nav-btn { white-space: nowrap; }
 .nav-btn:disabled { opacity: .4; cursor: default; }
+
+/* Kopfzeile: feststehend; beim Scrollen verschwinden nur die Logos, damit sie wenig Platz braucht */
+html { scroll-padding-top: var(--topbar-h, 0px); }
+.topbar.kompakt .brand-logos { display: none; }
+.nav-btn { padding: 6px 9px; line-height: 1; white-space: nowrap; }
+.nav-btn svg { width: 18px; height: 18px; display: block; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }

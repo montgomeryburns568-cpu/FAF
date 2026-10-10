@@ -64,7 +64,19 @@ const Navi = (function () {
     knopf();
   }
 
+  // Kopfzeile feststehend: Höhe als Variable (für die mitlaufende To-Do-Karte), beim Scrollen die Logos ausblenden
+  function kopfzeile() {
+    const bar = document.querySelector('.topbar'); if (!bar) return;
+    const setH = () => document.documentElement.style.setProperty('--topbar-h', bar.offsetHeight + 'px');
+    if (typeof ResizeObserver !== 'undefined') new ResizeObserver(setH).observe(bar);
+    setH();
+    window.addEventListener('scroll', () => {   // zwei Schwellen, damit die Kopfzeile nicht flackert
+      const y = window.scrollY;
+      if (y > 120) bar.classList.add('kompakt'); else if (y < 40) bar.classList.remove('kompakt');
+    }, { passive: true });
+  }
   function init() {
+    kopfzeile();
     origSwitch = switchTab;
     switchTab = function (tab) { origSwitch(tab); merke(); };   // jeder Reiterwechsel (auch ohne Reiter-Knopf, z. B. Küchensheet) wird gemerkt
     $('eventSelect').addEventListener('change', merke);
