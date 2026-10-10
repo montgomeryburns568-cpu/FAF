@@ -1134,6 +1134,7 @@ document.getElementById('todoOutput').addEventListener('click', e => {
   const b = e.target.closest('.todo-print'); if (!b) return;
   Produktion.labelManuell(b.dataset.day);
 });
+document.addEventListener('click', e => { if (e.target.closest('[data-label-schnell]')) Produktion.labelSchnell(); });   // Knopf "Label drucken" (Übersicht)
 function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m])); }
 
 // Zutatenmenge lesbar: g -> kg, ml -> l, sinnvoll gerundet

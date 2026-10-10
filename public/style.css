@@ -516,3 +516,6 @@ button {
 .sd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 14px; margin-top: 6px; font-size: 13px; }
 .sd-notiz { margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; background: var(--panel-2); font-size: 12.5px; }
 @media (max-width: 900px) { .start-grid { grid-template-columns: 1fr; } .start-todo { position: static; } .start-scroll, .start-todo .start-scroll { max-height: none; } }
+
+.label-btn { display: inline-flex; align-items: center; gap: 5px; }
+.label-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }

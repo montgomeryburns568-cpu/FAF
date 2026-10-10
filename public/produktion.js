@@ -191,44 +191,56 @@ const Produktion = (function () {
       if (confirm((unerreichbar ? 'Das Label-Hilfsprogramm ist nicht erreichbar (Datei label-helper\\start-label-helper.cmd starten).' : 'Drucken fehlgeschlagen: ' + err.message) + '\n\nStattdessen über den Browser drucken?')) druckeImBrowser(bild, e, n);
     }
   }
-  function labelDialog(titel, dayDate, mitInfo) {
+  // Label-Dialog. schnell = true (Knopf "Label drucken"): Kunde und Datum sind frei änderbar, so geht es auch ohne geöffnetes Angebot.
+  function labelDialog(titel, dayDate, mitInfo, schnell) {
     const e = labelEinst();
-    let text = labelText(dayDate, draftEvent.name);
+    const kunde0 = (draftEvent && draftEvent.name) || '';
+    let text = labelText(dayDate, kunde0);
+    const iso0 = KarteiLogik.parseDatumDE(dayDate) || KarteiLogik.heuteIso();
     const ov = document.createElement('div');
     ov.className = 'kmodal-ov';
     ov.innerHTML = `<div class="kmodal" style="max-width:420px">
-      <h3>Labels drucken?</h3>
-      <p><strong>${esc(titel)}</strong></p>
+      <h3>Label drucken</h3>
+      ${titel ? `<p><strong>${esc(titel)}</strong></p>` : ''}
       <div class="label-vorschau" style="display:inline-block;border:1px solid var(--border-strong);padding:6px;border-radius:4px;background:#fff"><img alt="Label-Vorschau" style="display:block;image-rendering:pixelated"></div>
+      ${schnell ? `<div class="field-row"><label>Kunde<input type="text" id="lblKunde" value="${esc(kunde0)}" placeholder="Name – die ersten 4 Buchstaben kommen aufs Label"></label>
+        <label>Datum<input type="date" id="lblDatum" value="${esc(iso0)}"></label></div>` : ''}
       ${mitInfo ? '<label>Zusatzinfo auf dem Label (optional, kurz halten)<input type="text" id="lblInfo" maxlength="20" placeholder="z.B. Soße, 2 GN, Allergen"></label>' : ''}
       <label>Anzahl Labels<input type="number" id="lblAnz" min="0" max="99" value="${e.anzahl}" style="font-size:20px"></label>
-      <div class="actions-row"><button type="button" class="btn-primary" id="lblDruck">Drucken</button><button type="button" class="btn-ghost" id="lblNein">Kein Label</button></div></div>`;
+      <div class="actions-row"><button type="button" class="btn-primary" id="lblDruck">Drucken</button><button type="button" class="btn-ghost" id="lblNein">Abbrechen</button></div></div>`;
     document.body.appendChild(ov);
     const zu = () => ov.remove();
     const anz = ov.querySelector('#lblAnz');
     const info = ov.querySelector('#lblInfo');
+    const kundeEl = ov.querySelector('#lblKunde'), datumEl = ov.querySelector('#lblDatum');
     const vorschau = () => { const b = labelBild(text, e); const img = ov.querySelector('.label-vorschau img'); img.src = b.url; img.style.width = b.breite * 1.1 + 'px'; img.style.height = b.hoehe * 1.1 + 'px'; };
-    vorschau();
-    if (info) info.addEventListener('input', () => { text = labelText(dayDate, draftEvent.name, info.value); vorschau(); });
-    (info || anz).focus(); if (!info) anz.select();
+    const neuerText = () => {
+      let datum = dayDate;
+      if (datumEl && /^\d{4}-\d{2}-\d{2}$/.test(datumEl.value)) datum = `${datumEl.value.slice(8, 10)}.${datumEl.value.slice(5, 7)}.${datumEl.value.slice(0, 4)}`;
+      text = labelText(datum, kundeEl ? kundeEl.value : kunde0, info ? info.value : '');
+      vorschau();
+    };
+    neuerText();
+    [info, kundeEl, datumEl].filter(Boolean).forEach(el => el.addEventListener('input', neuerText));
+    (kundeEl && !kundeEl.value ? kundeEl : info || anz).focus(); if (!info && !kundeEl) anz.select();
     const los = () => { const n = parseInt(anz.value, 10) || 0; zu(); if (n > 0) { labelEinstSpeichern({ ...labelEinst(), anzahl: n }); druckeLabels(text, n); } };
     ov.querySelector('#lblDruck').onclick = los;
     ov.querySelector('#lblNein').onclick = zu;
-    [anz, info].filter(Boolean).forEach(el => el.addEventListener('keydown', ev => { if (ev.key === 'Enter') los(); if (ev.key === 'Escape') zu(); }));
+    [anz, info, kundeEl].filter(Boolean).forEach(el => el.addEventListener('keydown', ev => { if (ev.key === 'Enter') los(); if (ev.key === 'Escape') zu(); }));
     ov.addEventListener('mousedown', ev => { if (ev.target === ov) zu(); });
   }
   function initLabelEinstellungen() {
     const el = id => document.getElementById(id);
     if (!el('lblBand')) return;
     const e = labelEinst();
-    el('lblBand').value = String(e.band); el('lblLaenge').value = e.laenge; el('lblAnzahl').value = e.anzahl; el('lblAktiv').checked = !!e.aktiv;
+    el('lblBand').value = String(e.band); el('lblLaenge').value = e.laenge; el('lblAnzahl').value = e.anzahl;
     el('lblWochentag').value = e.wochentag; el('lblWeg').value = e.weg; el('lblSchnitt').value = e.schnitt; el('lblSpiegelX').checked = !!e.spiegelX; el('lblSpiegelY').checked = !!e.spiegelY;
     const speichern = () => labelEinstSpeichern({
-      ...labelEinst(), aktiv: el('lblAktiv').checked, band: parseFloat(el('lblBand').value) || 12,
+      ...labelEinst(), band: parseFloat(el('lblBand').value) || 12,
       laenge: Math.max(6, parseFloat(el('lblLaenge').value) || 24.5), anzahl: Math.max(0, parseInt(el('lblAnzahl').value, 10) || 0),
       wochentag: el('lblWochentag').value, weg: el('lblWeg').value, schnitt: el('lblSchnitt').value, spiegelX: el('lblSpiegelX').checked, spiegelY: el('lblSpiegelY').checked,
     });
-    ['lblBand', 'lblLaenge', 'lblAnzahl', 'lblAktiv', 'lblWochentag', 'lblWeg', 'lblSchnitt', 'lblSpiegelX', 'lblSpiegelY'].forEach(id => el(id).addEventListener('change', speichern));
+    ['lblBand', 'lblLaenge', 'lblAnzahl', 'lblWochentag', 'lblWeg', 'lblSchnitt', 'lblSpiegelX', 'lblSpiegelY'].forEach(id => el(id).addEventListener('change', speichern));
     el('lblTest').addEventListener('click', () => { speichern(); druckeLabels(labelText('13.11.2026', 'Beispiel GmbH'), 1); });
     // Ausrichtung prüfen: ein "F" links oben und eine Zeile "oben" – so sieht man, ob das Label gespiegelt oder auf dem Kopf kommt
     el('lblAusrichtung').addEventListener('click', () => {
@@ -257,12 +269,6 @@ const Produktion = (function () {
         if (next) draftEvent.kompStatus[k] = next; else delete draftEvent.kompStatus[k];
         persistDraftSoon();
         neuZeichnen();
-        if (next === 'gruen' && labelEinst().aktiv) {
-          const day = model.find(x => x.id === chip.dataset.day);
-          const dish = day && day.cats.flatMap(c => c.dishes).find(x => x.id === chip.dataset.dish);
-          const comp = dish && dish.comps.find(x => x.key === chip.dataset.comp);
-          labelDialog(comp ? comp.name : 'Komponente', day ? day.date : '');
-        }
         return;
       }
       const lb = e.target.closest('.todo-print');   // Drucker-Symbol oben beim Namen: Zwischendurch-Label
@@ -275,11 +281,19 @@ const Produktion = (function () {
       }
     });
   }
-  // Zwischendurch-Label (To-Do-Liste): ohne dass eine Komponente auf grün stehen muss, mit optionaler Zusatzinfo
+  // Label aus dem Druck-Symbol neben einem Tag (To-Do, Küchensheet): Name und Datum dieses Tags, optionale Zusatzinfo
   function labelManuell(dayId) {
-    const day = (draftEvent.days || []).find(d => d.id === dayId) || (draftEvent.days || [])[0];
-    labelDialog(draftEvent.name || 'Veranstaltung', day ? day.date : '', true);
+    const day = ((draftEvent && draftEvent.days) || []).find(d => d.id === dayId) || ((draftEvent && draftEvent.days) || [])[0];
+    labelDialog((draftEvent && draftEvent.name) || 'Veranstaltung', day ? day.date : '', true);
+  }
+  // Knopf "Label drucken" (immer verfügbar): nächster Veranstaltungstag des geöffneten Angebots, Kunde und Datum frei änderbar
+  function labelSchnell() {
+    const heute = KarteiLogik.heuteIso();
+    const tage = ((draftEvent && draftEvent.days) || []).map(d => ({ d, iso: KarteiLogik.parseDatumDE(d.date) })).filter(x => x.iso);
+    const kommend = tage.filter(x => x.iso >= heute).sort((a, b) => a.iso.localeCompare(b.iso))[0] || tage[0];
+    const iso = kommend ? kommend.iso : heute;
+    labelDialog('', `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`, true, true);
   }
   init();
-  return { baue, html, neuZeichnen, labelManuell };
+  return { baue, html, neuZeichnen, labelManuell, labelSchnell };
 })();
