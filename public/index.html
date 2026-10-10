@@ -276,6 +276,12 @@
         <select id="lblWeg"><option value="helper">Label-Hilfsprogramm (empfohlen, ohne Druckfenster)</option><option value="browser">Browser-Druckdialog</option></select></label>
     </div>
     <div class="field-row">
+      <label>Mehrere Labels (Anzahl ab 2)
+        <select id="lblModus"><option value="serie">Eine Leerstelle am Anfang, danach jedes Label einzeln geschnitten (empfohlen)</option><option value="einzeln">Jedes Label mit eigenem Leerstück</option></select></label>
+      <label>Abschluss einer Serie
+        <select id="lblSerieEnde"><option value="kette">Leerstück bleibt im Drucker (spart Band)</option><option value="feed">Leerstück wird am Ende ausgegeben (sicherer)</option></select></label>
+    </div>
+    <div class="field-row">
       <label>Schnitt-Verfahren (bei leeren Zusatz-Labels ausprobieren)
         <select id="lblSchnitt"><option value="einzeln">Ein Stück: Leerstück bleibt am Label, jedes Label für sich (empfohlen)</option><option value="standard">Mehrere Labels in einem Auftrag</option><option value="alt">Leerstück extra abschneiden (nur bei 24,5 mm Höhe sauber)</option></select></label>
     </div>

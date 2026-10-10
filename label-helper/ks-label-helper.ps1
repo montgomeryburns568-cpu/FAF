@@ -49,7 +49,7 @@ public class RawDruck {
 $script:Band = @{ 6 = @(48, 32); 9 = @(39, 50); 12 = @(29, 70); 18 = @(8, 112); 24 = @(0, 128) }
 $script:MinRand = 14   # 2 mm Mindest-Vorschub (ESC i d)
 
-function New-Job([byte[]]$daten, [int]$breite, [int]$hoehe, [int]$bandMm, [int]$anzahl, [int]$rand, [bool]$schneiden, [bool]$spX, [bool]$spY, [string]$variante) {
+function New-Job([byte[]]$daten, [int]$breite, [int]$hoehe, [int]$bandMm, [int]$anzahl, [int]$rand, [bool]$schneiden, [bool]$spX, [bool]$spY, [string]$variante, [int]$pads, [string]$ende) {
   if (-not $script:Band.ContainsKey($bandMm)) { throw "Bandbreite nicht unterstuetzt: $bandMm" }
   $links = $script:Band[$bandMm][0]; $druck = $script:Band[$bandMm][1]
   if ($breite -gt $druck) { throw "Bild ist $breite Pixel breit, das Band druckt nur $druck" }
@@ -76,20 +76,27 @@ function New-Job([byte[]]$daten, [int]$breite, [int]$hoehe, [int]$bandMm, [int]$
   #   standard = ein Auftrag, automatischer Schnitt nur zwischen den Labels; das letzte wird am Ende vorgeschoben und geschnitten (wie im Brother-Beispiel)
   #   einzeln  = jedes Label als eigener Auftrag, Schnitt durch den Vorschub am Ende
   #   alt      = ein Auftrag, automatischer Schnitt bei jedem Label (erste Version)
+  #   serie    = ein Auftrag mit $anzahl Labels plus $pads leeren Seiten am Ende. Das Messer sitzt 24,5 mm hinter dem Druckkopf; ist die Seitenlaenge
+  #              (Zeilen + 2 Raender) genau 24,5 mm / $pads, schneidet jeder Schnitt zwischen zwei Seiten: erst das Leerstueck vom Anfang, dann
+  #              jedes Label einzeln. Automatischer Schnitt ab der $pads-ten Seite. Die leeren Seiten bleiben im Drucker (Leerstueck fuer den naechsten Auftrag).
   $einzeln = ($variante -eq 'einzeln')
+  $serie = ($variante -eq 'serie' -and $pads -gt 0)
+  $gesamt = if ($serie) { $anzahl + $pads } else { $anzahl }
   if (-not $einzeln) { & $w (New-Object 'byte[]' 100); & $w @(0x1b, 0x40) }   # 100 Leerbefehle, Initialisierung
-  for ($i = 0; $i -lt $anzahl; $i++) {
-    $letzte = ($i -eq $anzahl - 1)
+  for ($i = 0; $i -lt $gesamt; $i++) {
+    $letzte = ($i -eq $gesamt - 1)
     if ($einzeln) { & $w (New-Object 'byte[]' 100); & $w @(0x1b, 0x40) }
-    $auto = switch ($variante) { 'alt' { $schneiden } 'einzeln' { $false } default { $schneiden -and -not $letzte } }
+    $auto = if ($serie) { ($i + 1) -ge $pads } else { switch ($variante) { 'alt' { $schneiden } 'einzeln' { $false } default { $schneiden -and -not $letzte } } }
+    $kette = ($serie -and $letzte -and $ende -ne 'feed')   # Kettendruck: letzte Seite nicht vorschieben/schneiden
     & $w @(0x1b, 0x69, 0x61, 0x01)      # Rastermodus
     & $w @(0x1b, 0x69, 0x7a, 0x84, 0x00, $bandMm, 0x00, ($hoehe -band 255), (($hoehe -shr 8) -band 255), 0, 0, $(if ($einzeln -or $i -eq 0) { 0 } else { 1 }), 0)   # Druckinfo
     & $w @(0x1b, 0x69, 0x4d, $(if ($auto) { 0x40 } else { 0x00 }))   # automatisch schneiden
-    & $w @(0x1b, 0x69, 0x4b, 0x08)      # kein Kettendruck
+    & $w @(0x1b, 0x69, 0x4b, $(if ($kette) { 0x00 } else { 0x08 }))   # 0x08 = kein Kettendruck (letzte Seite wird vorgeschoben und geschnitten)
     & $w @(0x1b, 0x69, 0x64, ($rand -band 255), (($rand -shr 8) -band 255))   # Rand vorn/hinten
     & $w @(0x4d, 0x02)                  # TIFF-Modus (Zeilen als Literal)
     for ($y = 0; $y -lt $hoehe; $y++) {
-      if ($null -eq $zeilen[$y]) { & $w @(0x5a) } else { & $w @(0x47, 0x11, 0x00, 0x0f); & $w $zeilen[$y] }
+      if ($serie -and $i -ge $anzahl) { & $w @(0x5a) }   # leere Seite
+      elseif ($null -eq $zeilen[$y]) { & $w @(0x5a) } else { & $w @(0x47, 0x11, 0x00, 0x0f); & $w $zeilen[$y] }
     }
     & $w @($(if ($einzeln -or $letzte) { 0x1a } else { 0x0c }))   # 0x0C Seite fertig, 0x1A letzte Seite + auswerfen
   }
@@ -109,7 +116,7 @@ function Invoke-Druck($p) {
   if ($hoehe -lt 1 -or $hoehe -gt 1000 -or $breite -lt 1) { throw 'Ungueltige Labelgroesse' }
   $rand = if ($null -ne $p.rand) { [math]::Max($script:MinRand, [math]::Min(255, [int]$p.rand)) } else { $script:MinRand }
   $daten = [Convert]::FromBase64String([string]$p.daten)
-  $job = New-Job $daten $breite $hoehe $bandMm $anzahl $rand ($p.schneiden -ne $false) ([bool]$p.spiegelX) ([bool]$p.spiegelY) ([string]$p.schnitt)
+  $job = New-Job $daten $breite $hoehe $bandMm $anzahl $rand ($p.schneiden -ne $false) ([bool]$p.spiegelX) ([bool]$p.spiegelY) ([string]$p.schnitt) ([math]::Max(0, [math]::Min(4, [int]$p.pads))) ([string]$p.ende)
   if ($Trocken) {
     $datei = Join-Path $script:Ordner 'letzter-druck.prn'
     [System.IO.File]::WriteAllBytes($datei, $job)
