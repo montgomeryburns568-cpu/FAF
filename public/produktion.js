@@ -7,6 +7,7 @@ const Produktion = (function () {
   const ROLLE = { H: 'Hauptkomponente', S: 'Soße', B: 'Beilage', G: 'Gemüse' };
   const esc = s => escHtml(s);
   let model = [];
+  let infoOffen = false;   // Legende/Bedienhinweis im Küchensheet aufgeklappt
 
   const key = (dayId, dishId, compKey) => `${dayId}|${dishId}|${compKey}`;
   const status = k => (draftEvent.kompStatus && draftEvent.kompStatus[k]) || '';
@@ -56,12 +57,17 @@ const Produktion = (function () {
 
   function html() {
     const z = zaehle();
+    const fort = z.gesamt
+      ? `<span class="prod-fort" title="${z.gruen} von ${z.gesamt} Komponenten erledigt · ${z.gelb} angefangen · ${z.rot} ohne Material"><span class="pl-bar"><span style="width:${Math.round(100 * z.gruen / z.gesamt)}%"></span></span><strong>${z.gruen}</strong>/${z.gesamt}${z.gelb ? `<span class="prod-mini st-gelb">${z.gelb}</span>` : ''}${z.rot ? `<span class="prod-mini st-rot">${z.rot}</span>` : ''}</span>`
+      : '<span></span>';
     let h = `<div class="prod-head no-print-bg">
-      <div class="prod-legend"><span class="prod-key st-none">grau: offen</span><span class="prod-key st-gelb">gelb: angefangen</span><span class="prod-key st-gruen">grün: erledigt</span><span class="prod-key st-rot">rot: kein Material im Haus</span></div>
-      <div class="prod-summary"><span>${z.gesamt ? `<strong>${z.gruen}</strong> von ${z.gesamt} Komponenten erledigt${z.gelb ? ` · ${z.gelb} angefangen` : ''}${z.rot ? ` · <span class="prod-rot-text">${z.rot} ohne Material</span>` : ''}` : ''}</span>
-        ${z.gesamt ? '<button type="button" class="btn-ghost small-btn prod-reset no-print">Alle zurücksetzen</button>' : ''}</div>
+      <div class="prod-summary">${fort}
+        <span class="prod-tools no-print">${z.gesamt ? '<button type="button" class="btn-ghost small-btn prod-reset" title="Alle Farbmarkierungen zurücksetzen">Zurücksetzen</button>' : ''}<button type="button" class="btn-ghost small-btn prod-info" aria-expanded="${infoOffen}" title="Legende und Bedienung">ⓘ</button></span></div>
+      <div class="prod-info-panel" ${infoOffen ? '' : 'hidden'}>
+        <div class="prod-legend"><span class="prod-key st-none">grau: offen</span><span class="prod-key st-gelb">gelb: angefangen</span><span class="prod-key st-gruen">grün: erledigt</span><span class="prod-key st-rot">rot: kein Material im Haus</span></div>
+        <p class="hint no-print" style="margin:6px 0 0">Komponente antippen: grau → gelb → grün → rot → grau.</p>
+      </div>
       ${z.fehlt.length ? `<div class="prod-fehlt">🔴 <strong>Material fehlt:</strong> ${z.fehlt.map(esc).join(' · ')}</div>` : ''}
-      <p class="hint no-print" style="margin:6px 0 0">Komponente antippen: grau → gelb → grün → rot → grau.</p>
     </div>`;
     model.forEach(day => {
       h += `<div class="prod-day"><h3>${esc(day.date || 'Tag')}${day.personen ? ' · ' + day.personen + ' Personen' : ''}${day.modus === 'abend' ? ' · <span class="badge">Abend / Privat</span>' : ''}${model.length > 1 ? druckIcon(day.id) : ''}</h3>`;
@@ -261,6 +267,7 @@ const Produktion = (function () {
     initLabelEinstellungen();
     const out = document.getElementById('kuecheOutput');
     out.addEventListener('click', e => {
+      if (e.target.closest('.prod-info')) { infoOffen = !infoOffen; neuZeichnen(); return; }
       const chip = e.target.closest('.prod-chip');
       if (chip) {
         const k = key(chip.dataset.day, chip.dataset.dish, chip.dataset.comp);

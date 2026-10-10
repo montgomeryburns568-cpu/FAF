@@ -60,25 +60,33 @@ const Navi = (function () {
     try { z = JSON.parse(sessionStorage.getItem('ks_navi') || 'null'); sessionStorage.removeItem('ks_navi'); } catch (e) { /* keine */ }
     if (z) { laeuft = true; try { wiederherstellen(z); } finally { laeuft = false; } }
     letzte = aktuell(); letzteStr = JSON.stringify(letzte);
+    aktivenReiterZeigen();
     try { history.replaceState({ k: 0 }, ''); } catch (e) { /* egal */ }
     knopf();
   }
 
-  // Kopfzeile feststehend: Höhe als Variable (für die mitlaufende To-Do-Karte), beim Scrollen die Logos ausblenden
+  // Kopfzeile feststehend: Höhe als Variable (für die mitlaufende To-Do-Karte); Reiter laufen bei Platzmangel seitlich (Mausrad, Wischen)
   function kopfzeile() {
     const bar = document.querySelector('.topbar'); if (!bar) return;
     const setH = () => document.documentElement.style.setProperty('--topbar-h', bar.offsetHeight + 'px');
     if (typeof ResizeObserver !== 'undefined') new ResizeObserver(setH).observe(bar);
     setH();
-    window.addEventListener('scroll', () => {   // zwei Schwellen, damit die Kopfzeile nicht flackert
-      const y = window.scrollY;
-      if (y > 120) bar.classList.add('kompakt'); else if (y < 40) bar.classList.remove('kompakt');
-    }, { passive: true });
+    const tabs = $('tabnav'); if (!tabs) return;
+    const mehr = () => tabs.classList.toggle('mehr', tabs.scrollWidth - tabs.clientWidth - tabs.scrollLeft > 6);   // rechts blasser Rand: es gibt weitere Reiter
+    tabs.addEventListener('scroll', mehr, { passive: true });
+    window.addEventListener('resize', mehr);
+    tabs.addEventListener('wheel', e => { if (tabs.scrollWidth > tabs.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX)) { tabs.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
+    mehr();
+  }
+  function aktivenReiterZeigen() {
+    const tabs = $('tabnav'), b = document.querySelector('.tab-btn.active'); if (!tabs || !b) return;
+    const links = b.getBoundingClientRect().left - tabs.getBoundingClientRect().left + tabs.scrollLeft;
+    tabs.scrollLeft = Math.max(0, links - (tabs.clientWidth - b.offsetWidth) / 2);
   }
   function init() {
     kopfzeile();
     origSwitch = switchTab;
-    switchTab = function (tab) { origSwitch(tab); merke(); };   // jeder Reiterwechsel (auch ohne Reiter-Knopf, z. B. Küchensheet) wird gemerkt
+    switchTab = function (tab) { origSwitch(tab); aktivenReiterZeigen(); merke(); };   // jeder Reiterwechsel (auch ohne Reiter-Knopf, z. B. Küchensheet) wird gemerkt
     $('eventSelect').addEventListener('change', merke);
     if ($('zurueckBtn')) $('zurueckBtn').addEventListener('click', () => { if (stack.length) history.back(); });
     if ($('reloadBtn')) $('reloadBtn').addEventListener('click', aktualisieren);

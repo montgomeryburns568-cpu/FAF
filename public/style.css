@@ -552,7 +552,6 @@ button {
 
 /* Kopfzeile: feststehend; beim Scrollen verschwinden nur die Logos, damit sie wenig Platz braucht */
 html { scroll-padding-top: var(--topbar-h, 0px); }
-.topbar.kompakt .brand-logos { display: none; }
 .nav-btn { padding: 6px 9px; line-height: 1; white-space: nowrap; }
 .nav-btn svg { width: 18px; height: 18px; display: block; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -621,3 +620,31 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
 .tabs { flex: 1 1 560px; }
 .event-picker select { min-width: 150px; max-width: 240px; }
 @media (max-width: 1500px) { .brand-title { display: none; } }
+
+/* Kopfzeile kompakt: immer eine Zeile, Logos bleiben sichtbar, Reiter laufen bei Platzmangel seitlich */
+.topbar { flex-wrap: nowrap; gap: 14px; padding: 8px 16px; }
+.brand-logos { gap: 10px; }
+.brand-logos img { height: 28px; }
+.brand-logos .logo-sep { height: 24px; }
+.tabs { flex: 1 1 0; min-width: 0; flex-wrap: nowrap; overflow-x: auto; }
+.tabs.mehr { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); }
+.tab-btn { flex: none; white-space: nowrap; padding: 6px 12px; font-size: 12.5px; }
+.event-picker { flex: none; }
+.event-picker select { min-width: 120px; max-width: 190px; }
+.topbar .btn-ghost { padding: 6px 10px; }
+@media (max-width: 640px) { .topbar { flex-wrap: wrap; } .tabs { flex: none; } .tabs.mehr { -webkit-mask-image: none; mask-image: none; } .event-picker select { max-width: none; } }
+
+/* Küchensheet: kompakter Kopf, Legende hinter dem Info-Knopf */
+.prod-head { padding: 8px 10px; }
+.prod-fort { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; }
+.prod-fort .pl-bar { width: 80px; }
+.prod-mini { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; font-size: 11.5px; font-weight: 600; }
+.prod-tools { display: inline-flex; gap: 4px; align-items: center; }
+.prod-info-panel { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: var(--panel); }
+.prod-info-panel .prod-legend { margin-bottom: 0; }
+.prod-info[aria-expanded="true"] { background: var(--panel-3); color: var(--text); }
+@media print { .prod-info-panel[hidden] { display: block !important; } .prod-info-panel .hint { display: none; } .prod-info-panel { padding: 0; background: none; margin-top: 4px; } }
+
+.tab-btn { padding: 6px 10px; }
+.event-picker select { max-width: 170px; }
+.event-picker { gap: 4px; }
