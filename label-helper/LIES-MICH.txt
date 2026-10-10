@@ -12,13 +12,15 @@ Einrichtung (einmalig)
 2. Brother-Treiber fuer den PT-P700 installieren (support.brother.com, Modell PT-P700, "Druckertreiber").
 3. Drucker per USB anschliessen und einschalten. Der Schalter "P-Lite" an der Rueckseite muss auf AUS stehen,
    sonst meldet sich der Drucker als USB-Stick und nicht als Drucker.
-4. 12-mm-TZe-Band einlegen (laminiert, wasserfest). Bei anderer Bandbreite in der KSG einstellen.
+4. TZe-Band einlegen (laminiert, wasserfest) und die Bandbreite in der KSG gleich einstellen (z.B. 24 mm).
 
 Benutzung
 1. Start-Label-Helper.cmd doppelklicken. Es oeffnet sich ein schwarzes Fenster - offen lassen oder minimieren.
    (Wenn Windows warnt: "Weitere Informationen" > "Trotzdem ausfuehren".)
 2. KSG im Browser oeffnen: Reiter Regeln > "Etikettendruck (dieser PC)".
-   - Bandbreite und Label-Laenge einstellen (mindestens 24,5 mm, kuerzer schneidet das Messer nicht).
+   - Bandbreite und Label-Laenge einstellen. Zwischen Druckkopf und Messer liegen 24,5 mm Band, die vor jedem
+     Schnitt unbedruckt mitlaufen. Bei Label-Laenge 24,5 mm und Schnitt-Verfahren 3 wird dieses Leerstueck
+     sauber als eigenes Stueck abgeschnitten; bei anderer Laenge bleibt ein Teil davon am Label.
    - "Verbindung pruefen" muss "Hilfsprogramm laeuft. Drucker: Brother PT-P700" melden.
    - "Ausrichtung testen" druckt ein "F" links oben. Kommt es gespiegelt oder auf dem Kopf heraus, das passende
      Haekchen setzen und noch einmal testen.
@@ -41,6 +43,6 @@ Probleme
 - "Kein Brother PT-Drucker gefunden": Drucker aus/nicht angeschlossen, P-Lite-Schalter an, oder Treiber fehlt.
   Heisst die Druckerwarteschlange anders, beim Start angeben: Start-Label-Helper.cmd -Drucker "Name der Warteschlange"
 - Nach (oder vor) jedem Label kommt ein leeres Label: In der KSG unter Regeln > Etikettendruck das "Schnitt-Verfahren"
-  umstellen (1 Standard, 2 jedes Label als eigener Auftrag, 3 erste Version) und mit "Test-Label drucken" pruefen.
+  umstellen (3 Leerstueck extra abschneiden, 1 Leerstueck bleibt am Label, 2 jedes Label als eigener Auftrag) und mit "Test-Label drucken" pruefen.
   Dafuer muss die neueste Version dieses Hilfsprogramms laufen (Fenster schliessen, neue ZIP laden, entpacken, starten).
 - Label zu lang/zu kurz: Laenge in der KSG anpassen. Der Drucker schiebt vorn und hinten je mindestens 2 mm Rand vor.

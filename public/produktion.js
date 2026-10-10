@@ -91,12 +91,12 @@ const Produktion = (function () {
   // Hochkant-Label (Brother PT-P700): erste 4 Buchstaben des Kunden, Wochentag, Datum (optional eine Zusatzzeile).
   // Das Label wird hier im Browser als Schwarz-Weiß-Bild gezeichnet und an das Label-Hilfsprogramm auf diesem PC geschickt
   // (label-helper/server.js), das die Raster-Befehle für den Drucker baut. Ohne Hilfsprogramm: Druck über den Browser.
-  const LABEL_KEY = 'ks_label';
-  const LABEL_STD = { aktiv: true, anzahl: 1, band: 12, drucklaenge: 12.5, wochentag: 'voll', weg: 'helper', schnitt: 'standard', port: 9101, spiegelX: true, spiegelY: false };
+  const LABEL_KEY = 'ks_label2';   // neuer Schlüssel: alte Werte (12 mm Band, 360 dpi) werden nicht übernommen
+  const LABEL_STD = { aktiv: true, anzahl: 1, band: 24, drucklaenge: 24.5, wochentag: 'voll', weg: 'helper', schnitt: 'alt', port: 9101, spiegelX: true, spiegelY: false };
   const BAND_PUNKTE = { 6: 32, 9: 50, 12: 70, 18: 112, 24: 128 };   // bedruckbare Breite in Punkten bei 180 dpi
-  // Entlang des Bandes druckt der PT-P700 mit 360 dpi (gemessen am Testdruck), quer dazu mit 180 dpi. Vor jedem Label bleibt wegen des Abstands Druckkopf–Messer
-  // ca. 12 mm Band unbedruckt; ein Stück ist deshalb mindestens 24,5 mm lang.
-  const RAND_PUNKTE = 14, LAENGS_DPI = 360;
+  // Der PT-P700 druckt mit 180 dpi in beide Richtungen. Zwischen Druckkopf und Messer liegen 24,5 mm Band: Vor jedem abgeschnittenen Label läuft deshalb
+  // 24,5 mm unbedrucktes Band mit. Ist das Label genau 24,5 mm lang, trennt der Schnitt Leerstück und Label sauber (Schnitt-Verfahren 3).
+  const RAND_PUNKTE = 14, LAENGS_DPI = 180;
   const WT_VOLL = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
   const WT_KURZ = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
   function labelEinst() {
@@ -118,7 +118,7 @@ const Produktion = (function () {
   }
   function labelGroesse(e) {
     const breite = BAND_PUNKTE[e.band] || 70;
-    const gesamt = Math.round(Math.max(parseFloat(e.drucklaenge) || 12.5, 6) * LAENGS_DPI / 25.4);
+    const gesamt = Math.round(Math.max(parseFloat(e.drucklaenge) || 24.5, 6) * LAENGS_DPI / 25.4);
     return { breite, hoehe: Math.max(40, gesamt - 2 * RAND_PUNKTE) };   // Zeilen entlang des Bandes (halbe Zeilenhöhe gegenüber der Breite)
   }
   // Zeichnet das Label hochkant: Zeilen untereinander, jede so groß wie es in die Breite passt (Zeile 0 = Vorderkante, kommt zuerst aus dem Drucker)
@@ -224,7 +224,7 @@ const Produktion = (function () {
     el('lblWochentag').value = e.wochentag; el('lblWeg').value = e.weg; el('lblSchnitt').value = e.schnitt; el('lblSpiegelX').checked = !!e.spiegelX; el('lblSpiegelY').checked = !!e.spiegelY;
     const speichern = () => labelEinstSpeichern({
       ...labelEinst(), aktiv: el('lblAktiv').checked, band: parseFloat(el('lblBand').value) || 12,
-      drucklaenge: Math.max(6, parseFloat(el('lblLaenge').value) || 12.5), anzahl: Math.max(0, parseInt(el('lblAnzahl').value, 10) || 0),
+      drucklaenge: Math.max(6, parseFloat(el('lblLaenge').value) || 24.5), anzahl: Math.max(0, parseInt(el('lblAnzahl').value, 10) || 0),
       wochentag: el('lblWochentag').value, weg: el('lblWeg').value, schnitt: el('lblSchnitt').value, spiegelX: el('lblSpiegelX').checked, spiegelY: el('lblSpiegelY').checked,
     });
     ['lblBand', 'lblLaenge', 'lblAnzahl', 'lblAktiv', 'lblWochentag', 'lblWeg', 'lblSchnitt', 'lblSpiegelX', 'lblSpiegelY'].forEach(id => el(id).addEventListener('change', speichern));
