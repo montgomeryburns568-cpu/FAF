@@ -7,7 +7,8 @@ schickt das fertige Label (Kunde, Wochentag, Datum) an dieses Programm, und es d
 ohne Druckfenster und mit der Label-Laenge, die in der KSG eingestellt ist. Es wird nichts installiert.
 
 Einrichtung (einmalig)
-1. ZIP entpacken (Rechtsklick > "Alle extrahieren"), z.B. nach C:\Label-Helper
+1. ZIP ERST ENTPACKEN (Rechtsklick auf die ZIP > "Alle extrahieren"), z.B. nach C:\Label-Helper.
+   Nicht direkt aus der ZIP heraus starten - dann fehlt das Skript neben der Startdatei.
 2. Brother-Treiber fuer den PT-P700 installieren (support.brother.com, Modell PT-P700, "Druckertreiber").
 3. Drucker per USB anschliessen und einschalten. Der Schalter "P-Lite" an der Rueckseite muss auf AUS stehen,
    sonst meldet sich der Drucker als USB-Stick und nicht als Drucker.
