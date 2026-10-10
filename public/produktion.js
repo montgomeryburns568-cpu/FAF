@@ -203,10 +203,10 @@ const Produktion = (function () {
       <h3>Label drucken</h3>
       ${titel ? `<p><strong>${esc(titel)}</strong></p>` : ''}
       <div class="label-vorschau" style="display:inline-block;border:1px solid var(--border-strong);padding:6px;border-radius:4px;background:#fff"><img alt="Label-Vorschau" style="display:block;image-rendering:pixelated"></div>
-      ${schnell ? `<div class="field-row"><label>Kunde<input type="text" id="lblKunde" value="${esc(kunde0)}" placeholder="Name – die ersten 4 Buchstaben kommen aufs Label"></label>
-        <label>Datum<input type="date" id="lblDatum" value="${esc(iso0)}"></label></div>` : ''}
+      ${schnell ? `<label>Kunde<input type="text" id="lblKunde" value="${esc(kunde0)}" placeholder="Name – die ersten 4 Buchstaben kommen aufs Label"></label>
+      <label>Datum<input type="date" id="lblDatum" value="${esc(iso0)}"></label>` : ''}
       ${mitInfo ? '<label>Zusatzinfo auf dem Label (optional, kurz halten)<input type="text" id="lblInfo" maxlength="20" placeholder="z.B. Soße, 2 GN, Allergen"></label>' : ''}
-      <label>Anzahl Labels<input type="number" id="lblAnz" min="0" max="99" value="${e.anzahl}" style="font-size:20px"></label>
+      <label>Anzahl Labels<input type="number" id="lblAnz" min="1" max="99" value="1" inputmode="numeric" pattern="[0-9]*" enterkeyhint="done" style="font-size:20px"></label>
       <div class="actions-row"><button type="button" class="btn-primary" id="lblDruck">Drucken</button><button type="button" class="btn-ghost" id="lblNein">Abbrechen</button></div></div>`;
     document.body.appendChild(ov);
     const zu = () => ov.remove();
@@ -222,8 +222,8 @@ const Produktion = (function () {
     };
     neuerText();
     [info, kundeEl, datumEl].filter(Boolean).forEach(el => el.addEventListener('input', neuerText));
-    (kundeEl && !kundeEl.value ? kundeEl : info || anz).focus(); if (!info && !kundeEl) anz.select();
-    const los = () => { const n = parseInt(anz.value, 10) || 0; zu(); if (n > 0) { labelEinstSpeichern({ ...labelEinst(), anzahl: n }); druckeLabels(text, n); } };
+    anz.focus(); anz.select();   // zuerst die Anzahl (am Handy nur der Ziffernblock); Kunde/Zusatzinfo antippen schaltet auf die normale Tastatur um
+    const los = () => { const n = parseInt(anz.value, 10) || 0; zu(); if (n > 0) druckeLabels(text, n); };
     ov.querySelector('#lblDruck').onclick = los;
     ov.querySelector('#lblNein').onclick = zu;
     [anz, info, kundeEl].filter(Boolean).forEach(el => el.addEventListener('keydown', ev => { if (ev.key === 'Enter') los(); if (ev.key === 'Escape') zu(); }));
@@ -233,14 +233,14 @@ const Produktion = (function () {
     const el = id => document.getElementById(id);
     if (!el('lblBand')) return;
     const e = labelEinst();
-    el('lblBand').value = String(e.band); el('lblLaenge').value = e.laenge; el('lblAnzahl').value = e.anzahl;
+    el('lblBand').value = String(e.band); el('lblLaenge').value = e.laenge;
     el('lblWochentag').value = e.wochentag; el('lblWeg').value = e.weg; el('lblSchnitt').value = e.schnitt; el('lblSpiegelX').checked = !!e.spiegelX; el('lblSpiegelY').checked = !!e.spiegelY;
     const speichern = () => labelEinstSpeichern({
       ...labelEinst(), band: parseFloat(el('lblBand').value) || 12,
-      laenge: Math.max(6, parseFloat(el('lblLaenge').value) || 24.5), anzahl: Math.max(0, parseInt(el('lblAnzahl').value, 10) || 0),
+      laenge: Math.max(6, parseFloat(el('lblLaenge').value) || 24.5),
       wochentag: el('lblWochentag').value, weg: el('lblWeg').value, schnitt: el('lblSchnitt').value, spiegelX: el('lblSpiegelX').checked, spiegelY: el('lblSpiegelY').checked,
     });
-    ['lblBand', 'lblLaenge', 'lblAnzahl', 'lblWochentag', 'lblWeg', 'lblSchnitt', 'lblSpiegelX', 'lblSpiegelY'].forEach(id => el(id).addEventListener('change', speichern));
+    ['lblBand', 'lblLaenge', 'lblWochentag', 'lblWeg', 'lblSchnitt', 'lblSpiegelX', 'lblSpiegelY'].forEach(id => el(id).addEventListener('change', speichern));
     el('lblTest').addEventListener('click', () => { speichern(); druckeLabels(labelText('13.11.2026', 'Beispiel GmbH'), 1); });
     // Ausrichtung prüfen: ein "F" links oben und eine Zeile "oben" – so sieht man, ob das Label gespiegelt oder auf dem Kopf kommt
     el('lblAusrichtung').addEventListener('click', () => {

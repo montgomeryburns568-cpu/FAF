@@ -540,3 +540,6 @@ button {
 .start-todo [hidden] { display: none !important; }
 .woche-auftrag { margin: 6px 0 14px; padding-left: 10px; border-left: 3px solid var(--accent); }
 .woche-kopf { font-weight: 700; margin-bottom: 4px; }
+
+/* Label-Dialog: Datumsfeld wie die übrigen Felder */
+.kmodal input[type=date] { width: 100%; box-sizing: border-box; padding: 8px 10px; margin-top: 4px; border: 1px solid var(--border-strong); border-radius: 6px; font-family: inherit; font-size: 13px; background: var(--panel); color: var(--text); min-height: 36px; }
