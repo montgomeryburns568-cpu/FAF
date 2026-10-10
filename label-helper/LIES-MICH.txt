@@ -40,4 +40,7 @@ Probleme
 - "Hilfsprogramm nicht erreichbar": Start-Label-Helper.cmd laeuft nicht oder wurde geschlossen.
 - "Kein Brother PT-Drucker gefunden": Drucker aus/nicht angeschlossen, P-Lite-Schalter an, oder Treiber fehlt.
   Heisst die Druckerwarteschlange anders, beim Start angeben: Start-Label-Helper.cmd -Drucker "Name der Warteschlange"
+- Nach (oder vor) jedem Label kommt ein leeres Label: In der KSG unter Regeln > Etikettendruck das "Schnitt-Verfahren"
+  umstellen (1 Standard, 2 jedes Label als eigener Auftrag, 3 erste Version) und mit "Test-Label drucken" pruefen.
+  Dafuer muss die neueste Version dieses Hilfsprogramms laufen (Fenster schliessen, neue ZIP laden, entpacken, starten).
 - Label zu lang/zu kurz: Laenge in der KSG anpassen. Der Drucker schiebt vorn und hinten je mindestens 2 mm Rand vor.

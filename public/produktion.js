@@ -92,7 +92,7 @@ const Produktion = (function () {
   // Das Label wird hier im Browser als Schwarz-Weiß-Bild gezeichnet und an das Label-Hilfsprogramm auf diesem PC geschickt
   // (label-helper/server.js), das die Raster-Befehle für den Drucker baut. Ohne Hilfsprogramm: Druck über den Browser.
   const LABEL_KEY = 'ks_label';
-  const LABEL_STD = { aktiv: true, anzahl: 1, band: 12, laenge: 25, wochentag: 'voll', weg: 'helper', port: 9101, spiegelX: true, spiegelY: false };
+  const LABEL_STD = { aktiv: true, anzahl: 1, band: 12, laenge: 25, wochentag: 'voll', weg: 'helper', schnitt: 'standard', port: 9101, spiegelX: true, spiegelY: false };
   const BAND_PUNKTE = { 6: 32, 9: 50, 12: 70, 18: 112, 24: 128 };   // bedruckbare Breite in Punkten bei 180 dpi
   const RAND_PUNKTE = 14, MIN_LAENGE_MM = 24.5;                    // 2 mm Vorschub; kürzestes Stück wegen der Messerposition
   const WT_VOLL = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
@@ -179,7 +179,7 @@ const Produktion = (function () {
     if (e.weg === 'browser') return druckeImBrowser(bild, e, n);
     try {
       await helperAnfrage(e, '/print', {
-        bandMm: e.band, breite: bild.breite, hoehe: bild.hoehe, daten: base64(bild.daten), anzahl: n, rand: RAND_PUNKTE, spiegelX: !!e.spiegelX, spiegelY: !!e.spiegelY,
+        bandMm: e.band, breite: bild.breite, hoehe: bild.hoehe, daten: base64(bild.daten), anzahl: n, rand: RAND_PUNKTE, spiegelX: !!e.spiegelX, spiegelY: !!e.spiegelY, schnitt: e.schnitt,
       });
     } catch (err) {
       const unerreichbar = err instanceof TypeError;   // fetch ohne Antwort: Hilfsprogramm läuft nicht
@@ -217,13 +217,13 @@ const Produktion = (function () {
     if (!el('lblBand')) return;
     const e = labelEinst();
     el('lblBand').value = String(e.band); el('lblLaenge').value = e.laenge; el('lblAnzahl').value = e.anzahl; el('lblAktiv').checked = !!e.aktiv;
-    el('lblWochentag').value = e.wochentag; el('lblWeg').value = e.weg; el('lblSpiegelX').checked = !!e.spiegelX; el('lblSpiegelY').checked = !!e.spiegelY;
+    el('lblWochentag').value = e.wochentag; el('lblWeg').value = e.weg; el('lblSchnitt').value = e.schnitt; el('lblSpiegelX').checked = !!e.spiegelX; el('lblSpiegelY').checked = !!e.spiegelY;
     const speichern = () => labelEinstSpeichern({
       ...labelEinst(), aktiv: el('lblAktiv').checked, band: parseFloat(el('lblBand').value) || 12,
       laenge: Math.max(MIN_LAENGE_MM, parseFloat(el('lblLaenge').value) || 25), anzahl: Math.max(0, parseInt(el('lblAnzahl').value, 10) || 0),
-      wochentag: el('lblWochentag').value, weg: el('lblWeg').value, spiegelX: el('lblSpiegelX').checked, spiegelY: el('lblSpiegelY').checked,
+      wochentag: el('lblWochentag').value, weg: el('lblWeg').value, schnitt: el('lblSchnitt').value, spiegelX: el('lblSpiegelX').checked, spiegelY: el('lblSpiegelY').checked,
     });
-    ['lblBand', 'lblLaenge', 'lblAnzahl', 'lblAktiv', 'lblWochentag', 'lblWeg', 'lblSpiegelX', 'lblSpiegelY'].forEach(id => el(id).addEventListener('change', speichern));
+    ['lblBand', 'lblLaenge', 'lblAnzahl', 'lblAktiv', 'lblWochentag', 'lblWeg', 'lblSchnitt', 'lblSpiegelX', 'lblSpiegelY'].forEach(id => el(id).addEventListener('change', speichern));
     el('lblTest').addEventListener('click', () => { speichern(); druckeLabels(labelText('13.11.2026', 'Beispiel GmbH'), 1); });
     // Ausrichtung prüfen: ein "F" links oben und eine Zeile "oben" – so sieht man, ob das Label gespiegelt oder auf dem Kopf kommt
     el('lblAusrichtung').addEventListener('click', () => {
