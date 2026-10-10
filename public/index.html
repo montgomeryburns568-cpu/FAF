@@ -52,6 +52,8 @@
     <button class="tab-btn" data-tab="archiv">Archiv<span id="archivBadge" class="tab-badge" style="display:none"></span></button>
   </nav>
   <div class="event-picker">
+    <button id="zurueckBtn" class="btn-ghost nav-btn" type="button" title="Zurück zur vorherigen Ansicht" aria-label="Zurück" disabled>← Zurück</button>
+    <button id="reloadBtn" class="btn-ghost nav-btn" type="button" title="Seite aktualisieren" aria-label="Seite aktualisieren">↻</button>
     <select id="eventSelect"><option value="">– Neues Angebot –</option></select>
     <button id="deleteEventBtn" class="btn-ghost" title="Angebot löschen">🗑</button>
     <button id="themeToggle" class="btn-ghost theme-toggle" title="Hell/Dunkel umschalten" type="button">◐</button>
@@ -383,5 +385,6 @@
 <script src="planung.js"></script>
 <script src="bestellung.js"></script>
 <script src="start.js"></script>
+<script src="navi.js"></script>
 </body>
 </html>

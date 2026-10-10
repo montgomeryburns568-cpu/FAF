@@ -1581,6 +1581,7 @@ async function boot() {
     Vorrat.syncAlle();          // Verbrauch aller anstehenden Aufträge im Hintergrund vom Vorrat abziehen
     Bestellung.badge();         // Hinweis am Reiter, wenn eine Bestellfrist naht
     Start.aktivieren();         // Startseite: nächster Auftrag, Küchensheet und To-Do auf einen Blick
+    if (typeof Navi !== 'undefined') Navi.start();   // Zurück-Knopf: gemerkte Ansicht nach dem Aktualisieren wiederherstellen
   } catch (err) {
     console.error(err);
   }

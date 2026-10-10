@@ -181,6 +181,7 @@ const Start = (function () {
     $('todoOutput').hidden = m === 'woche';
     $('startTodoTitel').textContent = m === 'woche' ? 'To-Do der Woche' : (draftEvent && draftEvent.name ? 'To-Do: ' + draftEvent.name : 'To-Do');
     if (m === 'woche') renderWoche(); else fortschritt();
+    if (typeof Navi !== 'undefined') Navi.merke();
   }
   function speichereEvent(ev) {
     clearTimeout(speicherTimer[ev.id]);
@@ -206,7 +207,7 @@ const Start = (function () {
       const g = e.target.closest('[data-start-goto],[data-goto]');
       if (g) { switchTab(g.dataset.startGoto || g.dataset.goto); return; }   // das Küchensheet hat keinen eigenen Reiter-Knopf
       const m = e.target.closest('[data-todo-mode]'); if (m) { setModus(m.dataset.todoMode); return; }
-      const w = e.target.closest('[data-woche]'); if (w) { woche += parseInt(w.dataset.woche, 10); renderWoche(); }
+      const w = e.target.closest('[data-woche]'); if (w) { woche += parseInt(w.dataset.woche, 10); renderWoche(); if (typeof Navi !== 'undefined') Navi.merke(); }
     });
     // Anzeige aktualisieren, wenn Küchensheet/To-Do neu gezeichnet werden oder ein To-Do abgehakt wird
     const mo = new MutationObserver(aktualisierenSoon);
@@ -228,5 +229,8 @@ const Start = (function () {
     $('eventSelect').addEventListener('change', () => { if (verschoben) { eingeklappt = false; render(); } });
   }
   init();
-  return { onTab, aktivieren, render };
+  // Ansicht der Übersicht (für den Zurück-Knopf)
+  function zustand() { return { modus, woche }; }
+  function setzeZustand(z) { if (!z) return; modus = z.modus || 'auftrag'; woche = z.woche || 0; if (verschoben && state) render(); }
+  return { onTab, aktivieren, render, zustand, setzeZustand };
 })();
