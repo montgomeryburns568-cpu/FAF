@@ -8,6 +8,27 @@ Die Office-App speichert ein Angebot ohnehin in ihrem eigenen Modell – dieses 
 - Änderungen im Büro (Datum, Gäste, Gerichte, Storno) wandern **idempotent** nach: derselbe `officeEventId` aktualisiert denselben Auftrag.
 - Preise, Kundenkontakt und Abrechnung bleiben im Büro.
 
+## Auslöser: erst das bestätigte Angebot erreicht die Küche
+Ein Angebot wird vom Kunden meist noch angepasst. Deshalb bekommt die Küche **nichts, solange das Angebot nicht bestätigt ist**:
+
+| Zustand in der Office-App | Küche |
+|---|---|
+| Entwurf (Büro arbeitet, auch gespeichert) | sieht nichts |
+| Mit dem Kunden abgestimmt / versendet | sieht nichts |
+| **Bestätigt** (Knopf „Angebot bestätigen“) | bekommt das Angebot (`status: CONFIRMED`, `version: 1`) → Küchensheet, To-Do, Einkaufsliste und Plan entstehen automatisch |
+| Änderung nach der Bestätigung | neue `version` mit `aenderung` → die Küche sieht eine **Änderungsmitteilung** (was hat sich geändert) und passt Mengen/Einkauf an |
+| Storniert | `status: CANCELLED` → Planung und Vorratsbuchung werden freigegeben |
+
+Der Knopf „Angebot bestätigen“ sollte nur aktiv sein, wenn das Angebot vollständig ist: mindestens ein Gericht, **alle Preise eingetragen**, Datum, Gästezahl. Beim Bestätigen zeigt die Office-App kurz an, was passiert (Küche wird informiert, spätere Änderungen laufen als Änderungsmitteilung).
+Die Übergabe geschieht **durch das Bestätigen** (nicht durch Speichern) und sollte wiederholbar sein: Dieselbe `version` erneut gesendet ändert nichts.
+
+**Änderung nach der Bestätigung** (zusätzliche Felder):
+```json
+"version": 2,
+"aenderung": { "am": "2027-03-20T08:00:00Z", "grund": "Kunde erhöht Gästezahl", "felder": ["gaesteGesamt", "tage[0].positionen"] }
+```
+**Offener Punkt – Änderungsfrist:** Je näher der Termin, desto riskanter sind Änderungen (Einkauf und Produktion laufen). Vorschlag: Bis X Tage vor dem Termin (z. B. 7) gehen Änderungen automatisch durch; danach sieht das Büro den Hinweis „Küche bereits in Produktion – Änderung muss von der Küche bestätigt werden“, und die Küche bestätigt oder lehnt ab.
+
 ## Format
 ```json
 {
@@ -15,6 +36,7 @@ Die Office-App speichert ein Angebot ohnehin in ihrem eigenen Modell – dieses 
   "officeEventId": "00000000-0000-4000-8000-000000000001",
   "officeOfferId": "AN-2027-0042",
   "status": "CONFIRMED",
+  "version": 1,
   "stand": "2027-03-02T09:15:00Z",
   "katalogVersion": 4,
 
@@ -57,7 +79,8 @@ Die Office-App speichert ein Angebot ohnehin in ihrem eigenen Modell – dieses 
 | `format` | ja | Version dieses Formats |
 | `officeEventId` | ja | stabile ID des Auftrags in der Office-App (für Aktualisierung/Storno) |
 | `officeOfferId` | nein | Angebotsnummer, nur zur Anzeige |
-| `status` | ja | `CONFIRMED` oder `CANCELLED`. Nur bestätigte Angebote werden verarbeitet; bei `CANCELLED` werden Planung und Vorratsbuchung wieder freigegeben |
+| `status` | ja | `CONFIRMED` oder `CANCELLED`. Nur bestätigte Angebote werden übergeben; bei `CANCELLED` werden Planung und Vorratsbuchung wieder freigegeben |
+| `version` | ja | zählt bei jeder Änderung nach der Bestätigung hoch (1, 2, …); gleiche Version = nichts zu tun |
 | `stand` | ja | Zeitpunkt der letzten Änderung im Büro |
 | `katalogVersion` | nein | Version des Katalogs beim Erstellen (für Rückfragen) |
 | `kunde.name` / `kuerzel` | ja / nein | Name wie im Küchenblatt; **keine Telefonnummern, E-Mails oder Adressen** |
@@ -79,5 +102,5 @@ Für jedes Gericht: Komponenten erkennen **über die Kennungen** (kein Textvergl
 ## Offene Punkte (gemeinsam klären)
 1. Reicht ein Angebot je Auftrag oder gibt es Varianten/Versionen, die getrennt ankommen sollen?
 2. Wo speichert die Office-App heute die Angebotspositionen (Bausteine, „informalOffers“, PDF-Anlagen)? Wie werden daraus Zeilen mit `katalogId`?
-3. Welche Auslöser sollen eine Übertragung anstoßen (Bestätigen, jede Änderung, Knopf)?
+3. Änderungsfrist festlegen (siehe oben): ab wann müssen Änderungen von der Küche bestätigt werden?
 4. Rückrichtung (später): Küchenstand, tatsächliche Gäste, Überproduktion/Nachtrag an den Auftrag zurückmelden.

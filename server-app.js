@@ -59,7 +59,7 @@ function requireKatalogAuth(req, res, next) {
   res.status(401).json({ error: 'Nicht angemeldet.' });
 }
 // CORS nur für die eingetragene Office-Herkunft (Server-zu-Server-Aufrufe brauchen kein CORS)
-app.use('/api/speisenkatalog', (req, res, next) => {
+app.use(['/api/speisenkatalog', '/api/integration'], (req, res, next) => {
   const o = req.headers.origin;
   if (o && OFFICE_ORIGINS.includes(o)) {
     res.setHeader('Access-Control-Allow-Origin', o); res.setHeader('Vary', 'Origin');
@@ -189,6 +189,37 @@ app.get('/api/speisenkatalog/embed', (req, res) => {
   res.setHeader('Referrer-Policy', 'no-referrer');
   const html = require('./speisenkatalog/katalog-html.js').replace('<!--KATALOG_EMBED-->', () => '<script>window.__KATALOG_EMBED = ' + JSON.stringify(cfg).replace(/</g, '\\u003c') + ';</script>');
   res.type('html').send(html);
+});
+
+// --- Übersicht Lager/Überproduktion für die Office-App (nur lesend, Token mit Bereich "lager") ---
+// Zeigt dem Büro bei der Angebotserstellung, was ohnehin da ist bzw. überproduziert wurde und verkauft werden soll – samt Vorschlägen aus dem Katalog.
+// Keine Kundennamen, nur Artikel, Mengen, Haltbarkeit.
+function requireScope(scope) {
+  return (req, res, next) => {
+    const h = req.headers.authorization || '';
+    const u = h.startsWith('Bearer ') ? pruefeEmbedToken(OFFICE_EMBED_SECRET, h.slice(7).trim(), scope) : null;
+    if (!u) return res.status(401).json({ error: 'Nicht angemeldet.' });
+    req.integrationNutzer = u; next();
+  };
+}
+app.get('/api/integration/v1/lager', requireScope('lager'), async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const KL = require('./public/kartei-logik.js');
+  const kat = require('./speisenkatalog/katalog-komponenten.js');
+  let gerichte = []; try { gerichte = require('./speisenkatalog/katalog-gerichte.js'); } catch (e) { /* ältere Auslieferung */ }
+  const archiv = await archivSynchronisieren();
+  const heute = KL.heuteIso();
+  const ue = KL.lagerBestand(archiv.filter(e => !e.ausgeblendet), heute, false).filter(r => r.ampel !== 'abgelaufen' && (r.menge == null || r.menge > 0));
+  const vorrat = (await store.getVorrat()).filter(v => v.name).map(v => {
+    const b = Number(v.bestand) || 0, m = Number(v.mindest) || 0;
+    return { name: v.name, bestand: b, einheit: v.einheit, status: b <= 0 ? 'leer' : (m > 0 && b < m ? 'niedrig' : 'ok') };
+  });
+  res.json({
+    format: 'kuechen-lager/1', stand: new Date().toISOString(),
+    ueberproduktion: ue.map(r => ({ id: r.itemId, name: r.name, menge: r.menge, einheit: r.einheit, klasse: r.klasse, klasseLabel: r.klasseLabel, haltbarBis: r.haltbarBis, tageRest: r.tageRest, ampel: r.ampel, notiz: r.notiz, herkunftDatum: r.datum,
+      vorschlaege: { ideen: KL.ideenFuer(r.name, kat.komponenten).kuratiert, gerichte: KL.gerichteFuer(r.name, kat.komponenten, gerichte, 6) } })),
+    vorrat,
+  });
 });
 
 // --- events ---

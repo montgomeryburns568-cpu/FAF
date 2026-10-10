@@ -225,6 +225,14 @@
     }
     return { kuratiert: kuratiert.slice(0, 10), katalog };
   }
+  // Katalog-Gerichte (Verkaufsvorschläge), die eine Komponente mit passendem Namen enthalten: gerichte = [{id, name, gang, ids:[Komponenten]}]
+  function gerichteFuer(name, komponenten, gerichte, max) {
+    const st = stamm(name);
+    if (st.length < 4 || !komponenten || !gerichte) return [];
+    const ids = new Set(komponenten.filter(c => c.rolle !== 'E' && norm(c.name).includes(st)).map(c => c.id));
+    if (!ids.size) return [];
+    return gerichte.filter(g => g.ids.some(i => ids.has(i))).slice(0, max || 6).map(g => ({ id: g.id, name: g.name, gang: g.gang }));
+  }
   // Passt ein Lagerposten zu einem Gericht-/Zutatennamen? Wortstamm-Vergleich in beide Richtungen
   // ("Basmati Reis" ~ "Basmatireis", "Rosmarinkartoffeln" ~ "Kartoffeln"), ohne Füllwörter.
   const FUELLWORTE = new Set(['frisch', 'frische', 'frischer', 'gemischt', 'gemischte', 'bunte', 'bunter', 'gross', 'kleine', 'gekocht', 'gegart', 'ganze', 'ganz', 'mit', 'und', 'oder', 'vom', 'der', 'die', 'das']);
@@ -286,6 +294,6 @@
   return {
     norm, parseDatumDE, isoToDE, addDays, diffDays, heuteIso, kundenKey, gleicherKunde, kundenGruppieren,
     archivAusEvents, archivDatenErgaenzen, LAGER_KLASSEN, lagerklasseRaten, neuerNachtrag, neuesLagerItem,
-    lagerBestand, ideenFuer, lagerTreffer, passt, kundenStatistik, brotFaktorWert, KAT_LABEL, mittel, eventDatum,
+    lagerBestand, ideenFuer, gerichteFuer, lagerTreffer, passt, kundenStatistik, brotFaktorWert, KAT_LABEL, mittel, eventDatum,
   };
 });

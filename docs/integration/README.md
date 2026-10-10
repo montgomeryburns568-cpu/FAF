@@ -21,7 +21,8 @@ Das Büro ist dabei ein **weiterer Nutzer des Katalogs** – nicht eine Kopie da
 | Datei | Inhalt |
 |---|---|
 | [`KATALOG-EINBINDUNG.md`](KATALOG-EINBINDUNG.md) | **Technische Beschreibung** der bereits laufenden Katalog-Schnittstelle: Anmeldung per Token, Einbettung, Nachrichten, Speichern/Zusammenführen, Sicherheit |
-| [`ANGEBOT-FORMAT.md`](ANGEBOT-FORMAT.md) | **Format eines Angebots** mit Katalog-Kennungen (Office → Generator) – Entwurf zur gemeinsamen Abstimmung |
+| [`ANGEBOT-FORMAT.md`](ANGEBOT-FORMAT.md) | **Format eines Angebots** mit Katalog-Kennungen (Office → Generator), Auslöser „Bestätigt“, Änderungen nach der Bestätigung – Entwurf zur gemeinsamen Abstimmung |
+| [`LAGER-SCHNITTSTELLE.md`](LAGER-SCHNITTSTELLE.md) | **Lager-/Überproduktions-Übersicht** (Generator → Office) für die Angebotserstellung, mit Verkaufsvorschlägen aus dem Katalog – bereits umgesetzt |
 | [`BRIEFING-OFFICE-CLAUDE.md`](BRIEFING-OFFICE-CLAUDE.md) | Auftrag und Fragen an den **Claude der Office-Seite** (zum Einfügen in dessen Sitzung) |
 | [`mockup-office/`](mockup-office/) | **Lauffähiger Entwurf**, wie der Katalog in der Office-App aussehen könnte, plus Bilder |
 
@@ -31,11 +32,20 @@ Das Büro ist dabei ein **weiterer Nutzer des Katalogs** – nicht eine Kopie da
 - **Gleichzeitiges Arbeiten** von Küche und Büro: Änderungen werden je Eintrag zusammengeführt, nichts wird überschrieben; Änderungen anderer erscheinen automatisch.
 - **Nachrichten-Schnittstelle** zwischen Katalog-Seite und Office-App (Gericht hinzufügen, Hell/Dunkel, Token erneuern).
 - Nur-Lese-Tokens für Nutzer ohne Bearbeitungsrecht.
+- **Lager-Übersicht** (Überproduktion + Basisvorrat, ohne Kundendaten) als lesende Schnittstelle mit eigenem Token-Bereich.
 
 ## Was als Nächstes gemeinsam entsteht
 1. Office-Seite: Katalog einbinden, Angebote mit Kennungen speichern (siehe Briefing).
 2. Generator-Seite: Empfang der Angebote (`POST /api/integration/v1/angebote`), sobald das Format abgestimmt ist.
 3. Später: Termine aus dem Office-Kalender (bestätigt, nicht storniert) automatisch in die Planung übernehmen, Rückmeldung von Küchenstand und tatsächlichen Gästen ins Büro.
+
+## Ablauf aus Sicht des Büros
+1. Angebot im Entwurf zusammenstellen: Gerichte aus dem eingebetteten Katalog, Preise (Vorschläge aus der Preisliste des Büros, fehlende werden markiert und nachgetragen).
+2. Sieht, was in der Küche **auf Lager bzw. überproduziert** ist, und kann passende Gerichte mit einem Klick übernehmen.
+3. Mit dem Kunden abstimmen, anpassen.
+4. **„Angebot bestätigen“** – erst jetzt erfährt die Küche davon und plant alles (Küchensheet, To-Do, Einkauf, Pläne). Spätere Änderungen laufen als Änderungsmitteilung.
+
+Die Erklärung „Was passiert nach der Bestätigung?“ ist in der Office-App nur ein aufklappbarer Hinweis.
 
 ## Grundregeln
 - **Keine Geheimnisse** (Schlüssel, Token, Passwörter) in Code, Dokumenten, Issues oder Chats – nur als Umgebungsvariablen in Vercel.

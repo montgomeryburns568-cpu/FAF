@@ -6,8 +6,8 @@
 <title>Office – Angebot erstellen (Entwurf)</title>
 <style>
   /* Entwurf: so könnte der Speisenkatalog in der Office-App aussehen. Farben/Schrift an die Office-App angelehnt (Tailwind-Grautöne). */
-  :root { --bg:#030712; --panel:#111827; --panel2:#1f2937; --border:#1f2937; --border2:#374151; --text:#f3f4f6; --muted:#9ca3af; --accent:#3b82f6; --ok:#34d399; color-scheme:dark; }
-  :root[data-theme="light"] { --bg:#f9fafb; --panel:#ffffff; --panel2:#f3f4f6; --border:#e5e7eb; --border2:#d1d5db; --text:#111827; --muted:#6b7280; --accent:#2563eb; --ok:#047857; color-scheme:light; }
+  :root { --bg:#030712; --panel:#111827; --panel2:#1f2937; --border:#1f2937; --border2:#374151; --text:#f3f4f6; --muted:#9ca3af; --accent:#3b82f6; --ok:#34d399; --warn:#f59e0b; --bad:#f87171; color-scheme:dark; }
+  :root[data-theme="light"] { --bg:#f9fafb; --panel:#ffffff; --panel2:#f3f4f6; --border:#e5e7eb; --border2:#d1d5db; --text:#111827; --muted:#6b7280; --accent:#2563eb; --ok:#047857; --warn:#b45309; --bad:#b91c1c; color-scheme:light; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--text); font-family: ui-sans-serif, system-ui, sans-serif; font-size:14px; }
   header.top { display:flex; align-items:center; gap:18px; padding:10px 20px; border-bottom:1px solid var(--border); background:var(--panel); flex-wrap:wrap; }
@@ -19,9 +19,17 @@
   .pill { font-size:12px; padding:2px 10px; border-radius:999px; background:var(--panel2); color:var(--muted); }
   .btn { font:inherit; padding:7px 14px; border-radius:8px; border:1px solid var(--border2); background:var(--panel2); color:var(--text); cursor:pointer; }
   .btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .btn.ok { background:#059669; border-color:#059669; color:#fff; }
+  .btn:disabled { opacity:.45; cursor:not-allowed; }
   main { max-width:1500px; margin:0 auto; padding:12px 16px 30px; }
   .crumb { color:var(--muted); font-size:12.5px; }
-  h1 { font-size:20px; margin:4px 0 14px; }
+  h1 { font-size:20px; margin:4px 0 10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .steps { display:flex; gap:6px; align-items:center; font-size:12.5px; margin-bottom:10px; flex-wrap:wrap; }
+  .step { padding:3px 11px; border-radius:999px; background:var(--panel2); color:var(--muted); }
+  .step.on { background:var(--accent); color:#fff; }
+  .step.done { background:#065f46; color:#a7f3d0; }
+  :root[data-theme="light"] .step.done { background:#d1fae5; color:#065f46; }
+  .arrow { color:var(--muted); }
   .meta { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
   .meta label { display:flex; flex-direction:column; gap:3px; font-size:12px; color:var(--muted); }
   .meta input { font:inherit; padding:6px 9px; border-radius:8px; border:1px solid var(--border2); background:var(--panel); color:var(--text); width:150px; }
@@ -30,10 +38,11 @@
   .card { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:14px 16px; }
   .card h2 { margin:0 0 4px; font-size:15px; }
   .hint { color:var(--muted); font-size:12.5px; }
-  iframe { width:100%; height:72vh; min-height:520px; border:0; border-radius:10px; background:var(--bg); display:block; margin-top:8px; }
+  iframe { width:100%; height:72vh; min-height:380px; border:0; border-radius:10px; background:var(--bg); display:block; margin-top:8px; }
   .side { position:sticky; top:12px; display:flex; flex-direction:column; gap:14px; }
   .gang h3 { margin:12px 0 6px; font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
   .item { border:1px solid var(--border2); border-radius:10px; padding:8px 10px; margin-bottom:8px; background:var(--panel2); }
+  .item.fehlt { border-color:var(--warn); }
   .item-top { display:flex; gap:8px; align-items:flex-start; }
   .item-name { font-weight:600; flex:1; }
   .item .rm { background:none; border:0; color:var(--muted); cursor:pointer; font-size:16px; }
@@ -41,18 +50,41 @@
   .comp { font-size:11.5px; padding:2px 8px; border-radius:6px; }
   .rH { background:#fdb02e; color:#10206b; } .rS { background:#00e5b8; color:#1c1c80; } .rB { background:#0a2cff; color:#fff; }
   .rG { background:#96e5b8; color:#0b3d1e; } .rE { background:#2b2b2b; color:#f3f3f3; }
-  .price { display:flex; gap:8px; align-items:center; margin-top:7px; font-size:12px; color:var(--muted); }
+  .price { display:flex; gap:8px; align-items:center; margin-top:7px; font-size:12px; color:var(--muted); flex-wrap:wrap; }
   .price input { width:90px; font:inherit; padding:4px 8px; border-radius:6px; border:1px solid var(--border2); background:var(--panel); color:var(--text); }
+  .item.fehlt .price input { border-color:var(--warn); }
+  .tag-vorschlag { color:var(--ok); }
+  .tag-fehlt { color:var(--warn); font-weight:600; }
   .empty { color:var(--muted); padding:16px 4px; }
+  .lg-row { padding:7px 0; border-bottom:1px dashed var(--border2); }
+  .lg-row:last-child { border:0; }
+  .lg-top { display:flex; gap:8px; align-items:baseline; flex-wrap:wrap; }
+  .lg-dot { width:9px; height:9px; border-radius:50%; background:var(--ok); display:inline-block; }
+  .lg-dot.bald { background:var(--warn); }
+  .lg-chips { display:flex; flex-wrap:wrap; gap:5px; margin-top:5px; align-items:center; }
+  .lg-chip { font:inherit; font-size:11.5px; padding:2px 9px; border-radius:999px; border:1px solid var(--border2); background:var(--panel2); color:var(--text); cursor:pointer; }
+  .lg-chip:hover { border-color:var(--accent); }
+  .lg-vorrat { margin-top:8px; font-size:12px; color:var(--muted); }
   .sum { display:flex; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px solid var(--border2); font-weight:600; }
+  .banner { margin-top:10px; padding:8px 11px; border-radius:9px; font-size:12.5px; }
+  .banner.warn { background:#451a03; color:#fde68a; }
+  .banner.ok { background:#064e3b; color:#a7f3d0; }
+  :root[data-theme="light"] .banner.warn { background:#fffbeb; color:#92400e; }
+  :root[data-theme="light"] .banner.ok { background:#d1fae5; color:#065f46; }
+  details.info { margin-top:2px; }
+  details.info summary { cursor:pointer; color:var(--muted); font-size:12.5px; }
   .flow { list-style:none; margin:8px 0 0; padding:0; }
   .flow li { display:flex; gap:10px; padding:7px 0; border-bottom:1px dashed var(--border2); }
   .flow li:last-child { border:0; }
   .flow .dot { width:20px; height:20px; border-radius:50%; background:var(--panel2); display:flex; align-items:center; justify-content:center; font-size:12px; flex:none; }
-  .flow .done .dot { background:var(--ok); color:#052e16; }
   .flow b { display:block; }
   .tag-entwurf { background:#78350f; color:#fde68a; }
   .status { font-size:12px; color:var(--muted); margin-top:6px; }
+  .modal-ov { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:flex-start; justify-content:center; padding:10vh 12px; }
+  .modal-ov.open { display:flex; }
+  .modal { background:var(--panel); border:1px solid var(--border2); border-radius:14px; padding:18px 20px; width:min(520px,100%); }
+  .modal h3 { margin:0 0 8px; }
+  .modal ul { margin:8px 0 14px; padding-left:18px; line-height:1.6; }
 </style>
 </head>
 <body>
@@ -68,6 +100,10 @@
 <main>
   <div class="crumb">Workflow › Angebote › Neu</div>
   <h1>Angebot erstellen <span class="hint" id="aNr">· AN-2027-ENTWURF</span></h1>
+  <div class="steps" id="steps">
+    <span class="step on" id="s1">Entwurf</span><span class="arrow">→</span><span class="step" id="s2">Mit Kunde abgestimmt</span><span class="arrow">→</span><span class="step" id="s3">Bestätigt</span>
+    <span class="hint" id="stepHint">· Die Küche erfährt erst von der Bestätigung.</span>
+  </div>
   <div class="meta">
     <label>Kunde<input id="kunde" value="Beispiel GmbH – Sommerfest"></label>
     <label>Datum<input id="datum" type="date" value="2027-05-28"></label>
@@ -82,71 +118,158 @@
       <div class="status" id="katStatus">Katalog wird geladen …</div>
     </section>
     <aside class="side">
+      <section class="card" id="lagerCard">
+        <h2>Auf Lager – bitte bevorzugt anbieten <span class="hint" id="lagerAnz"></span></h2>
+        <div class="hint">Überproduziert bzw. noch vorhanden, direkt aus der Küche. „+ Gericht“ übernimmt den Vorschlag ins Angebot.</div>
+        <div id="lagerListe"><div class="empty">Wird geladen …</div></div>
+        <div class="lg-vorrat" id="lagerVorrat"></div>
+      </section>
       <section class="card">
         <h2>Angebotsentwurf <span class="hint" id="anzahl"></span></h2>
         <div id="liste"><div class="empty">Noch keine Gerichte ausgewählt.</div></div>
-        <div class="sum"><span>Summe (Preise folgen aus dem Büro-System)</span><span id="summe">–</span></div>
+        <div class="sum"><span>Summe</span><span id="summe">–</span></div>
+        <div class="banner warn" id="fehlBanner" style="display:none"></div>
+        <div class="banner ok" id="okBanner" style="display:none"></div>
         <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap">
-          <button class="btn primary" id="speichern">Angebot speichern</button>
+          <button class="btn" id="speichern">Entwurf speichern</button>
           <button class="btn" id="pdf">PDF-Vorschau</button>
+          <button class="btn ok" id="bestaetigen" disabled>Angebot bestätigen</button>
         </div>
+        <div class="hint" id="bestHint" style="margin-top:8px">Bestätigen ist möglich, sobald alle Preise eingetragen sind.</div>
       </section>
       <section class="card">
-        <h2>Das macht die Küche daraus – automatisch</h2>
-        <div class="hint" id="flowHint">Sobald das Angebot bestätigt ist:</div>
-        <ul class="flow" id="flow"></ul>
+        <details class="info">
+          <summary>ℹ Was passiert nach der Bestätigung?</summary>
+          <ul class="flow" id="flow"></ul>
+        </details>
       </section>
     </aside>
   </div>
 </main>
+
+<div class="modal-ov" id="modal">
+  <div class="modal">
+    <h3>Angebot bestätigen?</h3>
+    <div class="hint">Nach der Bestätigung wird die Küche informiert und plant automatisch:</div>
+    <ul>
+      <li>Küchensheet, To-Do-Liste und Einkaufsliste werden erzeugt</li>
+      <li>Der Auftrag erscheint im Monats-, Wochen- und Tagesplan</li>
+      <li>Spätere Änderungen gehen als <b>Änderungsmitteilung</b> an die Küche</li>
+    </ul>
+    <div style="display:flex; gap:8px; justify-content:flex-end">
+      <button class="btn" id="mAbbruch">Abbrechen</button>
+      <button class="btn ok" id="mOk">Ja, bestätigen und an die Küche übergeben</button>
+    </div>
+  </div>
+</div>
+
 <script>
   const KATALOG_ORIGIN = '__GENERATOR_ORIGIN__';
-  if (new URLSearchParams(location.search).get('theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  const params = new URLSearchParams(location.search);
+  if (params.get('theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
   const frame = document.getElementById('katalog');
   const items = [];   // Angebotsentwurf: Gerichte mit Katalog-Kennungen
+  let bestaetigt = null;   // { version, am }
   const rollen = { H: 'rH', S: 'rS', B: 'rB', G: 'rG', E: 'rE' };
   const esc = s => String(s).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
+  const eur = n => n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+
+  // Preisliste des Büros (erfundene Beispiele): für die meisten Gerichte gibt es bereits Vorschläge, andere müssen nachgetragen werden.
+  // In der Office-App käme das aus deren Preisdaten, je Katalog-Kennung (Gericht oder Komponente).
+  const PREISLISTE = { g1: 14.5, g173: 11.9 };
 
   window.addEventListener('message', e => {
     if (e.origin !== KATALOG_ORIGIN) return;                       // nur Nachrichten des Katalogs
     const m = e.data || {};
     if (m.type === 'ks-katalog:ready') {
       document.getElementById('katStatus').textContent = 'Katalog verbunden · Version ' + m.version + (m.readonly ? ' · nur lesen' : ' · Bearbeiten erlaubt');
-      // Vorführung (?demo=1): Gerichte per Nachricht "select-dish" auswählen, so als hätte das Büro sie im Katalog angetippt
-      if (new URLSearchParams(location.search).get('demo') === '1') ['g236', 'g1', 'g173', 'g458'].forEach((id, i) => setTimeout(() => frame.contentWindow.postMessage({ type: 'ks-katalog:select-dish', id }, KATALOG_ORIGIN), 400 + i * 250));
+      // Vorführung (?demo=1: Entwurf mit fehlenden Preisen, ?demo=2: vollständig + bestätigt): Gerichte per Nachricht auswählen,
+      // so als hätte das Büro sie im Katalog angetippt
+      const demo = params.get('demo');
+      if (demo) ['g236', 'g1', 'g173', 'g458'].forEach((id, i) => setTimeout(() => frame.contentWindow.postMessage({ type: 'ks-katalog:select-dish', id }, KATALOG_ORIGIN), 400 + i * 250));
+      if (demo === '2') setTimeout(() => { items.forEach(d => { if (d.preis === '') { d.preis = '9.80'; d.vorschlag = false; } }); render(); document.getElementById('bestaetigen').click(); document.getElementById('mOk').click(); }, 2200);
     }
     if (m.type === 'ks-katalog:changed') document.getElementById('katStatus').textContent = 'Katalog wurde von der Küche aktualisiert (Version ' + m.version + ').';
-    if (m.type === 'ks-katalog:add-dish' && m.dish) { items.push({ ...m.dish, preis: '' }); render(); }
+    if (m.type === 'ks-katalog:add-dish' && m.dish && !bestaetigt) {
+      const vorschlag = PREISLISTE[m.dish.id];
+      items.push({ ...m.dish, preis: vorschlag != null ? String(vorschlag) : '', vorschlag: vorschlag != null });
+      render();
+    }
   });
 
   function render() {
     const gaeste = +document.getElementById('gaeste').value || 0;
+    const fehlend = items.filter(d => !(parseFloat(d.preis) > 0));
     document.getElementById('anzahl').textContent = items.length ? '· ' + items.length + ' Gerichte' : '';
     const byGang = {};
     items.forEach((d, i) => (byGang[d.gang || 'Sonstiges'] = byGang[d.gang || 'Sonstiges'] || []).push([d, i]));
     document.getElementById('liste').innerHTML = items.length ? Object.entries(byGang).map(([g, arr]) => `<div class="gang"><h3>${esc(g)}</h3>${arr.map(([d, i]) => `
-      <div class="item"><div class="item-top"><span class="item-name">${esc(d.name)}</span><button class="rm" data-i="${i}" title="Entfernen">✕</button></div>
+      <div class="item ${parseFloat(d.preis) > 0 ? '' : 'fehlt'}"><div class="item-top"><span class="item-name">${esc(d.name)}</span>${bestaetigt ? '' : `<button class="rm" data-i="${i}" title="Entfernen">✕</button>`}</div>
         <div class="comps">${d.komponenten.map(k => `<span class="comp ${rollen[k.rolle] || 'rE'}" title="${esc(k.gruppe)}">${esc(k.name)}</span>`).join('')}</div>
-        <div class="price"><span>Preis je Person</span><input type="number" step="0.01" placeholder="€" data-p="${i}" value="${d.preis}"> <span class="hint">${d.tags.slice(0, 3).map(esc).join(' · ')}</span></div></div>`).join('')}</div>`).join('')
+        <div class="price"><span>Preis je Person</span><input type="number" step="0.01" placeholder="€" data-p="${i}" value="${d.preis}" ${bestaetigt ? 'disabled' : ''}>
+          ${parseFloat(d.preis) > 0 ? (d.vorschlag ? '<span class="tag-vorschlag">✓ Vorschlag aus der Preisliste</span>' : '<span class="hint">manuell eingetragen</span>') : '<span class="tag-fehlt">Preis fehlt – bitte eintragen</span>'}</div></div>`).join('')}</div>`).join('')
       : '<div class="empty">Noch keine Gerichte ausgewählt.</div>';
-    const sum = items.reduce((s, d) => s + (parseFloat(d.preis) || 0), 0) * gaeste;
-    document.getElementById('summe').textContent = sum ? sum.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) : '–';
+    const summe = items.reduce((s, d) => s + (parseFloat(d.preis) || 0), 0) * gaeste;
+    document.getElementById('summe').textContent = summe ? eur(summe) + (fehlend.length ? ' (unvollständig)' : '') : '–';
+    const fb = document.getElementById('fehlBanner');
+    fb.style.display = fehlend.length && !bestaetigt ? '' : 'none';
+    fb.textContent = fehlend.length ? fehlend.length + (fehlend.length === 1 ? ' Preis fehlt' : ' Preise fehlen') + ' – für diese Gerichte gibt es noch keinen Vorschlag. Bitte nachtragen (wird für künftige Angebote in der Preisliste gemerkt).' : '';
+    const bereit = items.length > 0 && !fehlend.length && gaeste > 0 && !!document.getElementById('datum').value;
+    const bt = document.getElementById('bestaetigen');
+    bt.disabled = !bereit || !!bestaetigt;
+    bt.textContent = bestaetigt ? '✓ Bestätigt' : 'Angebot bestätigen';
+    document.getElementById('bestHint').textContent = bestaetigt ? 'Änderungen sind jetzt nur noch als Änderungsmitteilung an die Küche möglich.' : bereit ? 'Bereit: Mit „Angebot bestätigen“ wird die Küche informiert.' : 'Bestätigen ist möglich, sobald alle Preise, Datum und Gäste eingetragen sind.';
+    const ob = document.getElementById('okBanner');
+    ob.style.display = bestaetigt ? '' : 'none';
+    if (bestaetigt) ob.innerHTML = `✓ <b>Bestätigt</b> am ${bestaetigt.am} · Version ${bestaetigt.version} · an die Küche übergeben. Die Küche plant jetzt Einkauf und Produktion.`;
+    // Schritte
+    document.getElementById('s1').className = 'step ' + (bestaetigt ? 'done' : 'on');
+    document.getElementById('s2').className = 'step ' + (bestaetigt ? 'done' : '');
+    document.getElementById('s3').className = 'step ' + (bestaetigt ? 'on' : '');
+    document.getElementById('stepHint').textContent = bestaetigt ? '· Die Küche wurde informiert.' : '· Die Küche erfährt erst von der Bestätigung.';
+    document.getElementById('aNr').textContent = bestaetigt ? '· AN-2027-0042' : '· AN-2027-ENTWURF';
+    // Info: was danach passiert
     const komp = items.reduce((s, d) => s + d.komponenten.length, 0);
     const datum = document.getElementById('datum').value;
     const vorlauf = datum ? new Date(new Date(datum + 'T12:00:00').getTime() - 3 * 86400000).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit' }) : '';
     const schritte = [
-      ['Küchensheet', komp ? komp + ' Komponenten aus dem Katalog – mit Mengen für ' + gaeste + ' Gäste' : 'wartet auf Gerichte'],
-      ['To-Do-Liste', komp ? 'Rezept und Zubereitung je Komponente, Garmethode, Vegetarisch-Anteil' : 'wartet auf Gerichte'],
-      ['Einkaufsliste', komp ? 'Bedarf abzüglich Vorrat und Überproduktion – nur der Rest wird bestellt' : 'wartet auf Gerichte'],
-      ['Planung', komp ? 'Monatsplan: Veranstaltung am ' + new Date(datum + 'T12:00:00').toLocaleDateString('de-DE') + ' · Produktionsstart ' + vorlauf : 'wartet auf Gerichte'],
+      ['Küchensheet', komp + ' Komponenten aus dem Katalog – Mengen für ' + gaeste + ' Gäste'],
+      ['To-Do-Liste', 'Rezept und Zubereitung je Komponente, Garmethode, Vegetarisch-Anteil'],
+      ['Einkaufsliste', 'Bedarf abzüglich Vorrat und Überproduktion – nur der Rest wird bestellt'],
+      ['Planung', 'Monatsplan: Veranstaltung am ' + (datum ? new Date(datum + 'T12:00:00').toLocaleDateString('de-DE') : '–') + ' · Produktionsstart ' + vorlauf],
       ['Nach der Veranstaltung', 'Nachtrag: Überproduktion, tatsächliche Gäste, Besonderheiten → zurück ins Büro'],
     ];
-    document.getElementById('flow').innerHTML = schritte.map(([t, s], i) => `<li class="${komp && i < 4 ? 'done' : ''}"><span class="dot">${komp && i < 4 ? '✓' : i + 1}</span><span><b>${t}</b><span class="hint">${esc(s)}</span></span></li>`).join('');
+    document.getElementById('flow').innerHTML = schritte.map(([t, s], i) => `<li><span class="dot">${i + 1}</span><span><b>${t}</b><span class="hint">${esc(s)}</span></span></li>`).join('');
   }
+  // Lager-Übersicht der Küche (Überproduktion + Vorrat) – kommt über den Office-Server, Schnittstelle: /api/integration/v1/lager
+  async function ladeLager() {
+    try {
+      const j = await (await fetch('/lager')).json();
+      const ue = j.ueberproduktion || [];
+      document.getElementById('lagerAnz').textContent = ue.length ? '· ' + ue.length + ' Posten' : '';
+      const mg = d => d.menge != null ? d.menge.toString().replace('.', ',') + ' ' + d.einheit : '';
+      document.getElementById('lagerListe').innerHTML = ue.length ? ue.slice(0, 4).map(d => `<div class="lg-row"><div class="lg-top"><span class="lg-dot ${d.ampel}"></span><b>${esc(d.name)}</b> <span>${esc(mg(d))}</span>
+          <span class="hint">${d.tageRest === 0 ? 'heute letzter Tag' : 'noch ' + d.tageRest + ' Tage'} · ${esc(d.klasseLabel.split(' (')[0])}</span></div>
+          <div class="lg-chips">${d.vorschlaege.gerichte.slice(0, 3).map(g => `<button class="lg-chip" data-g="${esc(g.id)}" title="${esc(g.name)}">+ ${esc(g.name.length > 36 ? g.name.slice(0, 34) + '…' : g.name)}</button>`).join('')}</div></div>`).join('') + (ue.length > 4 ? `<div class="hint" style="padding-top:6px">… und ${ue.length - 4} weitere</div>` : '')
+        : '<div class="empty">Zurzeit keine Überproduktion.</div>';
+      const knapp = (j.vorrat || []).filter(v => v.status !== 'ok');
+      document.getElementById('lagerVorrat').textContent = knapp.length ? 'Basisvorrat knapp: ' + knapp.map(v => v.name + (v.status === 'leer' ? ' (leer)' : '')).join(', ') : (j.vorrat || []).length ? 'Basisvorrat (Salz, Öl, …) ausreichend.' : '';
+    } catch (e) { document.getElementById('lagerListe').innerHTML = '<div class="empty">Lager-Übersicht nicht erreichbar.</div>'; }
+  }
+  document.getElementById('lagerListe').addEventListener('click', e => { const b = e.target.closest('.lg-chip'); if (b && !bestaetigt) frame.contentWindow.postMessage({ type: 'ks-katalog:select-dish', id: b.dataset.g }, KATALOG_ORIGIN); });
+  ladeLager();
   document.getElementById('liste').addEventListener('click', e => { const b = e.target.closest('.rm'); if (b) { items.splice(+b.dataset.i, 1); render(); } });
-  document.getElementById('liste').addEventListener('input', e => { if (e.target.dataset.p != null) { items[+e.target.dataset.p].preis = e.target.value; const s = items.reduce((a, d) => a + (parseFloat(d.preis) || 0), 0) * (+document.getElementById('gaeste').value || 0); document.getElementById('summe').textContent = s ? s.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) : '–'; } });
+  document.getElementById('liste').addEventListener('change', e => { if (e.target.dataset.p != null) { const d = items[+e.target.dataset.p]; d.preis = e.target.value; d.vorschlag = false; render(); } });
   ['gaeste', 'datum'].forEach(id => document.getElementById(id).addEventListener('input', render));
-  document.getElementById('speichern').addEventListener('click', () => alert('Entwurf: Hier würde das Angebot mit den Katalog-Kennungen gespeichert:\n\n' + JSON.stringify(items.map(d => ({ katalogId: d.id, name: d.name, komponenten: d.komponenten.map(k => k.id) })), null, 1).slice(0, 700)));
+  document.getElementById('speichern').addEventListener('click', () => alert('Entwurf gespeichert (nur im Büro sichtbar – die Küche bekommt nichts).'));
+  document.getElementById('bestaetigen').addEventListener('click', () => document.getElementById('modal').classList.add('open'));
+  document.getElementById('mAbbruch').addEventListener('click', () => document.getElementById('modal').classList.remove('open'));
+  document.getElementById('mOk').addEventListener('click', () => {
+    document.getElementById('modal').classList.remove('open');
+    bestaetigt = { version: 1, am: new Date().toLocaleDateString('de-DE') };
+    // Hier würde die Office-App das Angebot im Format aus ANGEBOT-FORMAT.md (status: CONFIRMED, Kennungen, ohne Preise) an die Küche übergeben.
+    render();
+  });
   document.getElementById('themeBtn').addEventListener('click', () => {
     const t = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', t);

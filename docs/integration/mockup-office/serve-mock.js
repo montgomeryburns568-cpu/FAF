@@ -13,7 +13,15 @@ const GENERATOR = (process.env.GENERATOR_URL || 'http://localhost:3080').replace
 const SECRET = process.env.OFFICE_EMBED_SECRET;
 if (!SECRET) { console.error('OFFICE_EMBED_SECRET fehlt.'); process.exit(1); }
 
-http.createServer((req, res) => {
+http.createServer(async (req, res) => {
+  // Wie später der Server der Office-App: ruft die Lager-Übersicht der Küche mit einem Token (Bereich "lager", nur lesen) ab und reicht sie an die Seite weiter
+  if (req.url.split('?')[0] === '/lager') {
+    try {
+      const t = erzeugeEmbedToken(SECRET, { sub: 'demo-buero', name: 'Büro (Demo)', scope: 'lager', readonly: true, lebensdauerS: 600 });
+      const r = await fetch(GENERATOR + '/api/integration/v1/lager', { headers: { authorization: 'Bearer ' + t } });
+      res.setHeader('Content-Type', 'application/json'); res.statusCode = r.status; return res.end(await r.text());
+    } catch (e) { res.statusCode = 502; return res.end(JSON.stringify({ error: e.message })); }
+  }
   if (req.url.split('?')[0] !== '/') { res.statusCode = 404; return res.end(); }
   const q = new URL(req.url, 'http://x').searchParams;
   const token = erzeugeEmbedToken(SECRET, { sub: 'demo-buero', name: 'Büro (Demo)', lebensdauerS: 3600, readonly: q.get('ro') === '1' });

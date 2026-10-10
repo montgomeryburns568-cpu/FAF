@@ -449,6 +449,8 @@ for (const g of out.gerichte) for (const p of g.teile) {
 }
 const out2 = { komponenten: slim, aliase: [...aliasSet.values()] };
 fs.writeFileSync(path.join(DIR, 'katalog-komponenten.js'), '// Automatisch von build.js erzeugt – nicht von Hand ändern.\nmodule.exports = ' + JSON.stringify(out2) + ';\n', 'utf8');
+// Schlanke Gerichteliste (Grundkatalog) für Schnittstellen, z.B. Verkaufsvorschläge zur Überproduktion: Gericht -> Komponenten-Kennungen
+fs.writeFileSync(path.join(DIR, 'katalog-gerichte.js'), '// Automatisch von build.js erzeugt – nicht von Hand ändern.\nmodule.exports = ' + JSON.stringify(out.gerichte.map(g => ({ id: g.id, name: g.name, gang: g.gang, kueche: g.kueche, sammlung: g.sammlung, ids: (g.teile || []).filter(t => t.comp).map(t => t.comp) }))) + ';\n', 'utf8');
 // Für den Server als JS-Modul (wird beim Deploy automatisch mit eingepackt)
 fs.writeFileSync(path.join(DIR, 'katalog-html.js'), '// Automatisch von build.js erzeugt – nicht von Hand ändern.\nmodule.exports = ' + JSON.stringify(html) + ';\n', 'utf8');
 

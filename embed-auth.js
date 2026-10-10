@@ -1,5 +1,6 @@
 // Kurzlebige, signierte Zugangstoken für die Einbindung des Speisenkatalogs in andere Anwendungen (z.B. die Office-App).
 // Format:  <payload>.<signatur>   payload = base64url(JSON {sub, name, scope, exp}), signatur = HMAC-SHA256(secret, payload) als hex.
+// scope darf mehrere Bereiche enthalten, getrennt durch Leerzeichen (z.B. "katalog lager").
 // Der Server der anderen Anwendung erzeugt das Token (gemeinsames Geheimnis OFFICE_EMBED_SECRET, nur als Umgebungsvariable!),
 // der Generator prüft es. Ein Token gilt nur für den Katalog (scope "katalog"), nie für Rezepte, Angebote oder Vorrat.
 const crypto = require('crypto');
@@ -25,7 +26,7 @@ function pruefeEmbedToken(secret, token, scope = 'katalog') {
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
   try {
     const d = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
-    if (!d || d.scope !== scope || !d.exp || d.exp < Math.floor(Date.now() / 1000)) return null;
+    if (!d || !String(d.scope || '').split(' ').includes(scope) || !d.exp || d.exp < Math.floor(Date.now() / 1000)) return null;
     if (d.exp - Math.floor(Date.now() / 1000) > MAX_LEBENSDAUER_S + 60) return null;   // zu lange Laufzeit wird abgelehnt
     return d;
   } catch (e) { return null; }

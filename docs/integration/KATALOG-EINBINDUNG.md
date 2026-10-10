@@ -28,6 +28,8 @@ Format: `<payload>.<signatur>`
 - `payload` = Base64url(JSON) mit `sub` (ID des Büro-Nutzers), `name` (Anzeigename, erscheint im Katalog bei „Änderung von …“), `scope` (`"katalog"`), `exp` (Unix-Sekunden), optional `ro: true` (nur lesen)
 - `signatur` = HMAC-SHA256 über `payload` mit `OFFICE_EMBED_SECRET`, als Hex
 
+`scope` darf mehrere Bereiche enthalten, durch Leerzeichen getrennt (z. B. `"katalog lager"`); jede Schnittstelle prüft ihren eigenen Bereich. Bereiche: `katalog` (diese Datei), `lager` (siehe `LAGER-SCHNITTSTELLE.md`).
+
 Ein Token ist höchstens **12 Stunden** gültig (längere Angaben werden abgelehnt), empfohlen: **1–4 Stunden**, serverseitig pro angemeldetem Büro-Nutzer erzeugt – **nie im Browser-Code erzeugen, das Geheimnis darf den Server nicht verlassen.**
 
 ```ts

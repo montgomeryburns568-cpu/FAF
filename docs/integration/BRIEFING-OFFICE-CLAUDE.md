@@ -13,7 +13,7 @@ Lies zuerst, in dieser Reihenfolge:
 1. `docs/integration/README.md` – Überblick, Rollen, Grundregeln
 2. `docs/integration/KATALOG-EINBINDUNG.md` – Token-Anmeldung, `iframe`, Nachrichten, Speichern/Zusammenführen, Sicherheit
 3. `docs/integration/ANGEBOT-FORMAT.md` – Entwurf, was die Küche pro Angebot braucht
-4. `docs/integration/mockup-office/` – lauffähiger Entwurf mit Bildern (`02-angebot-dunkel.png`, `03-angebot-hell.png`) und `serve-mock.js`
+4. `docs/integration/mockup-office/` – lauffähiger Entwurf mit Bildern (`02-entwurf-preise-fehlen-dunkel.png`, `03-bestaetigt-dunkel.png`, `04-entwurf-hell.png`) und `serve-mock.js`
 
 Kurz: Der Generator liefert die Katalog-Seite unter `/api/speisenkatalog/embed` aus, abgesichert durch ein von **deinem Server** erzeugtes, kurzlebiges Token (HMAC mit gemeinsamem Geheimnis). Die Seite meldet per `postMessage`, wenn das Büro ein Gericht zum Angebot hinzufügt (mit Kennungen und aktueller Komponentenliste).
 
@@ -24,13 +24,17 @@ Kurz: Der Generator liefert die Katalog-Seite unter `/api/speisenkatalog/embed` 
 - Rechte: Nutzer mit Bearbeitungsrecht erhalten ein normales Token, alle anderen ein `readonly`-Token.
 - Die Office-App hat unseres Wissens bereits Seiten für Küchenblätter/Katalog (`/admin/kitchen-sheets/katalog`) und Angebotsbausteine (`/admin/angebote/bausteine`). Bitte klären und uns mitteilen, wie sich das zum neuen Katalog verhält (ersetzen, daneben, später ablösen) – **wir wollen nicht zwei Wahrheiten**.
 
+**Phase 1b – Lager-Übersicht im Angebots-Editor**
+- Ruf serverseitig `GET /api/integration/v1/lager` auf (Token mit Bereich `lager`, siehe `LAGER-SCHNITTSTELLE.md`) und zeige eine kleine Karte „Auf Lager – bitte bevorzugt anbieten“: Überproduktion mit Menge, Haltbarkeit und Ampel. Die Vorschläge (`vorschlaege.gerichte`) lassen sich per Nachricht `ks-katalog:select-dish` ins Angebot übernehmen. Zusätzlich ein kurzer Hinweis, wenn der Basisvorrat knapp ist.
+
 **Phase 2 – Angebote mit Kennungen**
 - Beim Nachricht `ks-katalog:add-dish` eine Angebotszeile mit `katalogId`, Name, `komponenten` (Kennungen) und Gang anlegen. Wunsch-Abweichungen (Beilage tauschen) gelten **nur für das Angebot**, nicht für den Katalog.
-- Preise bleiben in der Office-App und hängen an `katalogId` bzw. Komponenten (Mapping nach deinem Datenmodell).
+- Preise bleiben in der Office-App und hängen an `katalogId` bzw. Komponenten (Mapping nach deinem Datenmodell). Für die meisten Gerichte gibt es bereits Preisvorschläge; **fehlende Preise werden im Editor markiert und nachgetragen** (und für künftige Angebote in der Preisliste gemerkt).
+- Der Block „Was macht die Küche daraus?“ ist nur Information – **einklappbar/versteckt**.
 - Speichere zu jeder Zeile zusätzlich den **Text-Stand** (Name, Komponentennamen) – Kennungen werden nie wiederverwendet, aber Gerichte können aus dem Katalog ausgeblendet werden.
 
 **Phase 3 – Übergabe an die Küche**
-- Erzeuge bei Bestätigung (und bei Änderungen, Storno) das Angebot im Format aus `ANGEBOT-FORMAT.md`. Gib uns Rückmeldung, was am Format fehlt oder anders gelöst werden soll. Den Empfang (`POST /api/integration/v1/angebote`) bauen wir auf der Küchen-Seite, sobald das Format steht.
+- **Die Küche erfährt erst vom bestätigten Angebot.** Ein Entwurf (auch gespeichert) und ein „mit Kunde abgestimmtes“ Angebot bleiben im Büro, weil der Kunde meist noch Änderungen wünscht. Baue einen Knopf **„Angebot bestätigen“** (aktiv nur bei vollständigem Angebot: Gerichte, alle Preise, Datum, Gäste), der die Übergabe auslöst. Nach der Bestätigung gehen Änderungen als neue Version mit `aenderung` (und ggf. Änderungsfrist) an die Küche, Storno als `CANCELLED`. Erzeuge das Angebot im Format aus `ANGEBOT-FORMAT.md`. Gib uns Rückmeldung, was am Format fehlt oder anders gelöst werden soll. Den Empfang (`POST /api/integration/v1/angebote`) bauen wir auf der Küchen-Seite, sobald das Format steht.
 
 **Phase 4 – Termine (später)**
 - Bestätigte, nicht stornierte Aufträge (mit Gästezahl, Datum, Kategorie) sollen automatisch in die Planung der Küche (Monats-, Wochen-, Tagesplan) gelangen, inklusive Vorlauf der Produktion; Rückmeldung von Küchenstand und tatsächlichen Gästen ans Büro.
