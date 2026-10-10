@@ -40,6 +40,7 @@ const FILES = {
   speisenkatalog: path.join(DATA_DIR, 'speisenkatalog.json'),
   kunden: path.join(DATA_DIR, 'kunden.json'),
   vorrat: path.join(DATA_DIR, 'vorrat.json'),
+  bestellungen: path.join(DATA_DIR, 'bestellungen.json'),
 };
 
 function ensureFile(file, defaultValue) {
@@ -74,6 +75,7 @@ function initLocal() {
   ensureFile(FILES.speisenkatalog, {});
   ensureFile(FILES.kunden, []);
   ensureFile(FILES.vorrat, []);
+  ensureFile(FILES.bestellungen, []);
 }
 
 async function init() {
@@ -86,6 +88,7 @@ async function init() {
     await kvGetOrInit('speisenkatalog', {});
     await kvGetOrInit('kunden', []);
     await kvGetOrInit('vorrat', []);
+    await kvGetOrInit('bestellungen', []);
   } else {
     initLocal();
   }
@@ -143,6 +146,9 @@ module.exports = {
   // Vorrat an Basisartikeln (Salz, Pfeffer, Öl ...): Bestand, Mindestbestand, Suchbegriffe
   async getVorrat() { return useKV ? kvGetOrInit('vorrat', []) : (fs.existsSync(FILES.vorrat) ? readJSON(FILES.vorrat) : []); },
   async setVorrat(data) { if (useKV) { await kvSet('vorrat', data); } else { writeJSON(FILES.vorrat, data); } },
+  // Abgeschickte Einkaufslisten (Bestellrunden je Bestellblock Fr–Do): Haupt- und Nachbestellungen mit Positionen
+  async getBestellungen() { return useKV ? kvGetOrInit('bestellungen', []) : (fs.existsSync(FILES.bestellungen) ? readJSON(FILES.bestellungen) : []); },
+  async setBestellungen(data) { if (useKV) { await kvSet('bestellungen', data); } else { writeJSON(FILES.bestellungen, data); } },
   // Änderungsstand des Speisenkatalogs (Austausch, Tags, To-Dos, Labels ...) – der Katalog selbst liegt als Datei im Repo
   async getSpeisenkatalog() { return useKV ? kvGetOrInit('speisenkatalog', {}) : readJSON(FILES.speisenkatalog); },
   async setSpeisenkatalog(data) { if (useKV) { await kvSet('speisenkatalog', data); } else { writeJSON(FILES.speisenkatalog, data); } },

@@ -373,6 +373,14 @@ app.get('/api/archiv', requireAuth, async (req, res) => {
   res.json(await archivSynchronisieren());
 });
 
+// --- Bestellrunden (abgeschickte Einkaufslisten) ---
+app.get('/api/bestellungen', requireAuth, async (req, res) => { res.setHeader('Cache-Control', 'no-store'); res.json(await store.getBestellungen()); });
+app.put('/api/bestellungen', requireAuth, async (req, res) => {
+  if (!Array.isArray(req.body)) return res.status(400).json({ error: 'Liste erwartet.' });
+  await store.setBestellungen(req.body);
+  res.json(req.body);
+});
+
 // --- Vorrat (Basisartikel) ---
 app.get('/api/vorrat', requireAuth, async (req, res) => { res.setHeader('Cache-Control', 'no-store'); res.json(await store.getVorrat()); });
 app.put('/api/vorrat', requireAuth, async (req, res) => {

@@ -46,11 +46,11 @@ const API = {
 };
 
 async function loadState() {
-  const [recipes, rules, events, archiv, artikelzuordnung, kunden, vorrat] = await Promise.all([
+  const [recipes, rules, events, archiv, artikelzuordnung, kunden, vorrat, bestellungen] = await Promise.all([
     API.get('/api/recipes'), API.get('/api/rules'), API.get('/api/events'), API.get('/api/archiv'),
-    API.get('/api/artikelzuordnung'), API.get('/api/kunden').catch(() => []), API.get('/api/vorrat').catch(() => []),
+    API.get('/api/artikelzuordnung'), API.get('/api/kunden').catch(() => []), API.get('/api/vorrat').catch(() => []), API.get('/api/bestellungen').catch(() => []),
   ]);
-  return { recipes, rules: normalizeRules(rules), events, archiv: archiv.filter(e => !e.ausgeblendet), kunden, vorrat, artikelzuordnung, currentEventId: getCurrentEventId() };
+  return { recipes, rules: normalizeRules(rules), events, archiv: archiv.filter(e => !e.ausgeblendet), kunden, vorrat, bestellungen, artikelzuordnung, currentEventId: getCurrentEventId() };
 }
 
 // ---------- Regelsätze: Mittag/Business (Basis) und Abend/Privat ----------
@@ -940,10 +940,41 @@ function lagerHinweisHTML(zutat) {
   if (!l.length) return '';
   return `<div class="lager-hint">📦 Auf Lager (Überproduktion): ${l.map(r => `${escHtml(r.name)}${r.menge != null ? ' ' + fmtAmount(r.menge) + ' ' + escHtml(r.einheit) : ''} (${r.tageRest != null ? (r.tageRest === 0 ? 'heute letzter Tag' : 'noch ' + r.tageRest + ' T') : 'Haltbarkeit offen'})`).join(', ')}</div>`;
 }
+// Bestellliste als Tabelle mit Selgros-Zuordnung. items: [{name, unit, amount, row?, nach?, hinweis?}]
+function ezTabelleHTML(items) {
+  let html = `<div class="ez-aktiv"><table class="summary-table"><thead><tr>
+    <th>Zutat</th><th>Zu bestellen (Bedarf abzüglich Vorrat/Überproduktion)</th><th>Selgros Art.-Nr.</th><th>Packung</th><th>Bestellmenge</th><th>Aufnehmen</th>
+  </tr></thead><tbody>`;
+  items.forEach(i => {
+    const key = normalize(i.name);
+    const match = findArtikelForIngredient(i.name, state.artikelzuordnung);
+    const z = (match && match.entry) || {};
+    const suggested = !!(match && !match.confirmed);
+    const autoQty = computeBestellmenge(i.amount, i.unit, z.packAmount, z.packUnit);
+    const qty = z.qty != null ? z.qty : autoQty;
+    html += `<tr data-key="${key}" data-needed-amount="${i.amount}" data-needed-unit="${i.unit}" class="${suggested ? 'ez-suggested' : ''}">
+      <td>${i.name}</td>
+      <td>${fmtAmount(i.amount)} ${i.unit}${i.nach
+        ? `<div class="lager-hint">🔁 Nachbestellung Basisartikel: Bestand nach allen Aufträgen ${fmtAmount(Math.max(0, i.nach.prognose))} ${escHtml(i.unit)} – unter Mindestbestand ${fmtAmount(i.nach.item.mindest)} ${escHtml(i.unit)}</div>`
+        : (i.row ? (Vorrat.zeileHinweis(i.row) || lagerHinweisHTML(i.name)) : (i.hinweis || lagerHinweisHTML(i.name)))}</td>
+      <td><input type="text" class="ez-artnr" value="${z.artNr || ''}" placeholder="Art.-Nr.">${suggested ? `<div class="hint">Vorschlag: ${z.name}</div>` : ''}</td>
+      <td><input type="number" step="any" class="ez-packamount" value="${z.packAmount ?? ''}" placeholder="Menge" style="width:70px">
+          <input type="text" class="ez-packunit" value="${z.packUnit || ''}" placeholder="Einheit" style="width:60px"></td>
+      <td><input type="number" step="1" min="0" class="ez-qty" value="${qty ?? ''}" placeholder="?"></td>
+      <td style="text-align:center"><input type="checkbox" class="ez-include" ${z.exclude ? '' : 'checked'}></td>
+    </tr>`;
+  });
+  html += `</tbody></table></div>
+  <p class="hint">Orange markierte Zeilen sind automatische Vorschläge (per Wortabgleich aus euren Selgros-Bestellungen) und noch nicht bestätigt. Beim Ändern/Speichern einer Zeile wird die Zuordnung fest für diese Zutat gemerkt.</p>`;
+  return html;
+}
+let ekModus = 'woche';   // 'woche' (Wochenbestellung nach Bestellrhythmus) oder 'auftrag' (Liste des geöffneten Angebots)
 function renderEinkaufsliste() {
   const out = document.getElementById('einkaufslisteOutput');
   document.getElementById('einkaufslisteBestellliste').style.display = 'none';
   document.getElementById('einkaufslisteWarnHint').style.display = 'none';
+  document.querySelectorAll('#ekModus button').forEach(b => b.classList.toggle('active', b.dataset.modus === ekModus));
+  if (ekModus === 'woche' && typeof Bestellung !== 'undefined') { Bestellung.render(out); return; }
   if (!draftEvent || !draftEvent.days || draftEvent.days.length === 0) {
     out.innerHTML = '<div class="empty-state">⚠️ Noch kein Angebot verarbeitet. Erzeuge zuerst ein Küchensheet im Tab "Angebot".</div>';
     return;
@@ -956,30 +987,7 @@ function renderEinkaufsliste() {
   const bestellen = verr.rows.filter(r => !r.gedeckt).map(r => ({ name: r.name, unit: r.unit, amount: r.rest, row: r }))
     .concat(verr.nachbestellen.map(n => ({ name: n.item.name, unit: n.item.einheit, amount: n.menge, nach: n })));
 
-  let html = `<table class="summary-table"><thead><tr>
-    <th>Zutat</th><th>Zu bestellen (Bedarf abzüglich Vorrat/Überproduktion)</th><th>Selgros Art.-Nr.</th><th>Packung</th><th>Bestellmenge</th><th>Aufnehmen</th>
-  </tr></thead><tbody>`;
-  bestellen.forEach(i => {
-    const key = normalize(i.name);
-    const match = findArtikelForIngredient(i.name, state.artikelzuordnung);
-    const z = (match && match.entry) || {};
-    const suggested = !!(match && !match.confirmed);
-    const autoQty = computeBestellmenge(i.amount, i.unit, z.packAmount, z.packUnit);
-    const qty = z.qty != null ? z.qty : autoQty;
-    html += `<tr data-key="${key}" data-needed-amount="${i.amount}" data-needed-unit="${i.unit}" class="${suggested ? 'ez-suggested' : ''}">
-      <td>${i.name}</td>
-      <td>${fmtAmount(i.amount)} ${i.unit}${i.nach
-        ? `<div class="lager-hint">🔁 Nachbestellung Basisartikel: Bestand nach allen Aufträgen ${fmtAmount(Math.max(0, i.nach.prognose))} ${escHtml(i.unit)} – unter Mindestbestand ${fmtAmount(i.nach.item.mindest)} ${escHtml(i.unit)}</div>`
-        : (Vorrat.zeileHinweis(i.row) || lagerHinweisHTML(i.name))}</td>
-      <td><input type="text" class="ez-artnr" value="${z.artNr || ''}" placeholder="Art.-Nr.">${suggested ? `<div class="hint">Vorschlag: ${z.name}</div>` : ''}</td>
-      <td><input type="number" step="any" class="ez-packamount" value="${z.packAmount ?? ''}" placeholder="Menge" style="width:70px">
-          <input type="text" class="ez-packunit" value="${z.packUnit || ''}" placeholder="Einheit" style="width:60px"></td>
-      <td><input type="number" step="1" min="0" class="ez-qty" value="${qty ?? ''}" placeholder="?"></td>
-      <td style="text-align:center"><input type="checkbox" class="ez-include" ${z.exclude ? '' : 'checked'}></td>
-    </tr>`;
-  });
-  html += `</tbody></table>
-  <p class="hint">Orange markierte Zeilen sind automatische Vorschläge (per Wortabgleich aus euren Selgros-Bestellungen) und noch nicht bestätigt. Beim Ändern/Speichern einer Zeile wird die Zuordnung fest für diese Zutat gemerkt.</p>`;
+  let html = ezTabelleHTML(bestellen);
   if (!bestellen.length) html = '<p class="hint">✅ Alles aus Vorrat und Überproduktion gedeckt – nichts zu bestellen.</p>';
   html += Vorrat.vorraetigHTML(verr.rows);
   html += Vorrat.buchungHTML(draftEvent);
@@ -1012,7 +1020,7 @@ document.getElementById('einkaufslisteOutput').addEventListener('change', async 
 });
 
 document.getElementById('fillSelgrosCartBtn').addEventListener('click', () => {
-  const rows = Array.from(document.querySelectorAll('#einkaufslisteOutput tr[data-key]'));
+  const rows = Array.from(document.querySelectorAll('#einkaufslisteOutput .ez-aktiv tr[data-key]'));   // nur die offene Bestellliste, nicht die Übersichten
   const lines = [];
   rows.forEach(row => {
     const included = row.querySelector('.ez-include').checked;
@@ -1563,6 +1571,7 @@ async function boot() {
     await KatalogTodo.load();   // Speisenkatalog (Komponenten + To-Dos) für die To-Do-Liste
     render();
     Vorrat.syncAlle();          // Verbrauch aller anstehenden Aufträge im Hintergrund vom Vorrat abziehen
+    Bestellung.badge();         // Hinweis am Reiter, wenn eine Bestellfrist naht
   } catch (err) {
     console.error(err);
   }

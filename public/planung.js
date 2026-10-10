@@ -100,7 +100,7 @@ const Planung = (function () {
     const rollenLabel = { H: 'Haupt', S: 'Soße', B: 'Beilage', G: 'Gemüse' };
     const compList = Array.from(comps.values()).sort((a, b) => 'HBGS'.indexOf(a.rolle) - 'HBGS'.indexOf(b.rolle) || a.name.localeCompare(b.name, 'de'));
     const zutaten = aggregateIngredients(pseudo);
-    let h = `<div class="pl-summe"><strong>${eintraege.length}</strong> Auftrag${eintraege.length === 1 ? '' : 'e'} · <strong>${gaeste}</strong> Gäste gesamt</div>`;
+    let h = `<div class="pl-summe"><strong>${eintraege.length}</strong> ${eintraege.length === 1 ? 'Auftrag' : 'Aufträge'} · <strong>${gaeste}</strong> Gäste gesamt</div>`;
     h += `<h3>Aufträge</h3><div class="table-scroll"><table class="analytics-table"><thead><tr><th>Kunde</th><th>Gäste</th><th>Hinweise</th><th>Stand</th><th></th></tr></thead><tbody>`
       + kunden.map(k => `<tr><td><strong>${esc(k.ev.name)}</strong>${k.cd.modus === 'abend' ? ' <span class="badge">Abend/Privat</span>' : ''}</td><td>${k.personen || '–'}</td><td class="hint">${esc(notizKurz(k.ev))}</td><td>${fortschrittHTML(k.f)}</td><td>${oeffnenKnopf(k.ev)}</td></tr>`).join('') + `</tbody></table></div>`;
     h += `<h3>Zu produzieren (alle Aufträge zusammen)</h3>`;

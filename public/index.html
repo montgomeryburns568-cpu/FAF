@@ -44,7 +44,7 @@
     <button class="tab-btn active" data-tab="angebot">Angebot</button>
     <button class="tab-btn" data-tab="planung">Planung</button>
     <button class="tab-btn" data-tab="todo">To-Do</button>
-    <button class="tab-btn" data-tab="einkaufsliste">Einkaufsliste</button>
+    <button class="tab-btn" data-tab="einkaufsliste">Einkaufsliste<span id="ekBadge" class="tab-badge" style="display:none"></span></button>
     <button class="tab-btn" data-tab="vorrat">Vorrat</button>
     <button class="tab-btn" data-tab="speisenkatalog">Speisenkatalog</button>
     <button class="tab-btn" data-tab="regeln">Regeln</button>
@@ -133,7 +133,8 @@
 <section id="tab-einkaufsliste" class="tabpanel">
   <div class="card">
     <h2>Einkaufsliste</h2>
-    <p class="hint">Aggregierter Wareneinsatz des aktuellen Angebots, mit Zuordnung zu Selgros-Artikelnummern. Einmal zugeordnete Artikel merkt sich die App für künftige Angebote.</p>
+    <div class="subtabs" id="ekModus" style="margin:6px 0 10px"><button type="button" class="subtab-btn active" data-modus="woche">Wochenbestellung</button><button type="button" class="subtab-btn" data-modus="auftrag">Nach Auftrag</button></div>
+    <p class="hint"><b>Wochenbestellung:</b> Bestellfrist Di 11:30 Uhr, Lieferung Mi 12:00 Uhr für alle Aufträge von Fr bis Do der Folgewoche. Aufträge, die nach dem Abschicken dazukommen oder sich ändern, erscheinen als separate Nachbestell-Liste. <b>Nach Auftrag:</b> Liste des geöffneten Angebots. Zuordnung zu Selgros-Artikelnummern wird für künftige Bestellungen gemerkt.</p>
     <div id="einkaufslisteOutput"></div>
     <div class="actions-row">
       <button id="fillSelgrosCartBtn" class="btn-success">Bestellliste für Selgros-Warenkorb erzeugen</button>
@@ -338,6 +339,7 @@
 </div>
 
 <script src="seed-data.js"></script>
+<script src="bestell-logik.js"></script>
 <script src="vorrat-logik.js"></script>
 <script src="parser.js"></script>
 <script src="katalog-todo.js"></script>
@@ -347,5 +349,6 @@
 <script src="produktion.js"></script>
 <script src="vorrat.js"></script>
 <script src="planung.js"></script>
+<script src="bestellung.js"></script>
 </body>
 </html>
