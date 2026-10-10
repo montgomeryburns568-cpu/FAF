@@ -519,3 +519,24 @@ button {
 
 .label-btn { display: inline-flex; align-items: center; gap: 5px; }
 .label-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Übersicht: aufklappbare Küchensheets, Umschalter Auftrag/Woche */
+.start-acc { border: 1px solid var(--border-strong); border-radius: 12px; margin-bottom: 8px; background: var(--panel); overflow: hidden; }
+.start-acc.aktiv { border-color: var(--accent); }
+.start-acc-kopf { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; width: 100%; padding: 10px 12px; background: none; border: 0; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.start-acc-kopf:hover { background: var(--panel-2); }
+.start-acc-kopf strong { flex: 1; min-width: 120px; }
+.acc-pfeil { display: inline-block; transition: transform .15s; color: var(--muted); }
+.start-acc.offen .acc-pfeil { transform: rotate(90deg); }
+.start-acc .sa-datum { font-weight: 700; white-space: nowrap; }
+.start-acc.heute .sa-datum { color: #d97706; }
+.start-acc-body { display: none; padding: 0 12px 12px; }
+.start-acc.offen .start-acc-body { display: block; }
+.start-acc-body .output { border: 0; padding: 0; }
+.seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 10px; overflow: hidden; }
+.seg button { background: none; border: 0; padding: 5px 12px; color: var(--text); font: inherit; font-size: 12px; cursor: pointer; }
+.seg button.on { background: var(--accent); color: var(--on-accent); }
+.woche-nav { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.start-todo [hidden] { display: none !important; }
+.woche-auftrag { margin: 6px 0 14px; padding-left: 10px; border-left: 3px solid var(--accent); }
+.woche-kopf { font-weight: 700; margin-bottom: 4px; }

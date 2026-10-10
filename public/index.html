@@ -62,21 +62,17 @@
 <main>
 
 <section id="tab-start" class="tabpanel active">
-  <div class="start-strip-wrap">
-    <div class="start-strip" id="startStrip"></div>
-    <span class="hint" id="startAnz"></span>
-  </div>
   <div class="start-grid">
     <div class="start-left">
       <section class="card start-details" id="startDetails"></section>
       <section class="card start-kueche">
         <div class="start-head"><h2>Küchensheet</h2><span class="hint" id="startKuecheHint"></span><button type="button" class="btn-ghost small-btn label-btn" data-label-schnell title="Label schnell drucken"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg> Label drucken</button><button type="button" class="btn-ghost small-btn" data-goto="kuechensheet">Vollansicht</button></div>
-        <div class="start-scroll" id="startKuecheHost"></div>
+        <div class="start-scroll" id="startKuecheHost"><div id="startListe"></div><div id="startParkplatz" hidden></div></div>
       </section>
     </div>
     <section class="card start-todo">
-      <div class="start-head"><h2 id="startTodoTitel">To-Do</h2><span class="hint" id="startTodoFort"></span><button type="button" class="btn-ghost small-btn label-btn" data-label-schnell title="Label schnell drucken"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg> Label drucken</button><button type="button" class="btn-ghost small-btn" data-goto="todo">Vollansicht</button></div>
-      <div class="start-scroll" id="startTodoHost"></div>
+      <div class="start-head"><h2 id="startTodoTitel">To-Do</h2><span class="seg" role="group" aria-label="Ansicht"><button type="button" data-todo-mode="auftrag" class="on">Auftrag</button><button type="button" data-todo-mode="woche">Woche</button></span><span class="woche-nav" id="startWochenNav" hidden><button type="button" class="btn-ghost small-btn" data-woche="-1" aria-label="Vorige Woche">◀</button><b id="startWocheTxt"></b><button type="button" class="btn-ghost small-btn" data-woche="1" aria-label="Nächste Woche">▶</button></span><span class="hint" id="startTodoFort"></span><button type="button" class="btn-ghost small-btn label-btn" data-label-schnell title="Label schnell drucken"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg> Label drucken</button><button type="button" class="btn-ghost small-btn" data-goto="todo">Vollansicht</button></div>
+      <div class="start-scroll" id="startTodoHost"><div id="startWoche" hidden></div></div>
     </section>
   </div>
 </section>

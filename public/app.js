@@ -1087,43 +1087,48 @@ function renderTodo() {
   const mehrTage = computed.days.length > 1;
   let html = `<h1>To-Do: ${computed.name}${mehrTage ? '' : druckIcon(computed.days[0].id)}</h1>`;
   computed.days.forEach(day => {
-    html += `<div class="day-output"><h3>${day.date || 'Tag'}${mehrTage ? druckIcon(day.id) : ''}</h3>`;
-    day.dishes.forEach(d => {
-      if (d.isPfanne) {
-        d.components.forEach(c => {
-          const checkId = day.id + '_' + d.id + '_' + c.id;
-          const checked = !!draftEvent.todoChecks[checkId];
-          html += `<div class="todo-item ${checked ? 'checked' : ''}" data-check-id="${checkId}">
-            <input type="checkbox" class="todo-check" ${checked ? 'checked' : ''}>
-            <div class="todo-text">
-              <span class="todo-formula">${c.formula || ''}</span>
-              ${c.totalLabel ? '<strong> ' + c.totalLabel + '</strong>' : ''}
-              ${c.name} (${d.name}) ${c.steps ? '– ' + c.steps : ''}
-              ${c.missing ? ' <em>(kein Rezept hinterlegt)</em>' : ''}
-            </div>
-          </div>`;
-        });
-        return;
-      }
-      if (d.komponenten && d.komponenten.length) {
-        html += renderKomponentenTodo(d, day);
-        return;
-      }
-      const checkId = day.id + '_' + d.id;
-      const checked = !!draftEvent.todoChecks[checkId];
-      html += `<div class="todo-item ${checked ? 'checked' : ''}" data-check-id="${checkId}">
-        <input type="checkbox" class="todo-check" ${checked ? 'checked' : ''}>
-        <div class="todo-text">
-          <span class="todo-formula">${d.formula || ''}</span>
-          ${d.totalLabel ? '<strong> ' + d.totalLabel + '</strong>' : ''}
-          ${d.name} ${d.steps ? '– ' + d.steps : ''}
-          ${d.missing ? ' <em>(kein Rezept hinterlegt)</em>' : ''}
-        </div>
-      </div>`;
-    });
-    html += `</div>`;
+    html += `<div class="day-output"><h3>${day.date || 'Tag'}${mehrTage ? druckIcon(day.id) : ''}</h3>` + todoGerichteHTML(draftEvent, day) + `</div>`;
   });
   out.innerHTML = html;
+}
+// To-Do-Zeilen eines Tages für einen beliebigen Auftrag (To-Do-Reiter und Wochenansicht auf der Übersicht); Häkchen liegen in ev.todoChecks
+function todoGerichteHTML(ev, day) {
+  ev.todoChecks = ev.todoChecks || {};
+  let html = '';
+  day.dishes.forEach(d => {
+    if (d.isPfanne) {
+      d.components.forEach(c => {
+        const checkId = day.id + '_' + d.id + '_' + c.id;
+        const checked = !!ev.todoChecks[checkId];
+        html += `<div class="todo-item ${checked ? 'checked' : ''}" data-check-id="${checkId}">
+          <input type="checkbox" class="todo-check" ${checked ? 'checked' : ''}>
+          <div class="todo-text">
+            <span class="todo-formula">${c.formula || ''}</span>
+            ${c.totalLabel ? '<strong> ' + c.totalLabel + '</strong>' : ''}
+            ${c.name} (${d.name}) ${c.steps ? '– ' + c.steps : ''}
+            ${c.missing ? ' <em>(kein Rezept hinterlegt)</em>' : ''}
+          </div>
+        </div>`;
+      });
+      return;
+    }
+    if (d.komponenten && d.komponenten.length) {
+      html += renderKomponentenTodo(d, day, ev);
+      return;
+    }
+    const checkId = day.id + '_' + d.id;
+    const checked = !!ev.todoChecks[checkId];
+    html += `<div class="todo-item ${checked ? 'checked' : ''}" data-check-id="${checkId}">
+      <input type="checkbox" class="todo-check" ${checked ? 'checked' : ''}>
+      <div class="todo-text">
+        <span class="todo-formula">${d.formula || ''}</span>
+        ${d.totalLabel ? '<strong> ' + d.totalLabel + '</strong>' : ''}
+        ${d.name} ${d.steps ? '– ' + d.steps : ''}
+        ${d.missing ? ' <em>(kein Rezept hinterlegt)</em>' : ''}
+      </div>
+    </div>`;
+  });
+  return html;
 }
 // Drucker-Symbol neben dem Namen: Zwischendurch-Label drucken (Name der Veranstaltung, Datum, optionale Zusatzinfo)
 const DRUCKER_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>';
@@ -1154,11 +1159,12 @@ function fmtZutat(i) {
 
 // Gericht mit erkannten Speisenkatalog-Komponenten: je Komponente Menge (aus den Referenzdaten) + To-Dos
 const KOMP_ROLE_LABEL = { H: 'Hauptkomponente', S: 'Soße', B: 'Beilage', G: 'Gemüse' };
-function renderKomponentenTodo(d, day) {
+function renderKomponentenTodo(d, day, ev) {
+  ev = ev || draftEvent;
   let html = `<div class="todo-dish"><div class="todo-dish-title"><strong>${escHtml(d.name)}</strong><span class="hint"> · ${d.personen} Personen${['vorspeise', 'dessert', 'sonstiges'].includes(d.category) && d.totalLabel ? ' · ' + escHtml(d.totalLabel) : ''}</span></div>`;
   d.komponenten.forEach(k => {
     const checkId = day.id + '_' + d.id + '_k' + k.id;
-    const checked = !!draftEvent.todoChecks[checkId];
+    const checked = !!ev.todoChecks[checkId];
     const gar = (k.garMethod && k.menge)
       ?` <select class="todo-comp-gar no-print" data-day="${day.id}" data-dish="${d.id}" data-comp="${k.id}" title="Garmethode für diese Komponente">${garMethodOptions(k.garMethod)}</select>` : '';
     html += `<div class="todo-item todo-komp ${checked ? 'checked' : ''}" data-check-id="${checkId}">
