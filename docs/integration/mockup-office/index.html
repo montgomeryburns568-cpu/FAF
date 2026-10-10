@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Office – Angebot erstellen (Entwurf)</title>
+<style>
+  /* Entwurf: so könnte der Speisenkatalog in der Office-App aussehen. Farben/Schrift an die Office-App angelehnt (Tailwind-Grautöne). */
+  :root { --bg:#030712; --panel:#111827; --panel2:#1f2937; --border:#1f2937; --border2:#374151; --text:#f3f4f6; --muted:#9ca3af; --accent:#3b82f6; --ok:#34d399; color-scheme:dark; }
+  :root[data-theme="light"] { --bg:#f9fafb; --panel:#ffffff; --panel2:#f3f4f6; --border:#e5e7eb; --border2:#d1d5db; --text:#111827; --muted:#6b7280; --accent:#2563eb; --ok:#047857; color-scheme:light; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family: ui-sans-serif, system-ui, sans-serif; font-size:14px; }
+  header.top { display:flex; align-items:center; gap:18px; padding:10px 20px; border-bottom:1px solid var(--border); background:var(--panel); flex-wrap:wrap; }
+  .logo { font-weight:700; letter-spacing:.02em; }
+  nav { display:flex; gap:4px; flex-wrap:wrap; }
+  nav a { padding:6px 12px; border-radius:8px; color:var(--muted); text-decoration:none; }
+  nav a.on { background:var(--panel2); color:var(--text); }
+  .spacer { flex:1; }
+  .pill { font-size:12px; padding:2px 10px; border-radius:999px; background:var(--panel2); color:var(--muted); }
+  .btn { font:inherit; padding:7px 14px; border-radius:8px; border:1px solid var(--border2); background:var(--panel2); color:var(--text); cursor:pointer; }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  main { max-width:1500px; margin:0 auto; padding:12px 16px 30px; }
+  .crumb { color:var(--muted); font-size:12.5px; }
+  h1 { font-size:20px; margin:4px 0 14px; }
+  .meta { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .meta label { display:flex; flex-direction:column; gap:3px; font-size:12px; color:var(--muted); }
+  .meta input { font:inherit; padding:6px 9px; border-radius:8px; border:1px solid var(--border2); background:var(--panel); color:var(--text); width:150px; }
+  .grid { display:grid; grid-template-columns: minmax(0,1.5fr) minmax(270px,1fr); gap:16px; align-items:start; }
+  @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:14px 16px; }
+  .card h2 { margin:0 0 4px; font-size:15px; }
+  .hint { color:var(--muted); font-size:12.5px; }
+  iframe { width:100%; height:72vh; min-height:520px; border:0; border-radius:10px; background:var(--bg); display:block; margin-top:8px; }
+  .side { position:sticky; top:12px; display:flex; flex-direction:column; gap:14px; }
+  .gang h3 { margin:12px 0 6px; font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .item { border:1px solid var(--border2); border-radius:10px; padding:8px 10px; margin-bottom:8px; background:var(--panel2); }
+  .item-top { display:flex; gap:8px; align-items:flex-start; }
+  .item-name { font-weight:600; flex:1; }
+  .item .rm { background:none; border:0; color:var(--muted); cursor:pointer; font-size:16px; }
+  .comps { display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
+  .comp { font-size:11.5px; padding:2px 8px; border-radius:6px; }
+  .rH { background:#fdb02e; color:#10206b; } .rS { background:#00e5b8; color:#1c1c80; } .rB { background:#0a2cff; color:#fff; }
+  .rG { background:#96e5b8; color:#0b3d1e; } .rE { background:#2b2b2b; color:#f3f3f3; }
+  .price { display:flex; gap:8px; align-items:center; margin-top:7px; font-size:12px; color:var(--muted); }
+  .price input { width:90px; font:inherit; padding:4px 8px; border-radius:6px; border:1px solid var(--border2); background:var(--panel); color:var(--text); }
+  .empty { color:var(--muted); padding:16px 4px; }
+  .sum { display:flex; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px solid var(--border2); font-weight:600; }
+  .flow { list-style:none; margin:8px 0 0; padding:0; }
+  .flow li { display:flex; gap:10px; padding:7px 0; border-bottom:1px dashed var(--border2); }
+  .flow li:last-child { border:0; }
+  .flow .dot { width:20px; height:20px; border-radius:50%; background:var(--panel2); display:flex; align-items:center; justify-content:center; font-size:12px; flex:none; }
+  .flow .done .dot { background:var(--ok); color:#052e16; }
+  .flow b { display:block; }
+  .tag-entwurf { background:#78350f; color:#fde68a; }
+  .status { font-size:12px; color:var(--muted); margin-top:6px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="logo">Office</span>
+  <nav>
+    <a>Dashboard</a><a class="on">Workflow</a><a>Kalender</a><a>Lager</a><a>Personalwesen</a><a>Kunden</a><a>Tourenplanung</a>
+  </nav>
+  <span class="spacer"></span>
+  <span class="pill tag-entwurf">Entwurf / Vorschau</span>
+  <button class="btn" id="themeBtn" title="Hell/Dunkel">◐</button>
+</header>
+<main>
+  <div class="crumb">Workflow › Angebote › Neu</div>
+  <h1>Angebot erstellen <span class="hint" id="aNr">· AN-2027-ENTWURF</span></h1>
+  <div class="meta">
+    <label>Kunde<input id="kunde" value="Beispiel GmbH – Sommerfest"></label>
+    <label>Datum<input id="datum" type="date" value="2027-05-28"></label>
+    <label>Gäste<input id="gaeste" type="number" min="1" value="40"></label>
+    <label>Anlass<input id="anlass" value="Firmenevent"></label>
+  </div>
+  <div class="grid">
+    <section class="card">
+      <h2>Speisenkatalog</h2>
+      <div class="hint">Der vollständige Katalog der Küche – immer aktuell, mit denselben Funktionen. Gericht aufklappen → „+ Zum Angebot“.</div>
+      <iframe id="katalog" src="__KATALOG_EMBED_URL__" title="Speisenkatalog" allow="clipboard-write"></iframe>
+      <div class="status" id="katStatus">Katalog wird geladen …</div>
+    </section>
+    <aside class="side">
+      <section class="card">
+        <h2>Angebotsentwurf <span class="hint" id="anzahl"></span></h2>
+        <div id="liste"><div class="empty">Noch keine Gerichte ausgewählt.</div></div>
+        <div class="sum"><span>Summe (Preise folgen aus dem Büro-System)</span><span id="summe">–</span></div>
+        <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap">
+          <button class="btn primary" id="speichern">Angebot speichern</button>
+          <button class="btn" id="pdf">PDF-Vorschau</button>
+        </div>
+      </section>
+      <section class="card">
+        <h2>Das macht die Küche daraus – automatisch</h2>
+        <div class="hint" id="flowHint">Sobald das Angebot bestätigt ist:</div>
+        <ul class="flow" id="flow"></ul>
+      </section>
+    </aside>
+  </div>
+</main>
+<script>
+  const KATALOG_ORIGIN = '__GENERATOR_ORIGIN__';
+  if (new URLSearchParams(location.search).get('theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  const frame = document.getElementById('katalog');
+  const items = [];   // Angebotsentwurf: Gerichte mit Katalog-Kennungen
+  const rollen = { H: 'rH', S: 'rS', B: 'rB', G: 'rG', E: 'rE' };
+  const esc = s => String(s).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
+
+  window.addEventListener('message', e => {
+    if (e.origin !== KATALOG_ORIGIN) return;                       // nur Nachrichten des Katalogs
+    const m = e.data || {};
+    if (m.type === 'ks-katalog:ready') {
+      document.getElementById('katStatus').textContent = 'Katalog verbunden · Version ' + m.version + (m.readonly ? ' · nur lesen' : ' · Bearbeiten erlaubt');
+      // Vorführung (?demo=1): Gerichte per Nachricht "select-dish" auswählen, so als hätte das Büro sie im Katalog angetippt
+      if (new URLSearchParams(location.search).get('demo') === '1') ['g236', 'g1', 'g173', 'g458'].forEach((id, i) => setTimeout(() => frame.contentWindow.postMessage({ type: 'ks-katalog:select-dish', id }, KATALOG_ORIGIN), 400 + i * 250));
+    }
+    if (m.type === 'ks-katalog:changed') document.getElementById('katStatus').textContent = 'Katalog wurde von der Küche aktualisiert (Version ' + m.version + ').';
+    if (m.type === 'ks-katalog:add-dish' && m.dish) { items.push({ ...m.dish, preis: '' }); render(); }
+  });
+
+  function render() {
+    const gaeste = +document.getElementById('gaeste').value || 0;
+    document.getElementById('anzahl').textContent = items.length ? '· ' + items.length + ' Gerichte' : '';
+    const byGang = {};
+    items.forEach((d, i) => (byGang[d.gang || 'Sonstiges'] = byGang[d.gang || 'Sonstiges'] || []).push([d, i]));
+    document.getElementById('liste').innerHTML = items.length ? Object.entries(byGang).map(([g, arr]) => `<div class="gang"><h3>${esc(g)}</h3>${arr.map(([d, i]) => `
+      <div class="item"><div class="item-top"><span class="item-name">${esc(d.name)}</span><button class="rm" data-i="${i}" title="Entfernen">✕</button></div>
+        <div class="comps">${d.komponenten.map(k => `<span class="comp ${rollen[k.rolle] || 'rE'}" title="${esc(k.gruppe)}">${esc(k.name)}</span>`).join('')}</div>
+        <div class="price"><span>Preis je Person</span><input type="number" step="0.01" placeholder="€" data-p="${i}" value="${d.preis}"> <span class="hint">${d.tags.slice(0, 3).map(esc).join(' · ')}</span></div></div>`).join('')}</div>`).join('')
+      : '<div class="empty">Noch keine Gerichte ausgewählt.</div>';
+    const sum = items.reduce((s, d) => s + (parseFloat(d.preis) || 0), 0) * gaeste;
+    document.getElementById('summe').textContent = sum ? sum.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) : '–';
+    const komp = items.reduce((s, d) => s + d.komponenten.length, 0);
+    const datum = document.getElementById('datum').value;
+    const vorlauf = datum ? new Date(new Date(datum + 'T12:00:00').getTime() - 3 * 86400000).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit' }) : '';
+    const schritte = [
+      ['Küchensheet', komp ? komp + ' Komponenten aus dem Katalog – mit Mengen für ' + gaeste + ' Gäste' : 'wartet auf Gerichte'],
+      ['To-Do-Liste', komp ? 'Rezept und Zubereitung je Komponente, Garmethode, Vegetarisch-Anteil' : 'wartet auf Gerichte'],
+      ['Einkaufsliste', komp ? 'Bedarf abzüglich Vorrat und Überproduktion – nur der Rest wird bestellt' : 'wartet auf Gerichte'],
+      ['Planung', komp ? 'Monatsplan: Veranstaltung am ' + new Date(datum + 'T12:00:00').toLocaleDateString('de-DE') + ' · Produktionsstart ' + vorlauf : 'wartet auf Gerichte'],
+      ['Nach der Veranstaltung', 'Nachtrag: Überproduktion, tatsächliche Gäste, Besonderheiten → zurück ins Büro'],
+    ];
+    document.getElementById('flow').innerHTML = schritte.map(([t, s], i) => `<li class="${komp && i < 4 ? 'done' : ''}"><span class="dot">${komp && i < 4 ? '✓' : i + 1}</span><span><b>${t}</b><span class="hint">${esc(s)}</span></span></li>`).join('');
+  }
+  document.getElementById('liste').addEventListener('click', e => { const b = e.target.closest('.rm'); if (b) { items.splice(+b.dataset.i, 1); render(); } });
+  document.getElementById('liste').addEventListener('input', e => { if (e.target.dataset.p != null) { items[+e.target.dataset.p].preis = e.target.value; const s = items.reduce((a, d) => a + (parseFloat(d.preis) || 0), 0) * (+document.getElementById('gaeste').value || 0); document.getElementById('summe').textContent = s ? s.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) : '–'; } });
+  ['gaeste', 'datum'].forEach(id => document.getElementById(id).addEventListener('input', render));
+  document.getElementById('speichern').addEventListener('click', () => alert('Entwurf: Hier würde das Angebot mit den Katalog-Kennungen gespeichert:\n\n' + JSON.stringify(items.map(d => ({ katalogId: d.id, name: d.name, komponenten: d.komponenten.map(k => k.id) })), null, 1).slice(0, 700)));
+  document.getElementById('themeBtn').addEventListener('click', () => {
+    const t = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', t);
+    frame.contentWindow.postMessage({ type: 'ks-katalog:theme', theme: t }, KATALOG_ORIGIN);
+  });
+  render();
+</script>
+</body>
+</html>

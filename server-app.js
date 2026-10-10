@@ -7,11 +7,16 @@ const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
 const store = require('./store');
 const { createAuthToken, verifyAuthToken, MAX_AGE_MS } = require('./auth');
+const { pruefeEmbedToken } = require('./embed-auth');
+const { mergeKatalogDaten } = require('./katalog-merge');
 
 const APP_PASSWORD = process.env.APP_PASSWORD || '';
 const SESSION_SECRET = process.env.SESSION_SECRET || '';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const IS_VERCEL = !!process.env.VERCEL;
+// Einbindung des Speisenkatalogs in andere Anwendungen (Office-App): gemeinsames Geheimnis + erlaubte Herkunft(en), nur als Umgebungsvariablen
+const OFFICE_EMBED_SECRET = process.env.OFFICE_EMBED_SECRET || '';
+const OFFICE_ORIGINS = (process.env.OFFICE_ORIGIN || '').split(',').map(s => s.trim().replace(/\/$/, '')).filter(Boolean);
 
 if (!APP_PASSWORD || !SESSION_SECRET) {
   console.error('FEHLER: APP_PASSWORD und/oder SESSION_SECRET sind nicht gesetzt (siehe .env.example).');
@@ -41,6 +46,28 @@ function registerFailure(ip) {
   loginAttempts.set(ip, entry);
 }
 function clearFailures(ip) { loginAttempts.delete(ip); }
+
+// Katalog-Endpunkte: Anmeldung im Generator ODER kurzlebiges Token der Office-App (nur Scope "katalog")
+function katalogNutzer(req) {
+  if (verifyAuthToken(SESSION_SECRET, req.cookies && req.cookies.auth)) return { sub: 'generator', name: 'Küche' };
+  const h = req.headers.authorization || '';
+  return h.startsWith('Bearer ') ? pruefeEmbedToken(OFFICE_EMBED_SECRET, h.slice(7).trim()) : null;
+}
+function requireKatalogAuth(req, res, next) {
+  const u = katalogNutzer(req);
+  if (u) { req.katalogNutzer = u; return next(); }
+  res.status(401).json({ error: 'Nicht angemeldet.' });
+}
+// CORS nur für die eingetragene Office-Herkunft (Server-zu-Server-Aufrufe brauchen kein CORS)
+app.use('/api/speisenkatalog', (req, res, next) => {
+  const o = req.headers.origin;
+  if (o && OFFICE_ORIGINS.includes(o)) {
+    res.setHeader('Access-Control-Allow-Origin', o); res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type'); res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS');
+    if (req.method === 'OPTIONS') return res.status(204).end();
+  }
+  next();
+});
 
 function requireAuth(req, res, next) {
   if (verifyAuthToken(SESSION_SECRET, req.cookies && req.cookies.auth)) return next();
@@ -124,25 +151,44 @@ app.put('/api/artikelzuordnung', requireAuth, async (req, res) => {
 });
 
 // --- Speisenkatalog (Seite + Änderungsstand) ---
-app.get('/api/speisenkatalog/page', requireAuth, (req, res) => {
+app.get('/api/speisenkatalog/page', requireKatalogAuth, (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.type('html').send(require('./speisenkatalog/katalog-html.js'));
 });
 // Schlanke Komponentenliste + aktueller Änderungsstand (für die To-Do-Erkennung im Generator)
-app.get('/api/speisenkatalog/komponenten', requireAuth, async (req, res) => {
+app.get('/api/speisenkatalog/komponenten', requireKatalogAuth, async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const daten = require('./speisenkatalog/katalog-komponenten.js');
   res.json({ komponenten: daten.komponenten, aliase: daten.aliase, state: await store.getSpeisenkatalog() });
 });
-app.get('/api/speisenkatalog/state', requireAuth, async (req, res) => {
+app.get('/api/speisenkatalog/state', requireKatalogAuth, async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json(await store.getSpeisenkatalog());
 });
-app.put('/api/speisenkatalog/state', requireAuth, async (req, res) => {
+// Speichern: Schickt der Browser den Stand mit, auf dem seine Änderungen beruhen (asis), werden die Änderungen je Eintrag mit dem aktuellen
+// Serverstand zusammengeführt – so überschreiben sich Küche und Büro nicht gegenseitig. Die Antwort enthält dann den zusammengeführten Stand.
+app.put('/api/speisenkatalog/state', requireKatalogAuth, async (req, res) => {
+  if (req.katalogNutzer && req.katalogNutzer.ro) return res.status(403).json({ error: 'Nur Lesezugriff.' });
   const b = req.body;
   if (!b || typeof b !== 'object' || !b.daten || typeof b.daten !== 'object') return res.status(400).json({ error: 'Ungültiger Stand.' });
-  await store.setSpeisenkatalog({ updated: b.updated || new Date().toISOString(), daten: b.daten });
-  res.json({ ok: true });
+  const aktuell = await store.getSpeisenkatalog();
+  const daten = b.basis && typeof b.basis === 'object' ? mergeKatalogDaten(aktuell.daten, b.basis, b.daten) : b.daten;
+  const neu = { updated: new Date().toISOString(), version: ((aktuell && aktuell.version) || 0) + 1, von: (req.katalogNutzer && req.katalogNutzer.name) || '', daten };
+  await store.setSpeisenkatalog(neu);
+  res.json({ ok: true, updated: neu.updated, version: neu.version, daten: b.basis ? daten : undefined });
+});
+
+// Eingebettete Katalog-Seite für andere Anwendungen (iframe): Token kommt per Adresse (iframes können keine Header senden), wird in die Seite
+// eingesetzt und von dort bei jedem Zugriff auf die Katalog-Schnittstelle mitgeschickt. Erlaubt ist das Einbetten nur durch OFFICE_ORIGIN.
+app.get('/api/speisenkatalog/embed', (req, res) => {
+  const u = pruefeEmbedToken(OFFICE_EMBED_SECRET, String(req.query.token || ''));
+  if (!u) return res.status(401).type('text').send('Token ungültig oder abgelaufen.');
+  const cfg = { token: String(req.query.token), user: u.name || '', readonly: !!u.ro, select: req.query.select === '1', theme: req.query.theme === 'dark' ? 'dark' : req.query.theme === 'light' ? 'light' : '' };
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Content-Security-Policy', `frame-ancestors 'self' ${OFFICE_ORIGINS.join(' ')}`);
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  const html = require('./speisenkatalog/katalog-html.js').replace('<!--KATALOG_EMBED-->', () => '<script>window.__KATALOG_EMBED = ' + JSON.stringify(cfg).replace(/</g, '\\u003c') + ';</script>');
+  res.type('html').send(html);
 });
 
 // --- events ---

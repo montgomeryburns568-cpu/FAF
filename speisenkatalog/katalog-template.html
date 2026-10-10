@@ -123,8 +123,10 @@
   // Hell/Dunkel: im Küchensheet-Generator dem dortigen Schalter folgen, als einzelne Datei der Systemeinstellung
   (function () {
     function parentTheme() { try { return window.parent !== window ? window.parent.document.documentElement.getAttribute('data-theme') : null; } catch (e) { return null; } }
+    var emb = window.__KATALOG_EMBED || null;
+    window.addEventListener('message', function (e) { if (e.data && e.data.type === 'ks-katalog:theme' && (e.data.theme === 'dark' || e.data.theme === 'light')) document.documentElement.setAttribute('data-theme', e.data.theme); });
     function apply() {
-      var t = parentTheme() || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      var t = (emb && emb.theme) || parentTheme() || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
       document.documentElement.setAttribute('data-theme', t);
     }
     apply();
@@ -132,6 +134,7 @@
     try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', apply); } catch (e) {}
   })();
 </script>
+<!--KATALOG_EMBED-->
 </head>
 <body>
 <header>
@@ -230,7 +233,16 @@ function restore(str) {
 // Server-Speicher: im Küchensheet-Generator liegt der Stand zusätzlich zentral auf dem Server
 // (alle im Büro sehen denselben Katalog). Als lokale Datei ohne Server bleibt es beim Browser-Speicher.
 const REMOTE = '/api/speisenkatalog/state';
-const remote = { ok: null, timer: null, localOk: true, time: '' };
+const EMB = window.__KATALOG_EMBED || null;      // gesetzt, wenn die Seite in einer anderen Anwendung (Office-App) eingebettet ist
+const remote = { ok: null, timer: null, localOk: true, time: '', basis: null, version: 0 };
+const apiHeaders = h => Object.assign({}, h || {}, EMB && EMB.token ? { authorization: 'Bearer ' + EMB.token } : {});
+// Nachrichten an die einbettende Anwendung (nur an deren Herkunft, nie an '*')
+function parentOrigin() {
+  try { if (location.ancestorOrigins && location.ancestorOrigins[0]) return location.ancestorOrigins[0]; } catch (e) {}
+  try { return document.referrer ? new URL(document.referrer).origin : ''; } catch (e) { return ''; }
+}
+function tellParent(msg) { if (!EMB || window.parent === window) return; const o = parentOrigin(); if (o) window.parent.postMessage(msg, o); }
+const stateSig = () => JSON.stringify(KEYS());
 function updateSavedText() {
   const el = document.getElementById('saved');
   if (!remote.time) return;
@@ -239,19 +251,56 @@ function updateSavedText() {
   else { el.className = ''; el.textContent = '✓ gespeichert'; el.title = (remote.ok ? 'Auf dem Server gespeichert ' : 'Im Browser gespeichert ') + remote.time; }
 }
 async function pushRemote() {
+  remote.timer = null;   // nichts mehr ausstehend (sonst würde die regelmäßige Prüfung auf Änderungen anderer dauerhaft pausieren)
   try {
-    const r = await fetch(REMOTE, { method: 'PUT', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ updated: new Date().toISOString(), daten: KEYS() }) });
+    const sent = stateSig();
+    const r = await fetch(REMOTE, { method: 'PUT', headers: apiHeaders({ 'content-type': 'application/json' }), credentials: 'same-origin', body: JSON.stringify({ updated: new Date().toISOString(), daten: KEYS(), basis: remote.basis ? JSON.parse(remote.basis) : undefined }) });
     remote.ok = r.ok;
+    if (r.ok) {
+      const j = await r.json().catch(() => ({}));
+      if (j.version) remote.version = j.version;
+      if (j.daten) {
+        // Der Server hat meine Änderungen mit zwischenzeitlichen Änderungen anderer zusammengeführt
+        remote.basis = JSON.stringify(j.daten);
+        if (JSON.stringify(j.daten) !== stateSig() && stateSig() === sent) {
+          restore(JSON.stringify(j.daten));
+          Object.entries(KEYS()).forEach(([k, v]) => store.set(k, JSON.stringify(v)));
+          undoStack.length = 0; redoStack.length = 0;
+          render(); toast('Änderungen anderer Personen wurden übernommen.');
+        }
+      } else remote.basis = sent;
+    } else if (r.status === 403) { toast('Nur Lesezugriff – Änderungen werden nicht gespeichert.'); }
+    else if (r.status === 401) tellParent({ type: 'ks-katalog:auth-expired' });
   } catch (e) { remote.ok = false; }
   updateSavedText();
 }
+// Stand regelmäßig prüfen: hat jemand anderes (Küche/Büro) etwas geändert, wird es übernommen
+async function pollRemote() {
+  if (remote.ok === null || remote.timer || document.hidden || location.protocol === 'file:' || location.protocol === 'data:') return;
+  try {
+    const r = await fetch(REMOTE, { credentials: 'same-origin', cache: 'no-store', headers: apiHeaders() });
+    if (r.status === 401) { tellParent({ type: 'ks-katalog:auth-expired' }); return; }
+    if (!r.ok) return;
+    const j = await r.json();
+    if (!j || !j.daten || !j.version || j.version === remote.version || remote.timer) return;
+    restore(JSON.stringify(j.daten));
+    Object.entries(KEYS()).forEach(([k, v]) => store.set(k, JSON.stringify(v)));
+    remote.version = j.version; remote.basis = JSON.stringify(j.daten);
+    undoStack.length = 0; redoStack.length = 0;   // Rückgängig würde sonst fremde Änderungen zurücknehmen
+    render(); toast('Katalog aktualisiert' + (j.von ? ' (Änderung von ' + j.von + ')' : '') + '.');
+    tellParent({ type: 'ks-katalog:changed', version: j.version });
+  } catch (e) { /* nächster Versuch */ }
+}
+setInterval(pollRemote, 30000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) pollRemote(); });   // beim Zurückkehren sofort aktualisieren
 async function loadRemote() {
   if (location.protocol === 'file:' || location.protocol === 'data:') return null;
   try {
-    const r = await fetch(REMOTE, { credentials: 'same-origin', cache: 'no-store' });
+    const r = await fetch(REMOTE, { credentials: 'same-origin', cache: 'no-store', headers: apiHeaders() });
     if (!r.ok) { remote.ok = false; return null; }
     remote.ok = true;
     const j = await r.json();
+    if (j && j.daten) { remote.basis = JSON.stringify(j.daten); remote.version = j.version || 0; }
     return j && j.daten ? j : null;
   } catch (e) { remote.ok = false; return null; }
 }
@@ -265,7 +314,10 @@ function saveAll(quiet) {
 }
 const undoStack = [], redoStack = [];
 function pushUndo(snap) { undoStack.push(snap); if (undoStack.length > 200) undoStack.shift(); redoStack.length = 0; }
-function mutate(fn) { pushUndo(snapshot()); fn(); saveAll(); render(); }
+function mutate(fn) {
+  if (EMB && EMB.readonly) { toast('Nur Lesezugriff.'); return; }
+  pushUndo(snapshot()); fn(); saveAll(); render();
+}
 function doUndo() { if (!undoStack.length) return; redoStack.push(snapshot()); restore(undoStack.pop()); saveAll(); closeAll(); render(); }
 function doRedo() { if (!redoStack.length) return; undoStack.push(snapshot()); restore(redoStack.pop()); saveAll(); closeAll(); render(); }
 function updateUndoUi() {
@@ -484,7 +536,7 @@ function dishHtml(e) {
       ${e.allergene.length ? `<div class="al">Allergene (Hinweis): ${esc(e.allergene.join(', '))}</div>` : ''}
       <div class="rowbtns">${e.removed
         ? `<button class="link" data-restore="${esc(g.id)}">Gericht wiederherstellen</button>`
-        : `<button class="link" data-add="${esc(g.id)}">+ Komponente hinzufügen</button><button class="link" data-copy="${esc(g.id)}">Als neue Speise kopieren</button>${(e.mod || hasTagMod) ? `<button class="link" data-reset="${esc(g.id)}">Änderungen zurücksetzen</button>` : ''}<button class="link danger" data-remove="${esc(g.id)}">Gericht entfernen</button><button class="link" data-close="${esc(g.id)}">Zuklappen</button>`}</div>
+        : `${EMB && EMB.select ? `<button class="link" data-sel="${esc(g.id)}"><b>+ Zum Angebot</b></button>` : ''}<button class="link" data-add="${esc(g.id)}">+ Komponente hinzufügen</button><button class="link" data-copy="${esc(g.id)}">Als neue Speise kopieren</button>${(e.mod || hasTagMod) ? `<button class="link" data-reset="${esc(g.id)}">Änderungen zurücksetzen</button>` : ''}<button class="link danger" data-remove="${esc(g.id)}">Gericht entfernen</button><button class="link" data-close="${esc(g.id)}">Zuklappen</button>`}</div>
     </div>`;
   }
   return `<div class="card ${e.mod ? 'modded' : ''} ${e.removed ? 'rem' : ''} ${open ? 'open' : ''}" data-card="${esc(g.id)}"><div class="dish" data-toggle="${esc(g.id)}">${html}<span class="chev">${OPEN.has(g.id) ? '▴' : '▾'}</span></div>${details}</div>`;
@@ -876,7 +928,23 @@ document.getElementById('secAll').addEventListener('click', () => {
   sa.innerHTML = auf ? ICON.collapse : ICON.expand;
   sa.title = auf ? 'Alle Kategorien zuklappen' : 'Alle Kategorien aufklappen';
 });
+// Gericht mit Komponenten an die einbettende Anwendung melden ("zum Angebot hinzufügen"); auch per Nachricht von dort auslösbar
+function selectDish(id) {
+  const g = dishOf(id); if (!g) return false;
+  const x = eff(g);
+  tellParent({ type: 'ks-katalog:add-dish', version: remote.version, dish: { id: g.id, name: x.name, kueche: g.kueche, gang: g.gang, sammlung: x.sammlung, variante: !!g.variante, basisId: g.basis || null, tags: x.tags.map(t => t.t), allergene: x.allergene, komponenten: x.ids.map((cid, i) => ({ id: cid, name: C[cid].name, text: x.texts[i], rolle: C[cid].rolle, gruppe: C[cid].gruppe })) } });
+  toast('„' + x.name + '“ zum Angebot hinzugefügt.');
+  return true;
+}
+window.addEventListener('message', e => {
+  if (!EMB || e.source !== window.parent) return;
+  const o = parentOrigin(); if (o && e.origin !== o) return;
+  if (e.data && e.data.type === 'ks-katalog:select-dish' && typeof e.data.id === 'string') selectDish(e.data.id);
+  if (e.data && e.data.type === 'ks-katalog:token' && typeof e.data.token === 'string') { EMB.token = e.data.token; pollRemote(); }
+});
 document.getElementById('main').addEventListener('click', e => {
+  const sel = e.target.closest('[data-sel]');
+  if (sel) { selectDish(sel.dataset.sel); return; }
   const td = e.target.closest('[data-tagdel]');
   if (td) { const t = td.dataset.tagdel; tagEdit(td.dataset.owner, m => { if (m.add.includes(t)) m.add = m.add.filter(x => x !== t); else if (!m.del.includes(t)) m.del.push(t); }); return; }
   const ta = e.target.closest('[data-tagadd]'); if (ta) { startTagInput(ta); return; }
@@ -940,6 +1008,7 @@ document.getElementById('saved').textContent = '✓ automatisch gespeichert';
 if (migriert) saveAll();
 // Stand vom Server holen (falls vorhanden); sonst den lokalen Stand einmalig hochladen
 loadRemote().then(j => {
+  tellParent({ type: 'ks-katalog:ready', version: remote.version, readonly: !!(EMB && EMB.readonly), select: !!(EMB && EMB.select) });
   if (j) {
     restore(JSON.stringify(j.daten));
     Object.entries(KEYS()).forEach(([k, v]) => store.set(k, JSON.stringify(v)));
