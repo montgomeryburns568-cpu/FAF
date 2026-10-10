@@ -15,6 +15,14 @@ const Vorrat = (function () {
     return num(n, Math.abs(n) >= 100 ? 0 : 1) + ' ' + einheit;
   };
 
+  // Anzeigeeinheiten: gespeichert wird immer in der Basiseinheit (g, ml, Stk); kg, l und Pck sind nur eine andere Anzeige/Eingabe
+  const FAKT = { g: 1, kg: 1000, ml: 1, l: 1000, Stk: 1, Pck: 1 };
+  const BASIS = { g: 'g', kg: 'g', ml: 'ml', l: 'ml', Stk: 'Stk', Pck: 'Stk' };
+  const EINHEITEN = ['g', 'kg', 'ml', 'l', 'Stk', 'Pck'];
+  const anzeigeVon = it => (it.anzeige && BASIS[it.anzeige] === it.einheit ? it.anzeige : it.einheit);
+  const inAnzeige = (basis, a) => basis == null || basis === '' ? '' : Math.round(Number(basis) / FAKT[a] * 1000) / 1000;
+  const mengeAnz = (basis, it) => { const a = anzeigeVon(it); return a === it.einheit ? menge(basis, it.einheit) : num(basis / FAKT[a], 3) + ' ' + a; };
+
   async function speichern() { state.vorrat = await API.send('PUT', '/api/vorrat', liste()); }
 
   function bedarfVon(ev) {
@@ -161,15 +169,15 @@ const Vorrat = (function () {
     const rows = liste();
     box.innerHTML = rows.length ? `<div class="table-scroll"><table class="analytics-table vorrat-table"><thead><tr>
         <th></th><th>Artikel</th><th>Bestand</th><th>Einheit</th><th>Mindest&shy;bestand</th><th>Nach&shy;bestellmenge</th><th>Suchbegriffe (Komma)</th><th>Offene Aufträge</th><th></th></tr></thead><tbody>
-      ${rows.map(it => { const p = plan[it.id] || 0; const [ic, tx] = statusVon(it, p); return `<tr data-id="${esc(it.id)}">
+      ${rows.map(it => { const p = plan[it.id] || 0; const [ic, tx] = statusVon(it, p); const az = anzeigeVon(it); return `<tr data-id="${esc(it.id)}" data-anz="${anzeigeVon(it)}">
         <td title="${tx}">${ic}</td>
         <td><input type="text" class="v-name" value="${esc(it.name)}" placeholder="z.B. Salz"></td>
-        <td><input type="number" class="v-bestand" step="any" min="0" value="${it.bestand ?? ''}" style="width:90px"> <button type="button" class="btn-ghost small-btn v-plus" title="Wareneingang zubuchen">＋</button></td>
-        <td><select class="v-einheit">${['g', 'ml', 'Stk'].map(e => `<option ${it.einheit === e ? 'selected' : ''}>${e}</option>`).join('')}</select></td>
-        <td><input type="number" class="v-mindest" step="any" min="0" value="${it.mindest ?? ''}" style="width:80px"></td>
-        <td><input type="number" class="v-nach" step="any" min="0" value="${it.nachbestellung ?? ''}" style="width:80px" placeholder="= Mindest"></td>
+        <td><input type="number" class="v-bestand" step="any" min="0" value="${inAnzeige(it.bestand, az)}" style="width:90px"> <button type="button" class="btn-ghost small-btn v-plus" title="Wareneingang zubuchen">＋</button></td>
+        <td><select class="v-einheit">${EINHEITEN.map(e => `<option ${az === e ? 'selected' : ''}>${e}</option>`).join('')}</select></td>
+        <td><input type="number" class="v-mindest" step="any" min="0" value="${inAnzeige(it.mindest, az)}" style="width:80px"></td>
+        <td><input type="number" class="v-nach" step="any" min="0" value="${inAnzeige(it.nachbestellung, az)}" style="width:80px" placeholder="= Mindest"></td>
         <td><input type="text" class="v-begriffe" value="${esc(it.begriffe || '')}" placeholder="salz, meersalz"><input type="text" class="v-ohne" value="${esc(it.ohne || '')}" placeholder="nicht zuordnen: salzgurke" style="margin-top:4px"></td>
-        <td class="hint">${p > 0 ? 'geplant: ' + menge(p, it.einheit) : '–'}</td>
+        <td class="hint">${p > 0 ? 'geplant: ' + mengeAnz(p, it) : '–'}</td>
         <td><button type="button" class="btn-ghost small-btn v-del" title="Artikel löschen">✕</button></td></tr>`; }).join('')}
       </tbody></table></div>` : '<p class="hint">Noch keine Vorratsartikel. Mit „Standardartikel ergänzen“ startest du mit Salz, Pfeffer, Öl usw., danach trägst du den Bestand ein.</p>';
     const nied = rows.filter(it => { const [ic] = statusVon(it, plan[it.id] || 0); return ic === '🟠' || ic === '🔴'; });
@@ -178,8 +186,10 @@ const Vorrat = (function () {
   function sammeln() {
     return Array.from(document.querySelectorAll('#vorratListe tbody tr')).map(tr => {
       const alt = liste().find(i => i.id === tr.dataset.id) || {};
-      const n = c => { const v = tr.querySelector(c).value; return v === '' ? null : parseFloat(v); };
-      return { ...alt, id: tr.dataset.id, name: tr.querySelector('.v-name').value.trim(), bestand: n('.v-bestand') ?? 0, einheit: tr.querySelector('.v-einheit').value,
+      // Zahlen stehen in der beim Zeichnen gezeigten Einheit (data-anz); gespeichert wird in der Basiseinheit der jetzt gewählten Einheit
+      const fAlt = FAKT[tr.dataset.anz] || 1, neu = tr.querySelector('.v-einheit').value;
+      const n = c => { const v = tr.querySelector(c).value; return v === '' || isNaN(parseFloat(v)) ? null : Math.round(parseFloat(v) * fAlt * 1000) / 1000; };
+      return { ...alt, id: tr.dataset.id, name: tr.querySelector('.v-name').value.trim(), bestand: n('.v-bestand') ?? 0, einheit: BASIS[neu] || neu, anzeige: BASIS[neu] && BASIS[neu] !== neu ? neu : null,
         mindest: n('.v-mindest') ?? 0, nachbestellung: n('.v-nach') ?? 0, begriffe: tr.querySelector('.v-begriffe').value.trim(), ohne: tr.querySelector('.v-ohne').value.trim() };
     });
   }
@@ -202,9 +212,10 @@ const Vorrat = (function () {
         state.vorrat = sammeln().filter(i => i.id !== tr.dataset.id); await speichern(); renderVorrat();
       } else if (e.target.closest('.v-plus')) {
         const it = liste().find(i => i.id === tr.dataset.id); if (!it) return;
-        const v = prompt(`Wareneingang für „${it.name}“ – Menge in ${it.einheit} (z.B. 5000 für 5 kg):`);
+        const az = anzeigeVon(it), f = FAKT[az];
+        const v = prompt(`Wareneingang für „${it.name}“ – Menge in ${az} (z.B. ${f === 1000 ? '5 für 5 ' + az : az === 'g' ? '5000 für 5 kg' : '10'}):`);
         const n = parseFloat(String(v || '').replace(',', '.')); if (!n || n <= 0) return;
-        state.vorrat = sammeln(); state.vorrat.find(i => i.id === tr.dataset.id).bestand = (Number(it.bestand) || 0) + n;
+        state.vorrat = sammeln(); state.vorrat.find(i => i.id === tr.dataset.id).bestand = (Number(it.bestand) || 0) + n * f;
         await speichern(); renderVorrat();
       }
     });
