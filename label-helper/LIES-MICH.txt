@@ -30,11 +30,10 @@ Benutzung
 Automatisch starten (optional)
 Verknuepfung auf Start-Label-Helper.cmd anlegen und in den Autostart-Ordner legen (Windows-Taste + R, "shell:startup").
 
-Mehrere Labels auf einmal (Serie)
-Bei Anzahl 2 oder mehr druckt die KSG die Labels hintereinander, mit passender Seitenlaenge und zwei leeren Seiten am
-Ende. Der Drucker schneidet dann zuerst das Leerstueck vom Anfang ab und danach jedes Label einzeln. Die leeren Seiten
-bleiben im Drucker und sind das Leerstueck fuer den naechsten Auftrag. Das letzte Label kommt erst mit dem Schnitt der
-letzten leeren Seite heraus. Falls es stecken bleibt: In der KSG "Abschluss einer Serie" auf "ausgegeben" stellen.
+Mehrere Labels auf einmal
+Bei Anzahl 2 oder mehr druckt die KSG alle Labels in einem Auftrag hintereinander (je 24,5 mm lang, 2 mm Rand). Der Drucker
+schneidet zuerst das Leerstueck vom Anfang ab (24,5 mm, das ist unvermeidbar), danach jedes Label einzeln. Das letzte Label
+wird am Ende vorgeschoben und geschnitten. Es faellt also nur ein Leerstueck pro Auftrag an, nicht eines pro Label.
 
 Testlauf ohne Drucker
 Start-Label-Helper.cmd -Trocken   (schreibt nur die Datei letzter-druck.prn, druckt nichts)
