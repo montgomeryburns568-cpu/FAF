@@ -182,7 +182,10 @@
   </div>
 </section>
 
-<section id="tab-rezepte" class="tabpanel">
+<section id="tab-speisenkatalog" class="tabpanel">
+  <div class="sk-tabs" role="tablist"><button type="button" data-skview="gerichte" class="on">Gerichte</button><button type="button" data-skview="sammlungen">Sammlungen (Komponenten + To-Do)</button><button type="button" data-skview="rezepte">Rezepte</button></div>
+  <div id="skKatalog"><iframe id="katalogFrame" class="katalog-frame" title="Speisenkatalog"></iframe></div>
+  <div id="skRezepte" hidden>
   <div class="grid-2">
     <div class="card">
       <div class="output-toolbar">
@@ -238,10 +241,7 @@
       </form>
     </div>
   </div>
-</section>
-
-<section id="tab-speisenkatalog" class="tabpanel">
-  <iframe id="katalogFrame" class="katalog-frame" title="Speisenkatalog"></iframe>
+  </div>
 </section>
 
 <section id="tab-regeln" class="tabpanel">

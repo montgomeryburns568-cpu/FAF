@@ -400,14 +400,47 @@ async function loadKatalog() {
     const r = await fetch('/api/speisenkatalog/page', { credentials: 'same-origin' });
     if (!r.ok) throw new Error('Status ' + r.status);
     frame.srcdoc = await r.text();
-    frame.onload = () => {   // auch im Katalog keine Scrollbalken (gleiche Herkunft, daher zugänglich)
-      try { const d = frame.contentDocument, s = d.createElement('style'); s.textContent = '*{scrollbar-width:none}*::-webkit-scrollbar{width:0;height:0;display:none}'; d.head.appendChild(s); } catch (e) { /* ignorieren */ }
+    frame.onload = () => {   // gleiche Herkunft, daher zugänglich: keine Scrollbalken, eigene Reiterleiste ausblenden (die Leiste oben ersetzt sie)
+      try {
+        const d = frame.contentDocument, s = d.createElement('style');
+        s.textContent = '*{scrollbar-width:none}*::-webkit-scrollbar{width:0;height:0;display:none}.tabs{display:none!important}';
+        d.head.appendChild(s);
+        // Wechselt der Katalog selbst die Ansicht (z. B. "Gerichte mit dieser zeigen"), zieht die Leiste oben nach
+        const mo = new MutationObserver(() => { skLeisteAktualisieren(); if (typeof Navi !== 'undefined') Navi.merke(); });
+        ['tabD', 'tabK'].forEach(id => { const b = d.getElementById(id); if (b) mo.observe(b, { attributes: true, attributeFilter: ['class'] }); });
+        katalogTab(skWunsch); skLeisteAktualisieren();
+      } catch (e) { /* ignorieren */ }
     };
     katalogLoaded = true;
   } catch (err) {
     frame.srcdoc = '<p style="font-family:sans-serif;padding:20px">Der Speisenkatalog konnte nicht geladen werden (' + String(err.message).replace(/[<&]/g, '') + '). Bitte Seite neu laden.</p>';
   }
 }
+// Speisenkatalog-Reiter: eine Leiste mit "Gerichte", "Sammlungen (Komponenten + To-Do)" (beides im Katalog-Rahmen) und "Rezepte" (Rezept-Datenbank,
+// früher eigener Reiter). Die Leiste des Katalogs im Rahmen wird ausgeblendet; Gerichte/Sammlungen schalten die Ansicht im Rahmen um.
+let skWunsch = 'gerichte';
+const katalogDoc = () => { try { return document.getElementById('katalogFrame').contentDocument; } catch (e) { return null; } };
+function katalogTabAktiv() { const d = katalogDoc(), k = d && d.getElementById('tabK'); return k && k.classList.contains('active') ? 'sammlungen' : (d && d.getElementById('tabD') ? 'gerichte' : skWunsch); }
+function katalogTab(v) {   // Ansicht im Rahmen umschalten (Klick auf die verborgene Katalog-Leiste)
+  const d = katalogDoc(); if (!d) return;
+  const b = d.getElementById(v === 'sammlungen' ? 'tabK' : 'tabD');
+  if (b && !b.classList.contains('active')) b.click();
+}
+function aktuelleSkAnsicht() { const r = document.getElementById('skRezepte'); return r && !r.hidden ? 'rezepte' : katalogTabAktiv(); }
+function skLeisteAktualisieren() {
+  const v = aktuelleSkAnsicht();
+  document.querySelectorAll('[data-skview]').forEach(b => b.classList.toggle('on', b.dataset.skview === v));
+}
+function setSkAnsicht(v) {
+  const rez = v === 'rezepte';
+  document.getElementById('skKatalog').hidden = rez;
+  document.getElementById('skRezepte').hidden = !rez;
+  if (!rez) { skWunsch = v === 'sammlungen' ? 'sammlungen' : 'gerichte'; loadKatalog(); katalogTab(skWunsch); }
+  skLeisteAktualisieren();
+  if (typeof Navi !== 'undefined') Navi.merke();
+}
+function zeigeRezepte() { switchTab('speisenkatalog'); setSkAnsicht('rezepte'); }
+document.addEventListener('click', e => { const b = e.target.closest('[data-skview]'); if (b) setSkAnsicht(b.dataset.skview); });
 document.getElementById('tabnav').addEventListener('click', e => {
   const btn = e.target.closest('.tab-btn');
   if (!btn) return;
@@ -1063,13 +1096,13 @@ document.getElementById('kuecheOutput').addEventListener('click', e => {
     const compBlock = e.target.closest('.pfanne-comp-output');
     const comp = dish.pfanneComponents.find(c => c.id === compBlock.dataset.compId);
     const catId = comp.role === 'hauptteil' ? 'hauptgang' : comp.role === 'saettigung' ? 'beilage-saettigung' : 'beilage-gemuese';
-    switchTab('rezepte');
+    zeigeRezepte();
     clearRecipeForm();
     document.getElementById('rName').value = comp.name;
     document.getElementById('rCategory').value = catId;
     if (e.target.classList.contains('ai-suggest-recipe-comp')) runAiSuggest(comp.name, catId);
   } else if (e.target.classList.contains('quick-add-recipe') || e.target.classList.contains('ai-suggest-recipe')) {
-    switchTab('rezepte');
+    zeigeRezepte();
     clearRecipeForm();
     document.getElementById('rName').value = dish.name;
     document.getElementById('rCategory').value = dish.category;
@@ -1252,7 +1285,7 @@ document.getElementById('stdImportBtn').addEventListener('click', async () => {
     const r = await API.send('POST', '/api/recipes/standard-import');
     state.recipes = r.recipes;
     renderRecipeList();
-    alert(r.added ? `${r.added} Standardrezepte ergänzt (Bezugsmenge 200 g/ml, im Rezepte-Tab mit „Standard“ markiert).` : 'Alle Standardrezepte sind bereits vorhanden.');
+    alert(r.added ? `${r.added} Standardrezepte ergänzt (Bezugsmenge 200 g/ml, unter Speisenkatalog › Rezepte mit „Standard“ markiert).` : 'Alle Standardrezepte sind bereits vorhanden.');
   } catch (err) { alert('Fehler: ' + err.message); }
   finally { btn.disabled = false; }
 });

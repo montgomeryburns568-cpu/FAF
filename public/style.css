@@ -87,7 +87,7 @@ main { padding: 20px; max-width: 1300px; margin: 0 auto; }
 
 .tabpanel { display: none; }
 .tabpanel.active { display: block; }
-.katalog-frame { width: 100%; height: calc(100vh - var(--topbar-h, 70px) - 40px); min-height: 520px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); display: block; color-scheme: normal; }
+.katalog-frame { width: 100%; height: calc(100vh - var(--topbar-h, 70px) - 100px); min-height: 520px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); display: block; color-scheme: normal; }
 
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
 @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
@@ -648,3 +648,11 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
 .tab-btn { padding: 6px 10px; }
 .event-picker select { max-width: 170px; }
 .event-picker { gap: 4px; }
+
+#skKatalog[hidden], #skRezepte[hidden] { display: none; }
+
+/* Speisenkatalog: Reiterleiste im Stil des Katalogs (unterstrichen) */
+.sk-tabs { display: flex; gap: 22px; margin: 0 0 14px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.sk-tabs button { flex: none; font: inherit; font-weight: 600; font-size: 14px; padding: 8px 2px; margin-bottom: -1px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; color: var(--muted); box-shadow: none; white-space: nowrap; }
+.sk-tabs button:hover { color: var(--text); background: none; }
+.sk-tabs button.on { color: var(--text); border-bottom-color: var(--text); }

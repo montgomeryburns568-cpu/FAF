@@ -9,7 +9,7 @@ const Navi = (function () {
 
   const aktuellerTab = () => { const p = document.querySelector('.tabpanel.active'); return p ? p.id.replace(/^tab-/, '') : 'start'; };
   function aktuell() {
-    return { tab: aktuellerTab(), ev: $('eventSelect') ? $('eventSelect').value : '', start: typeof Start !== 'undefined' ? Start.zustand() : null };
+    return { tab: aktuellerTab(), sk: typeof aktuelleSkAnsicht === 'function' ? aktuelleSkAnsicht() : 'katalog', ev: $('eventSelect') ? $('eventSelect').value : '', start: typeof Start !== 'undefined' ? Start.zustand() : null };
   }
   function knopf() { const b = $('zurueckBtn'); if (b) b.disabled = !stack.length; }
 
@@ -31,6 +31,7 @@ const Navi = (function () {
     if (sel && z.ev !== sel.value && [...sel.options].some(o => o.value === z.ev)) { sel.value = z.ev; sel.dispatchEvent(new Event('change')); }
     if (z.start && typeof Start !== 'undefined') Start.setzeZustand(z.start);
     (origSwitch || switchTab)(z.tab);
+    if (z.sk && typeof setSkAnsicht === 'function') setSkAnsicht(z.sk);
   }
   function zurueck(schritte) {
     for (let i = 0; i < (schritte || 1) && stack.length; i++) {
