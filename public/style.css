@@ -656,3 +656,21 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
 .sk-tabs button { flex: none; font: inherit; font-weight: 600; font-size: 14px; padding: 8px 2px; margin-bottom: -1px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; color: var(--muted); box-shadow: none; white-space: nowrap; }
 .sk-tabs button:hover { color: var(--text); background: none; }
 .sk-tabs button.on { color: var(--text); border-bottom-color: var(--text); }
+
+/* Rezepte: Art (Rezept/Fertigprodukt), Umschalter Selgros-Artikel, Artikelbilder */
+[hidden] { display: none !important; }
+.r-kopf { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; margin: 0 0 10px; }
+.r-kopf label { margin: 0; flex: 1; min-width: 200px; }
+.r-hinweis { padding: 8px 12px; border-radius: 10px; background: var(--warn-bg); margin-bottom: 10px; font-size: 13px; }
+.art-bild { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; background: var(--panel-3); flex: none; display: inline-flex; align-items: center; justify-content: center; font-size: 20px; }
+.art-karte { display: flex; gap: 12px; align-items: center; padding: 10px; border: 1px solid var(--border-strong); border-radius: 12px; margin: 8px 0; }
+.art-karte-text { flex: 1; min-width: 0; }
+.art-treffer { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; max-height: 280px; overflow: auto; }
+.art-treffer-zeile { display: flex; gap: 10px; align-items: center; text-align: left; padding: 6px 8px; width: 100%; background: var(--panel-2); }
+.art-treffer-zeile:hover { background: var(--panel-3); }
+.art-tabelle td { vertical-align: top; }
+.art-tabelle .ra-wechsel { margin-top: 6px; font-size: 12px; padding: 5px 8px; }
+.ra-bildquelle { margin-top: 12px; }
+.tag-fertig { background: #dbeafe; color: #1e3a8a; }
+.tag-vorschlag { background: var(--warn-bg); color: var(--text); border: 1px dashed var(--border-strong); }
+:root[data-theme="dark"] .tag-fertig { background: #1e3a5f; color: #bfdbfe; }

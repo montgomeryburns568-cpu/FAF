@@ -196,14 +196,21 @@
         <button id="stdImportBtn" class="btn-ghost small-btn" title="Fehlende Standardrezepte aus dem Speisenkatalog (Bezugsmenge 200 g/ml) ergänzen">Standardrezepte ergänzen</button>
         <label class="hint" style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="hideStd" style="width:auto;margin:0"> Standardrezepte ausblenden</label>
       </div>
-      <div class="field-row" style="gap:8px"><input type="text" id="recipeSearch" placeholder="Suchen..."><select id="recipeCatFilter" title="Nach Kategorie filtern"></select></div>
+      <div class="field-row" style="gap:8px"><input type="text" id="recipeSearch" placeholder="Suchen..."><select id="recipeCatFilter" title="Nach Kategorie filtern"></select><select id="recipeTypFilter" title="Nach Art filtern"><option value="">Alle Arten</option><option value="fertig">Fertigprodukte</option><option value="vorschlag">Fertig-Vorschläge</option><option value="rezept">Nur Rezepte</option></select></div>
       <div id="recipeList" class="recipe-list"></div>
     </div>
     <div class="card">
       <div class="output-toolbar"><h2 id="recipeFormTitle">Rezept</h2><button type="button" id="recipeBackBtn" class="btn-ghost small-btn recipe-back">↑ Zur Rezeptliste</button></div>
       <form id="recipeForm">
         <label>Name<input type="text" id="rName" required></label>
-        <div class="actions-row" style="margin:-4px 0 10px">
+        <div class="r-kopf">
+          <label>Art
+            <select id="rTyp"><option value="rezept">Rezept (selbst hergestellt)</option><option value="fertig">Fertigprodukt (Selgros-Artikel)</option></select>
+          </label>
+          <span class="seg" id="rSicht" role="group" aria-label="Ansicht"><button type="button" data-rsicht="rezept" class="on">Rezept</button><button type="button" data-rsicht="artikel">Selgros-Artikel</button></span>
+        </div>
+        <div id="rFertigHinweis" class="r-hinweis" hidden>Das klingt nach einem Fertigprodukt – statt eines Rezepts kann hier die genaue Artikelbezeichnung stehen. <button type="button" id="rFertigBtn" class="btn-ghost small-btn">Als Fertigprodukt festlegen</button></div>
+        <div class="actions-row r-nur-rezept" style="margin:-4px 0 10px">
           <button type="button" id="aiSuggestBtn" class="btn-ghost">✨ KI-Vorschlag für diesen Namen</button>
           <span class="hint" id="aiSuggestStatus"></span>
         </div>
@@ -213,6 +220,19 @@
           </label>
           <label>Temperatur/Methode<input type="text" id="rTemp" placeholder="z.B. 180°C"></label>
         </div>
+        <div id="rBlockFertig" hidden>
+          <h3>Fertigprodukt</h3>
+          <label>Artikel suchen (Selgros-Artikelliste)<input type="text" id="rArtikelSuche" placeholder="z.B. Cannelloni, Dressing, Pasta …" autocomplete="off"></label>
+          <div id="rArtikelTreffer" class="art-treffer"></div>
+          <div id="rArtikelKarte"></div>
+          <div class="field-row">
+            <label>Artikelmenge je 1 kg Gericht<input type="number" id="rFertigMenge" step="any" value="1000"></label>
+            <label>Einheit<input type="text" id="rFertigUnit" value="g"></label>
+          </div>
+          <p class="hint">Die Artikelbezeichnung ersetzt Zutaten und Zubereitung. Die Menge sagt, wie viel Artikel für 1 kg fertiges Gericht gebraucht wird (z. B. 1000 g bei Fertigdressing, weniger bei trockener Pasta).</p>
+        </div>
+        <div id="rSichtArtikel" hidden></div>
+        <div id="rBlockRezept">
         <div class="field-row">
           <label>Referenz-Typ
             <select id="rRefType">
@@ -232,6 +252,7 @@
         <div id="ingredientRows"></div>
         <button type="button" id="addIngredientBtn" class="btn-ghost">+ Zutat</button>
         <label>Zubereitung / To-Do<textarea id="rSteps" rows="4"></textarea></label>
+        </div>
         <div class="actions-row">
           <button type="submit" class="btn-primary">Speichern</button>
           <button type="button" id="deleteRecipeBtn" class="btn-danger">Löschen</button>
@@ -384,6 +405,7 @@
 <script src="vorrat.js"></script>
 <script src="planung.js"></script>
 <script src="bestellung.js"></script>
+<script src="rezepte-artikel.js"></script>
 <script src="start.js"></script>
 <script src="navi.js"></script>
 </body>
