@@ -674,3 +674,36 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
 .tag-fertig { background: #dbeafe; color: #1e3a8a; }
 .tag-vorschlag { background: var(--warn-bg); color: var(--text); border: 1px dashed var(--border-strong); }
 :root[data-theme="dark"] .tag-fertig { background: #1e3a5f; color: #bfdbfe; }
+
+/* Selgros-Zuordnung: Zutat(en) -> Artikel */
+.sz-kopf { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.sz-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.sz-tools input[type=search] { min-width: 240px; }
+.sz-neu { margin-bottom: 12px; }
+.sz-h { margin: 18px 0 8px; font-size: 14px; color: var(--text); }
+.sz-zeile { display: grid; grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1.4fr); gap: 10px; align-items: start; padding: 10px 12px; margin-bottom: 8px; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; }
+.sz-zutat { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sz-pfeil { text-align: center; color: var(--muted); font-size: 20px; line-height: 1.6; }
+.sz-ziel { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.sz-chips { flex-direction: row; flex-wrap: wrap; gap: 6px; align-items: center; }
+.sz-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--border-strong); font-size: 13px; }
+.sz-ab { border: 0; background: none; padding: 0 2px; color: var(--muted); cursor: pointer; font-size: 12px; }
+.sz-ab:hover { color: var(--danger); }
+.sz-plus { width: 130px; flex: none; padding: 4px 10px; font-size: 12.5px; border-style: dashed; }
+.sz-vorschlag { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 6px 10px; background: var(--panel-2); border-radius: 12px; }
+.sz-vorschlag:hover { background: var(--panel-3); }
+.sz-vtext { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.sz-vtext .hint { margin-top: 0; }
+.sz-ok { color: var(--success); font-weight: 700; opacity: 0; transition: opacity .15s; }
+.sz-vorschlag:hover .sz-ok { opacity: 1; }
+.sz-sicher { box-shadow: inset 3px 0 0 #22c55e; }
+.sz-wahr { box-shadow: inset 3px 0 0 #eab308; }
+.sz-moeglich { box-shadow: inset 3px 0 0 #9ca3af; }
+.sz-aktionen { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.sz-suche { flex: 1; min-width: 180px; font-size: 12.5px; padding: 5px 10px; }
+.sz-karte { margin: 0; }
+.sz-faltung { border: 0; background: none; padding: 0 4px; font-size: 14px; }
+.sz-vsliste { max-height: 52vh; overflow: auto; margin: 8px 0; }
+.sz-vs { display: flex; gap: 10px; align-items: flex-start; padding: 5px 2px; margin: 0; font-size: 13.5px; color: var(--text); }
+.sz-vs input { width: auto; margin-top: 3px; }
+@media (max-width: 900px) { .sz-zeile { grid-template-columns: 1fr; } .sz-pfeil { transform: rotate(90deg); text-align: left; padding-left: 6px; } }

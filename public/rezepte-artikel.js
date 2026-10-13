@@ -215,6 +215,7 @@ const RezeptArtikel = (function () {
       if (u === null) return;
       if (u.trim() && !/^(https?:|data:image\/)/i.test(u.trim())) { alert('Bitte eine Adresse mit https:// angeben.'); return; }
       await setzeBild(a.artNr, u.trim());
+      document.dispatchEvent(new Event('ks-artikel-geaendert'));
       if (artikel && String(artikel.artNr) === String(a.artNr)) artikel = { ...artikel, bild: u.trim() || undefined };
       anzeigen();
     });
@@ -244,5 +245,5 @@ const RezeptArtikel = (function () {
     anzeigen();
   }
   init();
-  return { istFertigVorschlag };
+  return { istFertigVorschlag, bildHtml, nachNr, artikelListe };
 })();

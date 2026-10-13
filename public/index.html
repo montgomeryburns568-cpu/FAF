@@ -183,8 +183,9 @@
 </section>
 
 <section id="tab-speisenkatalog" class="tabpanel">
-  <div class="sk-tabs" role="tablist"><button type="button" data-skview="gerichte" class="on">Gerichte</button><button type="button" data-skview="sammlungen">Sammlungen (Komponenten + To-Do)</button><button type="button" data-skview="rezepte">Rezepte</button></div>
+  <div class="sk-tabs" role="tablist"><button type="button" data-skview="gerichte" class="on">Gerichte</button><button type="button" data-skview="sammlungen">Sammlungen (Komponenten + To-Do)</button><button type="button" data-skview="rezepte">Rezepte</button><button type="button" data-skview="selgros">Selgros-Zuordnung</button></div>
   <div id="skKatalog"><iframe id="katalogFrame" class="katalog-frame" title="Speisenkatalog"></iframe></div>
+  <div id="skSelgros" hidden></div>
   <div id="skRezepte" hidden>
   <div class="grid-2">
     <div class="card">
@@ -406,6 +407,8 @@
 <script src="planung.js"></script>
 <script src="bestellung.js"></script>
 <script src="rezepte-artikel.js"></script>
+<script src="selgros-haeufigkeit.js"></script>
+<script src="selgros-zuordnung.js"></script>
 <script src="start.js"></script>
 <script src="navi.js"></script>
 </body>

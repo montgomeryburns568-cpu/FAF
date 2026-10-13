@@ -426,16 +426,18 @@ function katalogTab(v) {   // Ansicht im Rahmen umschalten (Klick auf die verbor
   const b = d.getElementById(v === 'sammlungen' ? 'tabK' : 'tabD');
   if (b && !b.classList.contains('active')) b.click();
 }
-function aktuelleSkAnsicht() { const r = document.getElementById('skRezepte'); return r && !r.hidden ? 'rezepte' : katalogTabAktiv(); }
+function aktuelleSkAnsicht() { const r = document.getElementById('skRezepte'), s = document.getElementById('skSelgros'); return r && !r.hidden ? 'rezepte' : s && !s.hidden ? 'selgros' : katalogTabAktiv(); }
 function skLeisteAktualisieren() {
   const v = aktuelleSkAnsicht();
   document.querySelectorAll('[data-skview]').forEach(b => b.classList.toggle('on', b.dataset.skview === v));
 }
 function setSkAnsicht(v) {
-  const rez = v === 'rezepte';
-  document.getElementById('skKatalog').hidden = rez;
+  const rez = v === 'rezepte', sg = v === 'selgros';
+  document.getElementById('skKatalog').hidden = rez || sg;
   document.getElementById('skRezepte').hidden = !rez;
-  if (!rez) { skWunsch = v === 'sammlungen' ? 'sammlungen' : 'gerichte'; loadKatalog(); katalogTab(skWunsch); }
+  document.getElementById('skSelgros').hidden = !sg;
+  if (sg && typeof SelgrosZuordnung !== 'undefined') SelgrosZuordnung.render();
+  if (!rez && !sg) { skWunsch = v === 'sammlungen' ? 'sammlungen' : 'gerichte'; loadKatalog(); katalogTab(skWunsch); }
   skLeisteAktualisieren();
   if (typeof Navi !== 'undefined') Navi.merke();
 }
