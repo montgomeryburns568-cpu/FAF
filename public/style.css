@@ -718,3 +718,5 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
 .sz-tab td.sz-aktion { white-space: nowrap; }
 .sz-edit input { width: 100%; min-width: 60px; font-size: 13px; padding: 5px 8px; }
 .sz-edit td { vertical-align: top; }
+
+.sz-tab td.sz-pf { width: 28px; text-align: center; color: var(--muted); font-size: 18px; padding-left: 0; padding-right: 0; }

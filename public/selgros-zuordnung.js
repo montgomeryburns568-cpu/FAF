@@ -188,19 +188,18 @@ const SelgrosZuordnung = (function () {
     return zeilen.slice().sort((x, y) => { const a = f(x), b = f(y); const c = typeof a === 'number' ? a - b : String(a).localeCompare(String(b), 'de'); return (sortUp ? c : -c) || x.a.name.localeCompare(y.a.name, 'de'); });
   }
   // eine Tabellenzeile; im Bearbeitungsmodus mit Eingabefeldern
-  function artikelZeile(x) {
+  function artikelZeile(x) {   // Reihenfolge wie auf der Zuordnungsseite: verknüpfte Zutaten → Selgros-Artikel
     const a = x.a, nr = esc(a.artNr);
     if (String(bearbeitet) === String(a.artNr)) {
-      return `<tr class="sz-edit" data-artnr="${nr}"><td>${bild(a)}</td>
+      return `<tr class="sz-edit" data-artnr="${nr}"><td>${chipsHtml(x)}</td><td class="sz-pf">→</td><td>${bild(a)}</td>
         <td><input type="text" class="sz-e-name" value="${esc(a.name)}" placeholder="Artikelname"><input type="text" class="sz-e-bild" value="${esc(a.bild || '')}" placeholder="Bild-Adresse (https://…)" style="margin-top:6px"></td>
         <td><input type="text" class="sz-e-nr" value="${esc(a.artNr)}"></td>
         <td><input type="number" step="any" class="sz-e-menge" value="${esc(a.packAmount ?? '')}" style="width:70px"> <input type="text" class="sz-e-einheit" value="${esc(a.packUnit || '')}" style="width:64px"></td>
         <td>${x.n ? x.n + '×' : '–'}</td>
-        <td>${chipsHtml(x)}</td>
         <td class="sz-aktion"><button type="button" class="btn-primary small-btn sz-e-ok">Speichern</button> <button type="button" class="btn-ghost small-btn sz-e-zu">Abbrechen</button> <button type="button" class="btn-ghost small-btn sz-e-del" title="Artikel aus der Liste löschen">🗑</button></td></tr>`;
     }
-    return `<tr data-artnr="${nr}"><td>${bild(a)}</td><td><strong>${esc(a.name)}</strong></td><td>${nr}</td><td>${esc(a.packAmount ?? '?')} ${esc(a.packUnit || '')}</td><td>${x.n ? x.n + '×' : '–'}</td>
-      <td>${chipsHtml(x)}</td><td class="sz-aktion"><button type="button" class="btn-ghost small-btn sz-e-edit" title="Artikel bearbeiten">✎</button></td></tr>`;
+    return `<tr data-artnr="${nr}"><td>${chipsHtml(x)}</td><td class="sz-pf">→</td><td>${bild(a)}</td><td><strong>${esc(a.name)}</strong></td><td>${nr}</td><td>${esc(a.packAmount ?? '?')} ${esc(a.packUnit || '')}</td><td>${x.n ? x.n + '×' : '–'}</td>
+      <td class="sz-aktion"><button type="button" class="btn-ghost small-btn sz-e-edit" title="Artikel bearbeiten">✎</button></td></tr>`;
   }
   const chipsHtml = x => `<div class="sz-chips">${x.eintraege.map(n => `<span class="sz-chip" title="in ${n.n} Rezepten: ${esc(rezeptKurz(n.rezepte, 6))}">${esc(n.name)} <button type="button" class="sz-ab" data-key="${esc(n.key)}" title="Verknüpfung lösen" aria-label="Verknüpfung lösen">✕</button></span>`).join('')}
       <input type="text" class="sz-plus" list="szOffeneNamen" placeholder="＋ Zutat" autocomplete="off"></div>`;
@@ -219,8 +218,8 @@ const SelgrosZuordnung = (function () {
         <select id="szArtFilter" title="Anzeige einschränken"><option value="">Alle Artikel</option><option value="verknuepft" ${artFilter === 'verknuepft' ? 'selected' : ''}>Mit Zutaten verknüpft</option><option value="offen" ${artFilter === 'offen' ? 'selected' : ''}>Noch ohne Zutat</option></select>
         <button type="button" class="btn-ghost small-btn" id="szCsv" title="Liste als Tabelle (CSV) herunterladen">CSV</button>
         <button type="button" class="btn-ghost small-btn" id="szNeuerArtikel2">＋ Artikel</button></span></div>
-      <div class="table-scroll"><table class="summary-table sz-tab"><thead><tr><th></th>${kopfTh('name', 'Artikel')}${kopfTh('nr', 'Art.-Nr.')}${kopfTh('gebinde', 'Gebinde')}${kopfTh('n', 'Bestellt')}${kopfTh('verkn', 'Verknüpfte Zutaten')}<th></th></tr></thead><tbody>
-      ${z.map(artikelZeile).join('') || '<tr><td colspan="7" class="hint">Keine Artikel gefunden.</td></tr>'}
+      <div class="table-scroll"><table class="summary-table sz-tab"><thead><tr>${kopfTh('verkn', 'Verknüpfte Zutaten')}<th></th><th></th>${kopfTh('name', 'Selgros-Artikel')}${kopfTh('nr', 'Art.-Nr.')}${kopfTh('gebinde', 'Gebinde')}${kopfTh('n', 'Bestellt')}<th></th></tr></thead><tbody>
+      ${z.map(artikelZeile).join('') || '<tr><td colspan="8" class="hint">Keine Artikel gefunden.</td></tr>'}
       </tbody></table></div>`;
   }
   async function bearbeiteArtikel(altNr, f) {
@@ -249,8 +248,8 @@ const SelgrosZuordnung = (function () {
   function csvHerunterladen() {
     const o = ordnung(), zeilen = artikelSortiert(artikelZeilen(o));
     const c = s => '"' + String(s ?? '').replace(/"/g, '""') + '"';
-    const text = ['Artikelname;Art-Nr;Gebinde-Menge;Gebinde-Einheit;Bestellungen;Verknuepfte Zutaten']
-      .concat(zeilen.map(x => [c(x.a.name), c(x.a.artNr), c(x.a.packAmount), c(x.a.packUnit), c(x.n || ''), c(x.zutaten.join(' | '))].join(';'))).join('\r\n');
+    const text = ['Verknuepfte Zutaten;Artikelname;Art-Nr;Gebinde-Menge;Gebinde-Einheit;Bestellungen']
+      .concat(zeilen.map(x => [c(x.zutaten.join(' | ')), c(x.a.name), c(x.a.artNr), c(x.a.packAmount), c(x.a.packUnit), c(x.n || '')].join(';'))).join('\r\n');
     const blob = new Blob(['\uFEFF' + text], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'selgros-artikelliste.csv';
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
