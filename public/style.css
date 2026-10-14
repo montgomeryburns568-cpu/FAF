@@ -713,3 +713,8 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
 .sz-tab th.sz-sort:hover { color: var(--text); }
 .sz-tab td { vertical-align: middle; }
 .sz-tab .sz-chip { margin: 2px 0; }
+
+.sz-tab .sz-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 200px; }
+.sz-tab td.sz-aktion { white-space: nowrap; }
+.sz-edit input { width: 100%; min-width: 60px; font-size: 13px; padding: 5px 8px; }
+.sz-edit td { vertical-align: top; }
