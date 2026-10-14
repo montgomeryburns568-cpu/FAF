@@ -707,3 +707,9 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
 .sz-vs { display: flex; gap: 10px; align-items: flex-start; padding: 5px 2px; margin: 0; font-size: 13.5px; color: var(--text); }
 .sz-vs input { width: auto; margin-top: 3px; }
 @media (max-width: 900px) { .sz-zeile { grid-template-columns: 1fr; } .sz-pfeil { transform: rotate(90deg); text-align: left; padding-left: 6px; } }
+
+.sz-seg { margin-bottom: 12px; }
+.sz-tab th.sz-sort { cursor: pointer; user-select: none; white-space: nowrap; }
+.sz-tab th.sz-sort:hover { color: var(--text); }
+.sz-tab td { vertical-align: middle; }
+.sz-tab .sz-chip { margin: 2px 0; }

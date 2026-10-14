@@ -9,6 +9,7 @@ const SelgrosZuordnung = (function () {
   const esc = s => escHtml(s);
   const H = typeof SELGROS_HAEUFIGKEIT !== 'undefined' ? SELGROS_HAEUFIGKEIT : {};
   let sichtbarOffen = 60, filter = '', cache = new Map(), zeigeVerknuepft = true;
+  let ansicht = 'zuordnung', sortKey = 'name', sortUp = true, artFilter = '';   // Ansicht: Zuordnung oder Artikelliste
 
   // ---------- Daten ----------
   const zu = () => (state.artikelzuordnung = state.artikelzuordnung || {});
@@ -128,11 +129,12 @@ const SelgrosZuordnung = (function () {
   function render() {
     const box = $('skSelgros'); if (!box) return;
     cache = cache.size > 4000 ? new Map() : cache;
+    if (ansicht === 'artikel') { renderArtikelliste(box); return; }
     const o = ordnung(), q = normalize(filter), alle = o.zutaten.size;
     const verk = alle - o.offen.length;
     const offenGefiltert = o.offen.filter(z => passt(z.name, q));
     const gruppenGefiltert = o.gruppen.filter(g => passt(g.artikel.name, q) || g.namen.some(n => passt(n.name, q)));
-    let h = `<div class="sz-kopf">
+    let h = `${ansichtSeg()}<div class="sz-kopf">
       <div><h2 style="margin:0">Selgros-Zuordnung</h2><span class="hint">Zutat → Artikel: ${verk} von ${alle} Zutaten verknüpft · ${katalog().length} Artikel in der Liste</span></div>
       <span class="sz-tools"><input type="search" id="szFilter" placeholder="Zutat oder Artikel suchen …" value="${esc(filter)}">
         <button type="button" class="btn-primary small-btn" id="szVorsortieren" title="Vorschläge für alle offenen Zutaten prüfen">Vorsortieren</button>
@@ -175,6 +177,46 @@ const SelgrosZuordnung = (function () {
     box.innerHTML = h;
   }
 
+  // ---------- Artikelliste: alle Selgros-Artikel auf einen Blick ----------
+  const ansichtSeg = () => `<div class="sz-seg"><span class="seg" role="group" aria-label="Ansicht"><button type="button" data-szansicht="zuordnung" class="${ansicht === 'zuordnung' ? 'on' : ''}">Zuordnung</button><button type="button" data-szansicht="artikel" class="${ansicht === 'artikel' ? 'on' : ''}">Artikelliste (${katalog().length})</button></span></div>`;
+  function artikelZeilen(o) {
+    const verkn = new Map(o.gruppen.map(g => [String(g.artikel.artNr), g.namen.filter(n => !n.selbst).map(n => n.name)]));
+    return katalog().map(a => ({ a, n: Number(H[a.artNr]) || 0, zutaten: verkn.get(String(a.artNr)) || [] }));
+  }
+  function artikelSortiert(zeilen) {
+    const f = { name: x => x.a.name.toLowerCase(), nr: x => Number(x.a.artNr) || 0, n: x => x.n, verkn: x => x.zutaten.length, gebinde: x => (x.a.packUnit || '') + String(x.a.packAmount ?? '').padStart(8, '0') }[sortKey] || (x => x.a.name.toLowerCase());
+    return zeilen.slice().sort((x, y) => { const a = f(x), b = f(y); const c = typeof a === 'number' ? a - b : String(a).localeCompare(String(b), 'de'); return (sortUp ? c : -c) || x.a.name.localeCompare(y.a.name, 'de'); });
+  }
+  function renderArtikelliste(box) {
+    const o = ordnung(), q = normalize(filter);
+    const alle = artikelZeilen(o);
+    let z = alle.filter(x => passt(x.a.name + ' ' + x.a.artNr + ' ' + x.zutaten.join(' '), q));
+    if (artFilter === 'verknuepft') z = z.filter(x => x.zutaten.length);
+    if (artFilter === 'offen') z = z.filter(x => !x.zutaten.length);
+    z = artikelSortiert(z);
+    const mitZutat = alle.filter(x => x.zutaten.length).length;
+    const kopfTh = (key, text) => `<th class="sz-sort" data-szsort="${key}">${text}${sortKey === key ? (sortUp ? ' ▲' : ' ▼') : ''}</th>`;
+    box.innerHTML = `${ansichtSeg()}<div class="sz-kopf">
+      <div><h2 style="margin:0">Selgros-Artikelliste</h2><span class="hint">${alle.length} Artikel · ${mitZutat} mit verknüpften Zutaten · ${alle.length - mitZutat} noch ohne · ${z.length} angezeigt</span></div>
+      <span class="sz-tools"><input type="search" id="szFilter" placeholder="Artikel, Art.-Nr. oder Zutat suchen …" value="${esc(filter)}">
+        <select id="szArtFilter" title="Anzeige einschränken"><option value="">Alle Artikel</option><option value="verknuepft" ${artFilter === 'verknuepft' ? 'selected' : ''}>Mit Zutaten verknüpft</option><option value="offen" ${artFilter === 'offen' ? 'selected' : ''}>Noch ohne Zutat</option></select>
+        <button type="button" class="btn-ghost small-btn" id="szCsv" title="Liste als Tabelle (CSV) herunterladen">CSV</button>
+        <button type="button" class="btn-ghost small-btn" id="szNeuerArtikel2">＋ Artikel</button></span></div>
+      <div class="table-scroll"><table class="summary-table sz-tab"><thead><tr><th></th>${kopfTh('name', 'Artikel')}${kopfTh('nr', 'Art.-Nr.')}${kopfTh('gebinde', 'Gebinde')}${kopfTh('n', 'Bestellt')}${kopfTh('verkn', 'Verknüpfte Zutaten')}</tr></thead><tbody>
+      ${z.map(x => `<tr><td>${bild(x.a)}</td><td><strong>${esc(x.a.name)}</strong></td><td>${esc(x.a.artNr)}</td><td>${esc(x.a.packAmount ?? '?')} ${esc(x.a.packUnit || '')}</td><td>${x.n ? x.n + '×' : '–'}</td>
+        <td>${x.zutaten.length ? x.zutaten.slice(0, 8).map(n => `<span class="sz-chip">${esc(n)}</span>`).join(' ') + (x.zutaten.length > 8 ? ` <span class="hint">+${x.zutaten.length - 8}</span>` : '') : '<span class="hint">–</span>'}</td></tr>`).join('') || '<tr><td colspan="6" class="hint">Keine Artikel gefunden.</td></tr>'}
+      </tbody></table></div>`;
+  }
+  function csvHerunterladen() {
+    const o = ordnung(), zeilen = artikelSortiert(artikelZeilen(o));
+    const c = s => '"' + String(s ?? '').replace(/"/g, '""') + '"';
+    const text = ['Artikelname;Art-Nr;Gebinde-Menge;Gebinde-Einheit;Bestellungen;Verknuepfte Zutaten']
+      .concat(zeilen.map(x => [c(x.a.name), c(x.a.artNr), c(x.a.packAmount), c(x.a.packUnit), c(x.n || ''), c(x.zutaten.join(' | '))].join(';'))).join('\r\n');
+    const blob = new Blob(['\uFEFF' + text], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'selgros-artikelliste.csv';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+
   // ---------- Vorsortieren: Vorschläge prüfen und gesammelt übernehmen ----------
   function vorsortieren() {
     const o = ordnung();
@@ -207,6 +249,10 @@ const SelgrosZuordnung = (function () {
       if (vor) { const z = vor.closest('.sz-zeile'); await verknuepfe([z.dataset.name], artikelNachNr(vor.dataset.artnr)); return; }
       if (t.closest('.sz-ab')) { await loese(t.closest('.sz-ab').dataset.key); return; }
       if (t.closest('.sz-nein')) { const z = t.closest('.sz-zeile'); await keinArtikelNoetig(z.dataset.key, z.dataset.name); return; }
+      const sw = t.closest('[data-szansicht]'); if (sw) { ansicht = sw.dataset.szansicht; render(); return; }
+      const so = t.closest('[data-szsort]'); if (so) { if (sortKey === so.dataset.szsort) sortUp = !sortUp; else { sortKey = so.dataset.szsort; sortUp = sortKey === 'name' || sortKey === 'nr' || sortKey === 'gebinde'; } render(); return; }
+      if (t.closest('#szCsv')) { csvHerunterladen(); return; }
+      if (t.closest('#szNeuerArtikel2')) { ansicht = 'zuordnung'; render(); $('szNeuForm').hidden = false; $('szNName').focus(); return; }
       if (t.closest('#szVorsortieren')) { vorsortieren(); return; }
       if (t.closest('#szNeuerArtikel')) { $('szNeuForm').hidden = false; $('szNName').focus(); return; }
       if (t.closest('#szNZu')) { $('szNeuForm').hidden = true; return; }
@@ -221,6 +267,7 @@ const SelgrosZuordnung = (function () {
     });
     box.addEventListener('change', async e => {
       const t = e.target;
+      if (t.id === 'szArtFilter') { artFilter = t.value; render(); return; }
       if (t.classList.contains('sz-suche')) {
         const a = katalog().find(x => x.name.toLowerCase() === t.value.trim().toLowerCase());
         if (!a) { if (t.value.trim()) alert('Diesen Artikel gibt es nicht in der Liste – bitte aus den Vorschlägen wählen oder oben mit „＋ Artikel“ aufnehmen.'); t.value = ''; return; }
