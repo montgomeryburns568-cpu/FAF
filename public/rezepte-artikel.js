@@ -32,9 +32,11 @@ const RezeptArtikel = (function () {
   }
   function bildHtml(e) {
     const u = bildUrl(e);
-    if (!u || !/^(https?:|data:image\/)/i.test(u)) return '<span class="art-bild art-leer" title="Kein Bild hinterlegt">🛒</span>';
-    return `<img class="art-bild" src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.outerHTML='<span class=&quot;art-bild art-leer&quot;>🛒</span>'">`;
+    if (!u || !/^(https?:|data:image\/)/i.test(u)) return '';   // ohne Bild bleibt die Stelle leer
+    return `<img class="art-bild" src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`;
   }
+  // Gibt es überhaupt Bilder (Adresse-Vorlage oder Bild an einem Artikel)? Sonst entfällt die Bildspalte.
+  const hatBilder = () => !!vorlage() || Object.values(zuordnung()).some(e => e && e.bild);
   async function speichereZuordnungen() { state.artikelzuordnung = await API.send('PUT', '/api/artikelzuordnung', zuordnung()); }
   async function setzeBild(artNr, url) {
     Object.values(zuordnung()).forEach(e => { if (e && String(e.artNr) === String(artNr)) { if (url) e.bild = url; else delete e.bild; } });
@@ -118,19 +120,19 @@ const RezeptArtikel = (function () {
   function renderArtikelSicht() {
     const rows = zeilen();
     const box = $('rSichtArtikel');
-    const liste = artikelListe();
+    const liste = artikelListe(), mb = hatBilder();
     let h = `<datalist id="raArtikelNamen">${liste.map(a => `<option value="${esc(a.name)}"></option>`).join('')}</datalist>`;
     if (!rows.length) {
       h += '<p class="hint">Noch keine Zutaten – im Rezept eintragen, dann erscheinen hier die Selgros-Artikel.</p>';
     } else {
       h += `<p class="hint">Mengen für die Bezugsgröße des Rezepts (${esc(bezugsText())}). Orange = Vorschlag per Wortabgleich, noch nicht bestätigt.</p>
-      <div class="table-scroll"><table class="summary-table art-tabelle"><thead><tr><th></th><th>Zutat</th><th>Selgros-Artikel</th><th>Gebinde</th><th>Bestellen</th></tr></thead><tbody>
+      <div class="table-scroll"><table class="summary-table art-tabelle"><thead><tr>${mb ? '<th></th>' : ''}<th>Zutat</th><th>Selgros-Artikel</th><th>Gebinde</th><th>Bestellen</th></tr></thead><tbody>
       ${rows.map(z => {
         const m = findArtikelForIngredient(z.name, zuordnung());
         const e = (m && m.entry) || null, vorschlag = !!(m && !m.confirmed);
         const anz = bestellAnzahl(z.amount, z.unit, e);
         return `<tr data-zutat="${esc(z.name)}" class="${vorschlag ? 'ez-suggested' : ''}">
-          <td>${bildHtml(e)}</td>
+          ${mb ? `<td>${bildHtml(e)}</td>` : ''}
           <td>${esc(z.name)}<div class="hint">${esc(fmtAmount(z.amount))} ${esc(z.unit)}</div></td>
           <td>${e ? `<strong>${esc(e.name)}</strong><div class="hint">Art.-Nr. ${esc(e.artNr || '–')}${vorschlag ? ' · Vorschlag' : ''}</div>` : '<span class="hint">kein Artikel gefunden</span>'}
             ${z.fest ? '' : `<input type="text" class="ra-wechsel" list="raArtikelNamen" placeholder="anderen Artikel wählen …" autocomplete="off">`}</td>
@@ -245,5 +247,5 @@ const RezeptArtikel = (function () {
     anzeigen();
   }
   init();
-  return { istFertigVorschlag, bildHtml, nachNr, artikelListe };
+  return { istFertigVorschlag, bildHtml, nachNr, artikelListe, hatBilder };
 })();

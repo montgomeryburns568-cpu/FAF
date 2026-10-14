@@ -104,7 +104,8 @@ const SelgrosZuordnung = (function () {
 
   // ---------- Speichern ----------
   async function speichern() { state.artikelzuordnung = await API.send('PUT', '/api/artikelzuordnung', zu()); }
-  const bild = a => (typeof RezeptArtikel !== 'undefined' ? RezeptArtikel.bildHtml(a) : '<span class="art-bild art-leer">🛒</span>');
+  const bild = a => (typeof RezeptArtikel !== 'undefined' ? RezeptArtikel.bildHtml(a) : '');
+  const mitBild = () => typeof RezeptArtikel !== 'undefined' && RezeptArtikel.hatBilder();
   function eintragFuer(name, a) {
     return { name: a.name, artNr: a.artNr, packAmount: a.packAmount, packUnit: a.packUnit, qty: null, exclude: false, source: 'zuordnung', ...(a.bild ? { bild: a.bild } : {}) };
   }
@@ -191,14 +192,14 @@ const SelgrosZuordnung = (function () {
   function artikelZeile(x) {   // Reihenfolge wie auf der Zuordnungsseite: verknüpfte Zutaten → Selgros-Artikel
     const a = x.a, nr = esc(a.artNr);
     if (String(bearbeitet) === String(a.artNr)) {
-      return `<tr class="sz-edit" data-artnr="${nr}"><td>${chipsHtml(x)}</td><td class="sz-pf">→</td><td>${bild(a)}</td>
+      return `<tr class="sz-edit" data-artnr="${nr}"><td>${chipsHtml(x)}</td><td class="sz-pf">→</td>${mitBild() ? `<td>${bild(a)}</td>` : ''}
         <td><input type="text" class="sz-e-name" value="${esc(a.name)}" placeholder="Artikelname"><input type="text" class="sz-e-bild" value="${esc(a.bild || '')}" placeholder="Bild-Adresse (https://…)" style="margin-top:6px"></td>
         <td><input type="text" class="sz-e-nr" value="${esc(a.artNr)}"></td>
         <td><input type="number" step="any" class="sz-e-menge" value="${esc(a.packAmount ?? '')}" style="width:70px"> <input type="text" class="sz-e-einheit" value="${esc(a.packUnit || '')}" style="width:64px"></td>
         <td>${x.n ? x.n + '×' : '–'}</td>
         <td class="sz-aktion"><button type="button" class="btn-primary small-btn sz-e-ok">Speichern</button> <button type="button" class="btn-ghost small-btn sz-e-zu">Abbrechen</button> <button type="button" class="btn-ghost small-btn sz-e-del" title="Artikel aus der Liste löschen">🗑</button></td></tr>`;
     }
-    return `<tr data-artnr="${nr}"><td>${chipsHtml(x)}</td><td class="sz-pf">→</td><td>${bild(a)}</td><td><strong>${esc(a.name)}</strong></td><td>${nr}</td><td>${esc(a.packAmount ?? '?')} ${esc(a.packUnit || '')}</td><td>${x.n ? x.n + '×' : '–'}</td>
+    return `<tr data-artnr="${nr}"><td>${chipsHtml(x)}</td><td class="sz-pf">→</td>${mitBild() ? `<td>${bild(a)}</td>` : ''}<td><strong>${esc(a.name)}</strong></td><td>${nr}</td><td>${esc(a.packAmount ?? '?')} ${esc(a.packUnit || '')}</td><td>${x.n ? x.n + '×' : '–'}</td>
       <td class="sz-aktion"><button type="button" class="btn-ghost small-btn sz-e-edit" title="Artikel bearbeiten">✎</button></td></tr>`;
   }
   const chipsHtml = x => `<div class="sz-chips">${x.eintraege.map(n => `<span class="sz-chip" title="in ${n.n} Rezepten: ${esc(rezeptKurz(n.rezepte, 6))}">${esc(n.name)} <button type="button" class="sz-ab" data-key="${esc(n.key)}" title="Verknüpfung lösen" aria-label="Verknüpfung lösen">✕</button></span>`).join('')}
@@ -218,7 +219,7 @@ const SelgrosZuordnung = (function () {
         <select id="szArtFilter" title="Anzeige einschränken"><option value="">Alle Artikel</option><option value="verknuepft" ${artFilter === 'verknuepft' ? 'selected' : ''}>Mit Zutaten verknüpft</option><option value="offen" ${artFilter === 'offen' ? 'selected' : ''}>Noch ohne Zutat</option></select>
         <button type="button" class="btn-ghost small-btn" id="szCsv" title="Liste als Tabelle (CSV) herunterladen">CSV</button>
         <button type="button" class="btn-ghost small-btn" id="szNeuerArtikel2">＋ Artikel</button></span></div>
-      <div class="table-scroll"><table class="summary-table sz-tab"><thead><tr>${kopfTh('verkn', 'Verknüpfte Zutaten')}<th></th><th></th>${kopfTh('name', 'Selgros-Artikel')}${kopfTh('nr', 'Art.-Nr.')}${kopfTh('gebinde', 'Gebinde')}${kopfTh('n', 'Bestellt')}<th></th></tr></thead><tbody>
+      <div class="table-scroll"><table class="summary-table sz-tab"><thead><tr>${kopfTh('verkn', 'Verknüpfte Zutaten')}<th></th>${mitBild() ? '<th></th>' : ''}${kopfTh('name', 'Selgros-Artikel')}${kopfTh('nr', 'Art.-Nr.')}${kopfTh('gebinde', 'Gebinde')}${kopfTh('n', 'Bestellt')}<th></th></tr></thead><tbody>
       ${z.map(artikelZeile).join('') || '<tr><td colspan="8" class="hint">Keine Artikel gefunden.</td></tr>'}
       </tbody></table></div>`;
   }
