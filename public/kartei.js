@@ -185,7 +185,56 @@ const Kartei = (function () {
     statusEl.innerHTML = `✅ ${neu} neu archiviert, ${ergaenzt} ergänzt${fehler.length ? ' · ⚠️ ' + fehler.length + ' nicht importiert: ' + esc(fehler.slice(0, 5).join('; ')) : ''}`;
     render();
   }
+  // ---------- Angebots-Paket (angebote-paket.json) ----------
+  // Stapelimport von Angeboten, die als Datei vorliegen. Ein Angebot gilt als schon vorhanden, wenn der Dateiname gleich ist oder Termin, Gästezahl und
+  // Kunde zusammenpassen (und der Preis gleich oder bei einem der beiden unbekannt ist). Vorhandene Einträge werden nur ergänzt (Text, Preis, Datei),
+  // nie überschrieben; abweichende Preisvarianten bleiben als eigener Eintrag erhalten.
+  const kundenWorte = n => new Set(normalize(n || '').split(/[^a-z0-9]+/).filter(w => w.length >= 4 && !/^(herr|frau|hochzeit|geburtstag|angebot|verein)$/.test(w)));
+  function aehnlicherKunde(a, b) {
+    if (K.gleicherKunde(K.kundenKey(a), K.kundenKey(b))) return true;
+    const wa = kundenWorte(a); return Array.from(kundenWorte(b)).some(w => wa.has(w));
+  }
+  function gleichesAngebot(x, e) {
+    if (!x.eventDateIso || !e.eventDateIso || x.eventDateIso !== e.eventDateIso) return false;
+    if (x.personen && e.personen && Number(x.personen) !== Number(e.personen)) return false;
+    if (x.totalPrice != null && e.totalPrice != null && Math.abs(Number(x.totalPrice) - Number(e.totalPrice)) >= 0.5) return false;
+    return aehnlicherKunde(x.customerName, e.customerName);
+  }
+  async function paketImport(file) {
+    const statusEl = $('archivImportStatus');
+    const j = JSON.parse(await file.text());
+    if (!j || !Array.isArray(j.eintraege)) throw new Error('Das ist kein Angebots-Paket (angebote-paket.json).');
+    let neu = 0, ergaenzt = 0, uebersprungen = 0; const fehler = [];
+    for (let i = 0; i < j.eintraege.length; i++) {
+      const e = j.eintraege[i];
+      statusEl.textContent = `📦 ${i + 1}/${j.eintraege.length}: ${e.customerName || e.filename} …`;
+      try {
+        const fnKey = normalize(e.filename || '').replace(/\s+/g, '');
+        const vorhanden = (state.archiv || []).find(x => (x.filename && fnKey && normalize(x.filename).replace(/\s+/g, '') === fnKey) || gleichesAngebot(x, e));
+        if (vorhanden) {
+          const neuFelder = {};
+          if (!vorhanden.rawText && e.rawText) neuFelder.rawText = e.rawText;
+          if (!vorhanden.filename && e.filename) neuFelder.filename = e.filename;
+          if (vorhanden.totalPrice == null && e.totalPrice != null) neuFelder.totalPrice = e.totalPrice;
+          if (!vorhanden.personen && e.personen) neuFelder.personen = e.personen;
+          if (!(vorhanden.dishes || []).length && (e.dishes || []).length) neuFelder.dishes = e.dishes;
+          if (Object.keys(neuFelder).length) { await speichereEintrag({ ...vorhanden, ...neuFelder }); ergaenzt++; } else uebersprungen++;
+        } else {
+          const { format, quelleOrdner, ...rest } = e;
+          const saved = await API.send('POST', '/api/archiv', { ...rest, source: 'pdf', pathname: null, ausPaket: quelleOrdner || true });
+          state.archiv.push(saved); neu++;
+        }
+      } catch (err) { fehler.push((e.filename || e.customerName) + ' (' + err.message + ')'); }
+    }
+    statusEl.innerHTML = `✅ ${neu} neu archiviert, ${ergaenzt} ergänzt, ${uebersprungen} schon vorhanden${fehler.length ? ' · ⚠️ ' + fehler.length + ' mit Fehler: ' + esc(fehler.slice(0, 4).join('; ')) : ''}`;
+    render();
+  }
   function initImport() {
+    if ($('archivPaketInput')) $('archivPaketInput').addEventListener('change', async e => {
+      const f = e.target.files && e.target.files[0]; if (!f) return;
+      try { await paketImport(f); } catch (err) { $('archivImportStatus').textContent = '❌ ' + err.message; }
+      e.target.value = '';
+    });
     $('archivFileInput').addEventListener('change', async e => {
       const files = Array.from(e.target.files || []); if (!files.length) return;
       try { if (files.length === 1) { $('archivImportStatus').textContent = '📄 PDF wird gelesen …'; await einzelnerImport(files[0]); } else await massenImport(files); }
