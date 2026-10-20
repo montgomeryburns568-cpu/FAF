@@ -768,3 +768,5 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
 .archiv-import > summary::before { content: '▸'; color: var(--muted); }
 .archiv-import[open] > summary::before { content: '▾'; }
 .archiv-import > summary h2 { margin: 0; }
+
+#preiseBtn { padding: 4px 8px; line-height: 1; font-size: 15px; }

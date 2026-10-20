@@ -17,9 +17,10 @@ const Preise = (() => {
   function anwenden() {
     const b = $('preiseBtn');
     if (b) {
-      b.textContent = st.frei ? '🔓 Preise sichtbar' : '🔒 Preise';
+      b.textContent = st.frei ? '🔓' : '🔒';
+      b.setAttribute('aria-label', st.frei ? 'Preise wieder sperren' : 'Preise freischalten');
       b.classList.toggle('frei', !!st.frei);
-      b.title = st.frei ? 'Preise sind sichtbar (Freischaltung gilt 12 Stunden) – anklicken zum Sperren' : 'Preise in Angeboten und im Archiv sind gesperrt – anklicken und Passwort eingeben';
+      b.title = st.frei ? 'Preise sind sichtbar (gilt 12 Stunden) – anklicken zum Sperren' : 'Preise in Angeboten und im Archiv sind gesperrt – anklicken und Passwort eingeben';
     }
     GESPERRT.forEach(id => {
       const p = $(id); if (!p) return;
