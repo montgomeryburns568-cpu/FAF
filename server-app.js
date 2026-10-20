@@ -9,6 +9,7 @@ const store = require('./store');
 const { createAuthToken, verifyAuthToken, MAX_AGE_MS, createPreisToken, verifyPreisToken, PREIS_MAX_AGE_MS } = require('./auth');
 const { pruefeEmbedToken } = require('./embed-auth');
 const { mergeKatalogDaten } = require('./katalog-merge');
+const IA = require('./integration-angebot');
 
 const APP_PASSWORD = process.env.APP_PASSWORD || '';
 const SESSION_SECRET = process.env.SESSION_SECRET || '';
@@ -23,6 +24,7 @@ if (!APP_PASSWORD || !SESSION_SECRET) {
 }
 
 const app = express();
+app.use('/api/integration/v1/angebote', express.json({ limit: '12mb' }));
 app.use(express.json({ limit: '2mb' }));
 app.use(cookieParser());
 
@@ -305,6 +307,8 @@ async function archivSynchronisieren(events) {
   if (a.geaendert || b.geaendert) await store.setArchiv(b.archiv);
   return b.archiv;
 }
+// Angaben, die nur über die Büro-Schnittstelle (bzw. die Entscheidung der Küche) geändert werden
+const SERVER_FELDER = ['officeEventId', 'officeOfferId', 'angebotVersion', 'officeAngebot', 'offeneAenderung', 'abgelehnteAenderung', 'quelle', 'storniert', 'storniertAm', 'buero'];
 app.get('/api/events', requireAuth, async (req, res) => res.json(await store.getEvents()));
 
 app.post('/api/events', requireAuth, async (req, res) => {
@@ -320,6 +324,7 @@ app.put('/api/events/:id', requireAuth, async (req, res) => {
   const events = await store.getEvents();
   const idx = events.findIndex(e => e.id === req.params.id);
   const event = { ...req.body, id: req.params.id };
+  if (idx !== -1) for (const k of SERVER_FELDER) { if (events[idx][k] !== undefined) event[k] = events[idx][k]; else delete event[k]; }   // Büro-Angaben und offene Änderungen nicht durch einen veralteten Browser überschreiben
   if (idx === -1) events.push(event); else events[idx] = event;
   await store.setEvents(events);
   await archivSynchronisieren(events).catch(err => console.error('Archiv-Sync:', err.message));
@@ -337,6 +342,132 @@ app.get('/api/events/:id/pdf', requireAuth, async (req, res) => {
   const ev = (await store.getEvents()).find(e => e.id === req.params.id);
   if (!ev || !ev.pdfPathname) return res.status(404).json({ error: 'PDF nicht gefunden.' });
   await sendeAngebotPdf(req, res, ev.pdfPathname, ev.pdfFilename);
+});
+
+// --- Angebote aus der Office-App (Token-Bereich "angebote"; Format: docs/integration/ANGEBOT-FORMAT.md) ---
+function angebotsNutzer(req, res, next) {
+  const h = req.headers.authorization || '';
+  const u = h.startsWith('Bearer ') ? pruefeEmbedToken(OFFICE_EMBED_SECRET, h.slice(7).trim(), 'angebote') : null;
+  if (!u) return res.status(401).json({ error: 'Nicht angemeldet.' });
+  if (u.ro) return res.status(403).json({ error: 'Nur Lesezugriff.' });
+  req.integrationNutzer = u; next();
+}
+async function pdfAblegen(pdf) {
+  if (!pdf) return null;
+  const buf = Buffer.from(pdf.base64, 'base64');
+  if (!buf.length || buf.slice(0, 5).toString() !== '%PDF-') throw Object.assign(new Error('pdf.base64 ist keine PDF-Datei.'), { code: 400 });
+  if (buf.length > 9 * 1024 * 1024) throw Object.assign(new Error('Das PDF ist größer als 9 MB.'), { code: 413 });
+  const name = String(pdf.dateiname || 'angebot.pdf').replace(/[^\w. -]/g, '_').slice(0, 80);
+  try {
+    const { put } = require('@vercel/blob');
+    const blob = await put(`archiv/${crypto.randomUUID()}-${name}`, buf, { access: 'private', contentType: 'application/pdf' });
+    return { pdfPathname: blob.pathname, pdfFilename: name };
+  } catch (err) { console.error('PDF konnte nicht im Blob-Speicher abgelegt werden:', err.message); return null; }
+}
+async function pdfLoeschen(pathname) {
+  if (!pathname) return;
+  try { const { del } = require('@vercel/blob'); await del(pathname); } catch (err) { console.error('Blob-Löschung fehlgeschlagen:', err.message); }
+}
+function ereignis(ev, text) { (ev.buero = ev.buero || []).push({ am: new Date().toISOString(), text }); ev.buero = ev.buero.slice(-30); }
+
+// Übernimmt eine Angebotsversion in den Auftrag (neu oder als Änderung)
+async function angebotUebernehmen(events, idx, a, pdf) {
+  const alt = idx >= 0 ? events[idx] : null;
+  const neu = IA.angebotZuEvent(a, alt);
+  if (!alt) neu.id = crypto.randomUUID();
+  else if (alt.lagerGebucht) neu.lagerAbgleich = true;   // Verbrauch im Vorrat wird beim nächsten Öffnen der App neu verrechnet
+  if (pdf) { if (alt && alt.pdfPathname && alt.pdfPathname !== pdf.pdfPathname) await pdfLoeschen(alt.pdfPathname); neu.pdfPathname = pdf.pdfPathname; neu.pdfFilename = pdf.pdfFilename; }
+  ereignis(neu, alt ? `Version ${a.version} vom Büro übernommen${a.aenderung && a.aenderung.grund ? ': ' + a.aenderung.grund : ''}` : 'Angebot vom Büro bestätigt (Version ' + a.version + ')');
+  if (idx >= 0) events[idx] = neu; else events.push(neu);
+  return neu;
+}
+async function angebotVerarbeiten(roh) {
+  const fehler = IA.pruefeAngebot(roh);
+  if (fehler.length) return { code: 400, body: { ok: false, fehler } };
+  const a = IA.bereinige(roh);
+  const events = await store.getEvents();
+  const idx = events.findIndex(e => e.officeEventId === a.officeEventId);
+  const ev = idx >= 0 ? events[idx] : null;
+  const runden = await store.getBestellungen();
+  const jetzt = new Date();
+  const fertig = async (neu, body) => { await store.setEvents(events); await archivSynchronisieren(events).catch(err => console.error('Archiv-Sync:', err.message)); return { code: 200, body: { ok: true, kuechenEventId: neu.id, version: a.version, ...body } }; };
+
+  if (ev && a.version < (ev.angebotVersion || 0)) return { code: 409, body: { ok: false, status: 'veraltet', aktuelleVersion: ev.angebotVersion, fehler: ['Es liegt bereits eine neuere Version vor.'] } };
+  if (ev && ev.offeneAenderung && ev.offeneAenderung.version === a.version) return { code: 200, body: { ok: true, status: 'wartet_auf_kueche', kuechenEventId: ev.id, version: a.version, gruende: ev.offeneAenderung.gruende } };
+  if (ev && ev.angebotVersion === a.version && !ev.storniert) return { code: 200, body: { ok: true, status: 'unveraendert', kuechenEventId: ev.id, version: a.version } };
+  if (ev && ev.storniert) return { code: 200, body: { ok: true, status: 'storniert', kuechenEventId: ev.id, version: a.version } };
+
+  const pdf = await pdfAblegen(roh.pdf);   // wirft bei ungültigem PDF
+
+  // --- Storno ---
+  if (a.status === 'CANCELLED') {
+    if (!ev) { await pdfLoeschen(pdf && pdf.pdfPathname); return { code: 200, body: { ok: true, status: 'unbekannt', version: a.version, hinweis: 'Zu diesem Auftrag gibt es bei der Küche kein bestätigtes Angebot.' } }; }
+    const tage = (ev.officeAngebot ? ev.officeAngebot.tage.map(t => t.datum) : []);
+    const fr = IA.pruefeFrist(tage, jetzt, runden);
+    if (fr.gesperrt) {
+      if (ev.offeneAenderung) await pdfLoeschen(ev.offeneAenderung.pdfPathname);
+      ev.offeneAenderung = { version: a.version, art: 'storno', eingegangen: jetzt.toISOString(), zeilen: ['Das Angebot wurde vom Büro storniert.' + (a.grund ? ' Grund: ' + a.grund : '')], tage, gruende: fr.gruende, angebot: a };
+      ereignis(ev, 'Storno vom Büro eingegangen – wartet auf Bestätigung der Küche');
+      return fertig(ev, { status: 'wartet_auf_kueche', gruende: fr.gruende });
+    }
+    ev.storniert = true; ev.storniertAm = jetzt.toISOString(); ev.angebotVersion = a.version; ereignis(ev, 'Vom Büro storniert');
+    return fertig(ev, { status: 'storniert' });
+  }
+
+  // --- Neues Angebot ---
+  if (!ev) {
+    const neu = await angebotUebernehmen(events, -1, a, pdf);
+    const fr = IA.pruefeFrist(a.tage.map(t => t.datum), jetzt, runden);
+    return fertig(neu, { status: 'angelegt', nachFrist: fr.gesperrt, hinweis: fr.gesperrt ? 'Achtung: Für mindestens einen Tag ist die Bestellung schon abgeschickt – die Küche bestellt nach (Nachbestellung).' : undefined, gruende: fr.gesperrt ? fr.gruende : undefined });
+  }
+
+  // --- Änderung ---
+  const diff = IA.vergleiche(ev.officeAngebot, a);
+  const fr = diff.kritisch ? IA.pruefeFrist(diff.tage, jetzt, runden) : { gesperrt: false, gruende: [] };
+  if (fr.gesperrt) {
+    if (ev.offeneAenderung) await pdfLoeschen(ev.offeneAenderung.pdfPathname);
+    ev.offeneAenderung = { version: a.version, art: 'aenderung', eingegangen: jetzt.toISOString(), zeilen: diff.zeilen, tage: diff.tage, gruende: fr.gruende, grund: a.aenderung && a.aenderung.grund || '', angebot: a, ...(pdf || {}) };
+    ereignis(ev, `Änderung (Version ${a.version}) vom Büro eingegangen – wartet auf Bestätigung der Küche`);
+    return fertig(ev, { status: 'wartet_auf_kueche', gruende: fr.gruende, aenderungen: diff.zeilen });
+  }
+  if (ev.offeneAenderung) { await pdfLoeschen(ev.offeneAenderung.pdfPathname); }
+  const neu = await angebotUebernehmen(events, idx, a, pdf);
+  return fertig(neu, { status: 'uebernommen', aenderungen: diff.zeilen });
+}
+app.post('/api/integration/v1/angebote', angebotsNutzer, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try { const r = await angebotVerarbeiten(req.body); res.status(r.code).json(r.body); }
+  catch (err) { res.status(err.code || 500).json({ ok: false, fehler: [err.message] }); }
+});
+// Stand eines Angebots in der Küche (für das Büro): übernommene Version, offene Änderung, Entscheidung der Küche
+app.get('/api/integration/v1/angebote/:officeEventId', angebotsNutzer, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const ev = (await store.getEvents()).find(e => e.officeEventId === req.params.officeEventId);
+  if (!ev) return res.status(404).json({ ok: false, error: 'Unbekannter Auftrag.' });
+  const o = ev.offeneAenderung, ab = ev.abgelehnteAenderung;
+  res.json({ ok: true, kuechenEventId: ev.id, version: ev.angebotVersion || null, storniert: !!ev.storniert,
+    offen: o ? { version: o.version, art: o.art, seit: o.eingegangen, gruende: o.gruende } : null,
+    abgelehnt: ab ? { version: ab.version, am: ab.am, grund: ab.grund || '' } : null });
+});
+// Entscheidung der Küche über eine Änderung, die nach der Bestellfrist eingegangen ist
+app.post('/api/events/:id/aenderung', requireAuth, async (req, res) => {
+  const events = await store.getEvents();
+  const idx = events.findIndex(e => e.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Auftrag nicht gefunden.' });
+  const ev = events[idx], o = ev.offeneAenderung;
+  if (!o) return res.status(409).json({ error: 'Es liegt keine offene Änderung vor.' });
+  const { entscheidung, grund } = req.body || {};
+  if (entscheidung === 'uebernehmen') {
+    if (o.art === 'storno') { ev.storniert = true; ev.storniertAm = new Date().toISOString(); ev.angebotVersion = o.version; delete ev.offeneAenderung; ereignis(ev, 'Storno von der Küche bestätigt'); }
+    else { const neu = await angebotUebernehmen(events, idx, o.angebot, o.pdfPathname ? { pdfPathname: o.pdfPathname, pdfFilename: o.pdfFilename } : null); ereignis(neu, 'Änderung von der Küche bestätigt'); }
+  } else if (entscheidung === 'ablehnen') {
+    await pdfLoeschen(o.pdfPathname);
+    ev.abgelehnteAenderung = { version: o.version, am: new Date().toISOString(), grund: String(grund || '').slice(0, 300) };
+    delete ev.offeneAenderung; ereignis(ev, `Änderung (Version ${o.version}) von der Küche abgelehnt`);
+  } else return res.status(400).json({ error: 'entscheidung muss "uebernehmen" oder "ablehnen" sein.' });
+  await store.setEvents(events);
+  await archivSynchronisieren(events).catch(err => console.error('Archiv-Sync:', err.message));
+  res.json(events[idx]);
 });
 
 // --- KI-Rezeptvorschlag ---

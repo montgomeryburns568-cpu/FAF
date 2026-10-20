@@ -1,6 +1,6 @@
-# Angebot mit Katalog-Kennungen (Office → Generator) – Entwurf v1
+# Angebot mit Katalog-Kennungen (Office → Generator) – v1
 
-**Status: Entwurf zur Abstimmung.** Der Empfang im Generator (`POST /api/integration/v1/angebote`) wird gebaut, sobald Office-Seite und Küche dieses Format bestätigt haben.
+**Status: Empfang im Generator umgesetzt und getestet** (`POST /api/integration/v1/angebote`, Abschnitt „Schnittstelle“ unten). Das Format ist weiter offen für Wünsche der Office-Seite – bitte als Pull Request/Nachricht melden.
 Die Office-App speichert ein Angebot ohnehin in ihrem eigenen Modell – dieses Dokument beschreibt nur, **was der Küche übergeben wird**.
 
 ## Ziele
@@ -27,7 +27,14 @@ Die Übergabe geschieht **durch das Bestätigen** (nicht durch Speichern) und so
 "version": 2,
 "aenderung": { "am": "2027-03-20T08:00:00Z", "grund": "Kunde erhöht Gästezahl", "felder": ["gaesteGesamt", "tage[0].positionen"] }
 ```
-**Offener Punkt – Änderungsfrist:** Je näher der Termin, desto riskanter sind Änderungen (Einkauf und Produktion laufen). Vorschlag: Bis X Tage vor dem Termin (z. B. 7) gehen Änderungen automatisch durch; danach sieht das Büro den Hinweis „Küche bereits in Produktion – Änderung muss von der Küche bestätigt werden“, und die Küche bestätigt oder lehnt ab.
+**Änderungsfrist = Bestellrhythmus der Küche (festgelegt).** Es gibt keine feste Tageszahl. Die Küche bestellt wöchentlich: Bestellfrist **Dienstag 11:30 Uhr**, Lieferung Mittwoch 12:00 Uhr, für alle Aufträge von **Freitag bis Donnerstag** der Folgewoche. Maßgeblich ist der Zeitraum (Fr–Do), in den der **betroffene Veranstaltungstag** fällt:
+- **Vor der Bestellfrist** dieses Zeitraums (und solange die Hauptbestellung nicht abgeschickt ist): Die Änderung wird **sofort automatisch übernommen**. Beispiel: Montag geändert, Veranstaltung im nächsten Fr–Do-Zeitraum → geht durch, es kann ja noch bestellt werden.
+- **Nach der Bestellfrist** (oder sobald die Hauptbestellung abgeschickt ist): Die Änderung wird **nicht umgesetzt, sondern der Küche zur Bestätigung vorgelegt** (Antwort `wartet_auf_kueche`). Beispiel: Dienstag 15 Uhr geändert, Veranstaltung im Zeitraum des kommenden Fr–Do → Bestellung ist schon raus, die Küche entscheidet.
+- Die Küche **übernimmt** (Küchensheet, To-Do, Einkauf werden angepasst; schon Bestelltes wird als Nachbestellung sichtbar) oder **lehnt ab** (mit Grund). Das Büro fragt den Stand ab (`GET …/angebote/{officeEventId}`).
+- Änderungen, die **nur Kunde, Notiz oder Anlass** betreffen (keine Gäste, Gerichte, Tage, Regelsatz), gehen immer sofort durch.
+- Ein **neues** bestätigtes Angebot wird immer angenommen. Liegt sein Termin bereits nach einer abgeschickten Bestellung, meldet die Antwort `nachFrist: true` – die Küche bestellt dann nach.
+- **Storno** folgt derselben Regel: vor der Frist sofort, danach mit Bestätigung der Küche.
+- Die Zeiten gelten in **Europe/Berlin**.
 
 ## Format
 ```json
@@ -94,7 +101,31 @@ Die Übergabe geschieht **durch das Bestätigen** (nicht durch Speichern) und so
 | `positionen[].gang` | nein | Gang/Kategorie (Vorspeise, Hauptgang, Dessert, Fingerfood …) |
 | `positionen[].personen` | nein | feste Personenzahl für diese Zeile; leer = die Küche verteilt automatisch (z. B. Hauptgänge 2/3 Fleisch · 1/3 vegetarisch) |
 | `positionen[].wunsch` | nein | Freitext-Hinweis zur Zeile (Allergie, Wunsch) |
-| `preise` | – | **werden nicht übertragen** |
+| `pdf` | nein | **Angebots-PDF, so wie der Kunde es liest**: `{ "dateiname": "Angebot Beispiel.pdf", "base64": "…" }` (höchstens 9 MB, Gesamtanfrage unter ca. 4 MB wegen der Vercel-Grenze). Die Küche zeigt es im Angebotsreiter als Vorschau – Preise sind dort ohne Preis-Passwort geschwärzt. Mit jeder neuen Version kann ein neues PDF mitgeschickt werden (ersetzt das alte, sobald die Version übernommen ist) |
+| `aenderung` | bei Version ≥ 2 | `{ "am": "…", "grund": "Kunde erhöht Gästezahl" }` – erscheint in der Küche beim Vorlegen der Änderung |
+| `preise`, Telefon, E-Mail, Adresse | – | **werden nicht übertragen** – unbekannte Felder werden verworfen, nicht gespeichert |
+
+## Schnittstelle
+Token-Bereich **`angebote`** (siehe `KATALOG-EINBINDUNG.md` §3; z. B. `scope: "katalog lager angebote"`; Lese-Token dürfen nicht schreiben). Nur Server-zu-Server, nie aus dem Browser.
+
+| Aufruf | Zweck |
+|---|---|
+| `POST /api/integration/v1/angebote` | Angebot (Version) senden – neu, geändert oder storniert (`status: CANCELLED` braucht nur `format`, `officeEventId`, `status`, `version`, optional `grund`) |
+| `GET /api/integration/v1/angebote/{officeEventId}` | Stand in der Küche: `version`, `storniert`, `offen` (wartende Änderung), `abgelehnt` (mit Grund) |
+
+**Antwort von POST** (HTTP 200, außer bei Fehlern):
+| `status` | Bedeutung |
+|---|---|
+| `angelegt` | neuer Auftrag in der Küche (`nachFrist: true`, wenn für einen Tag die Bestellung schon abgeschickt ist) |
+| `uebernommen` | Änderung wurde sofort übernommen (`aenderungen`: Liste in Klartext) |
+| `wartet_auf_kueche` | Änderung/Storno nach der Bestellfrist – die Küche muss bestätigen (`gruende`) |
+| `unveraendert` | diese Version ist schon eingegangen (gefahrlos wiederholbar) |
+| `storniert` / `unbekannt` | Storno ausgeführt / zu diesem Auftrag gab es nichts |
+
+Fehler: **400** mit `fehler` (Liste, was am Angebot nicht stimmt) · **401** Token fehlt/ungültig/falscher Bereich · **403** Lese-Token · **409** ältere Version als die vorhandene (`aktuelleVersion`) · **413** PDF zu groß.
+Die Küche speichert zu jedem Auftrag die **zuletzt angenommene Fassung** und vergleicht neue Versionen damit. `officeEventId` ist der Schlüssel; Kennungen werden nie wiederverwendet.
+
+Prüfen lässt sich alles ohne Büro-App mit `node tools/angebot-integration-test.js` (erfundene Daten, temporärer Datenordner).
 
 ## Was die Küche daraus macht
 Für jedes Gericht: Komponenten erkennen **über die Kennungen** (kein Textvergleich), Mengen je Gast nach den Regeln, To-Dos aus den Rezepten, Zutaten → Einkaufsliste abzüglich Vorrat und Überproduktion, Eintrag in Monats-/Wochen-/Tagesplan, Produktionsstart nach der Vorlaufzeit der Komponenten, Archiv und Kundenkartei.
@@ -102,5 +133,5 @@ Für jedes Gericht: Komponenten erkennen **über die Kennungen** (kein Textvergl
 ## Offene Punkte (gemeinsam klären)
 1. Reicht ein Angebot je Auftrag oder gibt es Varianten/Versionen, die getrennt ankommen sollen?
 2. Wo speichert die Office-App heute die Angebotspositionen (Bausteine, „informalOffers“, PDF-Anlagen)? Wie werden daraus Zeilen mit `katalogId`?
-3. Änderungsfrist festlegen (siehe oben): ab wann müssen Änderungen von der Küche bestätigt werden?
+3. ~~Änderungsfrist~~ – festgelegt: Bestellrhythmus (siehe oben).
 4. Rückrichtung (später): Küchenstand, tatsächliche Gäste, Überproduktion/Nachtrag an den Auftrag zurückmelden.

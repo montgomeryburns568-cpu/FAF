@@ -770,3 +770,10 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
 .archiv-import > summary h2 { margin: 0; }
 
 #preiseBtn { padding: 4px 8px; line-height: 1; font-size: 15px; }
+
+/* Angebote aus der Office-App */
+.office-hinweis .office-kopf { font-size: 14px; }
+.office-offen { margin-top: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--warn, #d9a441); background: rgba(217,164,65,.10); }
+.office-offen ul { margin: 6px 0 6px 18px; padding: 0; }
+.office-verlauf ul { margin: 4px 0 0 18px; padding: 0; font-size: 12.5px; }
+.office-badge { margin-left: 4px; }

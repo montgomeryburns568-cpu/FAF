@@ -532,6 +532,7 @@ const VEG_WORT_RE = /veget|vegan|veggie|tofu|falafel|seitan/i;
 const MEAT_RE = /h(?:ä|ae)hnchen|h(?:ü|ue)hn|huhn|chicken|\bpute|truthahn|rind|beef|kalb|schwein|lamm|(?:^|[^a-zäöüß])(?:ente|enten|gans|hirsch|reh|hase|kaninchen)|(?:^|[^a-zäöüß])wild(?!kr|reis)|fleisch|hack|bolognese|speck|schinken|salami|wurst|w(?:ü|ue)rst|schnitzel|gulasch|steak|braten|haxe|rippchen|ribs|nacken|lachs|fisch|forelle|zander|dorade|thunfisch|kabeljau|scholle|garnele|shrimp|scampi|meeresfr|calamari|tintenfisch|muschel|hering|bacon|pulled|kassler|leberk|frikadelle|bulette|boulette|cevap|d(?:ö|oe)ner|gyros|geschnetzel|roulade|chorizo|prosciutto|carne|pollo|manzo|maiale|saltimbocca|cordon bleu|gefl(?:ü|ue)gel|poulard|kotelett|entrec|tafelspitz|ossobuco|lende|medaillon|scaloppine|pangasius|tilapia|barsch|saibling|krabbe|hummer|polpette|kiewer|schaschlik/i;
 const KATALOG_FLEISCH_GRUPPEN = new Set(['Hähnchen', 'Pute', 'Ente & Gans', 'Rind', 'Schwein', 'Kalb', 'Lamm', 'Fisch', 'Meeresfrüchte']);
 function hauptgangArt(dish) {
+  if (dish.art === 'fleisch' || dish.art === 'veg') return dish.art;   // aus dem Angebot der Office-App (Komponenten des Katalogs)
   const name = dish.name || '';
   if (VEG_WORT_RE.test(name)) return 'veg';
   if (typeof KatalogTodo !== 'undefined' && typeof KatalogTodo.erkenne === 'function') {

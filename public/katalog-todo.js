@@ -168,7 +168,11 @@ const KatalogTodo = (function () {
     const { rules, recipes, findRecipe, unitToGrams } = ctx;
     const catId = dish.category;
     const P = dish.personen || 0;
-    const { gefunden, rest } = erkenne(dish.name, catId);
+    let { gefunden, rest } = erkenne(dish.name, catId);
+    if (dish.komponentenIds && dish.komponentenIds.length) {   // Angebot aus der Office-App: Zusammensetzung steht fest
+      const ausIds = dish.komponentenIds.map(id => byId[id]).filter(Boolean);
+      if (ausIds.length) { gefunden = ausIds; rest = []; }
+    }
     if (!gefunden.length) return null;
     const gleicheRolle = {};
     gefunden.forEach(c => { gleicheRolle[c.rolle] = (gleicheRolle[c.rolle] || 0) + 1; });

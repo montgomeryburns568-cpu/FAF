@@ -474,6 +474,7 @@ function renderEventFields() {
   document.getElementById('evModus').value = draftEvent.modus || 'mittag';
   if (typeof Kartei !== 'undefined') { Kartei.renderKundenHinweis(); Kartei.renderLagerHinweis(); }
   if (typeof AngebotVorschau !== 'undefined') AngebotVorschau.render();
+  if (typeof OfficeAngebote !== 'undefined') OfficeAngebote.render();
 }
 
 function renderDaysEditor() {
@@ -722,7 +723,7 @@ document.getElementById('fileInput').addEventListener('change', async e => {
 function refreshEventSelect() {
   const sel = document.getElementById('eventSelect');
   sel.innerHTML = '<option value="">– Neues Angebot –</option>' +
-    state.events.map(e => `<option value="${e.id}">${e.name || 'Unbenannt'}</option>`).join('');
+    state.events.map(e => `<option value="${e.id}">${e.offeneAenderung ? '⚠ ' : ''}${e.name || 'Unbenannt'}</option>`).join('');
   sel.value = draftEvent && state.events.find(e => e.id === draftEvent.id) ? draftEvent.id : '';
 }
 document.getElementById('eventSelect').addEventListener('change', e => {
@@ -1618,6 +1619,7 @@ async function boot() {
     await Preise.laden();       // Preis-Sperre: Stand der Freischaltung (Archiv, PDF-Beträge)
     render();
     Vorrat.syncAlle();          // Verbrauch aller anstehenden Aufträge im Hintergrund vom Vorrat abziehen
+    OfficeAngebote.start();     // Angebote aus der Office-App nachladen, Änderungen zur Bestätigung anzeigen
     Bestellung.badge();         // Hinweis am Reiter, wenn eine Bestellfrist naht
     Start.aktivieren();         // Startseite: nächster Auftrag, Küchensheet und To-Do auf einen Blick
     if (typeof Navi !== 'undefined') Navi.start();   // Zurück-Knopf: gemerkte Ansicht nach dem Aktualisieren wiederherstellen

@@ -33,10 +33,11 @@ Das Büro ist dabei ein **weiterer Nutzer des Katalogs** – nicht eine Kopie da
 - **Nachrichten-Schnittstelle** zwischen Katalog-Seite und Office-App (Gericht hinzufügen, Hell/Dunkel, Token erneuern).
 - Nur-Lese-Tokens für Nutzer ohne Bearbeitungsrecht.
 - **Lager-Übersicht** (Überproduktion + Basisvorrat, ohne Kundendaten) als lesende Schnittstelle mit eigenem Token-Bereich.
+- **Empfang bestätigter Angebote** (`POST /api/integration/v1/angebote`, Token-Bereich `angebote`): legt Auftrag samt Küchensheet/To-Do/Einkauf an, nimmt Änderungen nach dem **Bestellrhythmus** an oder legt sie der Küche zur Bestätigung vor, Storno, Angebots-**PDF** für die Vorschau (Preise geschwärzt), Statusabfrage fürs Büro. Getestet mit `node tools/angebot-integration-test.js`.
 
 ## Was als Nächstes gemeinsam entsteht
 1. Office-Seite: Katalog einbinden, Angebote mit Kennungen speichern (siehe Briefing).
-2. Generator-Seite: Empfang der Angebote (`POST /api/integration/v1/angebote`), sobald das Format abgestimmt ist.
+2. ~~Generator-Seite: Empfang der Angebote~~ – umgesetzt (siehe oben). Offen: Büro-Seite sendet Angebote in diesem Format.
 3. Später: Termine aus dem Office-Kalender (bestätigt, nicht storniert) automatisch in die Planung übernehmen, Rückmeldung von Küchenstand und tatsächlichen Gästen ins Büro.
 
 ## Ablauf aus Sicht des Büros
@@ -49,6 +50,7 @@ Die Erklärung „Was passiert nach der Bestätigung?“ ist in der Office-App n
 
 ## Grundregeln
 - **Keine Geheimnisse** (Schlüssel, Token, Passwörter) in Code, Dokumenten, Issues oder Chats – nur als Umgebungsvariablen in Vercel.
+- **Preise** bleiben im Büro und werden nicht übertragen; Angebots-PDFs sind in der Küchen-App ohne Preis-Passwort geschwärzt.
 - **Keine Kundendaten** in dieser Dokumentation oder in Tests (nur erfundene Beispiele). Telefon, E-Mail und Adressen braucht die Küche nicht und werden nicht übertragen.
 - Änderungen an der jeweils anderen Anwendung laufen über **Pull Requests**, die ein Mensch freigibt.
 - Der Katalog wird **nicht kopiert**. Die Office-App speichert nur Kennungen und eine Text-Kopie je Angebotszeile.
