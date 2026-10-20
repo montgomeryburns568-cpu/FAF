@@ -55,7 +55,7 @@ const AngebotVorschau = (() => {
     name.textContent = q && q.name ? q.name : '';
     if (!q) { if (gezeigt) { rahmen.removeAttribute('src'); gezeigt = ''; } return; }
     link.href = q.url;
-    if (gezeigt !== q.url) { gezeigt = q.url; rahmen.src = q.url + '#view=FitH'; }
+    if (gezeigt !== q.url) { gezeigt = q.url; rahmen.src = q.url + '#toolbar=0&navpanes=0&view=FitH'; }
   }
   return { laden, anwenden, verwerfe, render };
 })();
