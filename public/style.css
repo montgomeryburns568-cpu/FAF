@@ -748,3 +748,23 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
 .preis-dialog { width: min(420px, 100%); }
 .preis-dialog input[type=password] { width: 100%; box-sizing: border-box; padding: 9px 12px; margin-top: 4px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--panel); color: var(--text); font-size: 14px; }
 .preis-dialog .preis-fehler { color: var(--danger); font-size: 13px; min-height: 18px; margin: 8px 0 0; }
+
+/* Archiv: kompakte, zugeklappte Listen in einem scrollbaren Kasten */
+#archivList, #archivKunden { max-height: 62vh; overflow-y: auto; padding-right: 6px; scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+#archivList::-webkit-scrollbar, #archivKunden::-webkit-scrollbar { display: block; width: 8px; height: 8px; }
+#archivList::-webkit-scrollbar-thumb, #archivKunden::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 8px; }
+.archiv-item { padding: 0; margin-bottom: 6px; overflow: hidden; }
+.archiv-item-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 12px; cursor: pointer; flex-wrap: wrap; }
+.archiv-item-head:hover { background: rgba(127,127,127,.10); }
+.archiv-item-title { display: inline; font-weight: 500; }
+.archiv-pfeil { display: inline-block; width: 14px; color: var(--muted); }
+.archiv-item-kurz { font-size: 12px; white-space: nowrap; }
+.archiv-item.open { border-color: var(--muted); }
+.archiv-item-body { padding: 2px 14px 12px; border-top: 1px solid var(--border); }
+.kunde-head { padding: 8px 12px; }
+
+.archiv-import > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; }
+.archiv-import > summary::-webkit-details-marker { display: none; }
+.archiv-import > summary::before { content: '▸'; color: var(--muted); }
+.archiv-import[open] > summary::before { content: '▾'; }
+.archiv-import > summary h2 { margin: 0; }

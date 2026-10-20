@@ -334,8 +334,8 @@
   </nav>
 
   <div id="sub-angebote" class="subpanel active">
-    <div class="card">
-      <h2>Angebote ins Archiv importieren</h2>
+    <details class="card archiv-import">
+      <summary><h2>Angebote ins Archiv importieren</h2></summary>
       <p class="hint">Im Generator gespeicherte Angebote erscheinen hier automatisch. Zusätzlich: <strong>eine PDF</strong> hochladen (Kunde, Datum, Gerichte werden vorausgefüllt, Preise trägst du ein) oder <strong>mehrere PDFs auf einmal</strong> auswählen – sie werden automatisch erkannt und archiviert. Das Original-PDF bleibt abrufbar.</p>
       <input type="file" id="archivFileInput" accept=".pdf" multiple>
       <div class="actions-row" style="margin-top:10px"><label class="btn-ghost small-btn" style="display:inline-block;cursor:pointer;margin:0" title="Eine Datei angebote-paket.json (z. B. vom Stapelimport der Angebotsordner) einlesen – Doppelte werden erkannt und nur ergänzt">Angebots-Paket (.json) einlesen<input type="file" id="archivPaketInput" accept=".json,application/json" style="display:none"></label></div>
@@ -357,7 +357,7 @@
           <button type="button" id="adCancelBtn" class="btn-ghost">Verwerfen</button>
         </div>
       </div>
-    </div>
+    </details>
     <div class="card" style="margin-top:18px">
       <div class="output-toolbar">
         <h2>Archivierte Angebote <span class="hint" id="archivCount"></span></h2>

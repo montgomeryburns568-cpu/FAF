@@ -11,6 +11,7 @@ const Kartei = (function () {
   const BROT_STUFEN = { weniger: 'weniger Brot (×0,8)', normal: 'normal', mehr: 'mehr Brot (×1,25)', vielmehr: 'viel mehr Brot (×1,5)' };
   const EINHEITEN = ['kg', 'g', 'l', 'Stk', 'Portionen', 'GN', 'Blech', 'Packung'];
   let sub = 'angebote';
+  let offenAngebot = null;        // aufgeklapptes Angebot (ID)
   let offenKunde = null;          // aufgeklappter Kunde (Schlüssel)
   let lagerAlle = false;
   let ideenOffen = new Set();
@@ -64,21 +65,25 @@ const Kartei = (function () {
     out.innerHTML = items.map(e => {
       const n = e.nachtrag;
       const quelle = e.source === 'generator' ? 'Küchensheet-Generator' : e.pathname ? 'PDF' : 'Text';
-      return `<div class="archiv-item" data-id="${esc(e.id)}">
-        <div class="archiv-item-title"><span>${esc(e.customerName || 'Unbekannt')}${e.eventDate ? ' · ' + esc(e.eventDate) : ''}</span><span>${e.totalPrice != null ? eur(e.totalPrice) : ''}</span></div>
-        <div class="archiv-item-meta">${e.personen ? e.personen + ' Personen · ' : ''}${(e.dishes || []).length} Gerichte · ${quelle}
-          ${n ? ' · <span class="badge badge-ok">Nachtrag erfasst</span>' : nachtragOffen(e) ? ' · <span class="badge badge-warn">Nachtrag offen</span>' : ''}
-          ${n && n.ueberproduktion && n.ueberproduktion.length ? ' · <span class="badge">' + n.ueberproduktion.length + ' Überproduktion</span>' : ''}</div>
-        <div class="archiv-item-dishes">${(e.dishes || []).map(d => esc(d.name) + (d.price != null ? ` (${num(d.price, 2)}€)` : '')).join(', ')}</div>
-        ${n ? nachtragKurz(n) : ''}
-        <div class="archiv-item-actions">
-          <button type="button" class="btn-primary small-btn" data-act="nachtrag">${n ? 'Nachtrag ansehen/bearbeiten' : 'Nachtrag ausfüllen'}</button>
-          <button type="button" class="btn-ghost small-btn" data-act="edit">Bearbeiten</button>
-          <button type="button" class="btn-ghost small-btn" data-act="kunde">Kundenkartei</button>
-          ${e.pathname ? `<a class="btn-ghost small-btn" href="/api/archiv/${esc(e.id)}/pdf" target="_blank" rel="noopener">PDF ansehen</a>` : ''}
-          ${e.source === 'generator' && e.eventId ? `<button type="button" class="btn-ghost small-btn" data-act="oeffnen">Im Generator öffnen</button>` : ''}
-          <button type="button" class="btn-danger small-btn" data-act="loeschen">Löschen</button>
+      const offen = offenAngebot === e.id;
+      const badge = n ? '<span class="badge badge-ok">Nachtrag erfasst</span>' : nachtragOffen(e) ? '<span class="badge badge-warn">Nachtrag offen</span>' : '';
+      return `<div class="archiv-item ${offen ? 'open' : ''}" data-id="${esc(e.id)}">
+        <div class="archiv-item-head" data-act="toggle" title="Aufklappen">
+          <span class="archiv-item-title"><span class="archiv-pfeil">${offen ? '▾' : '▸'}</span> <strong>${esc(e.customerName || 'Unbekannt')}</strong>${e.eventDate ? ' <span class="hint">· ' + esc(e.eventDate) + '</span>' : ''}</span>
+          <span class="archiv-item-kurz hint">${e.personen ? e.personen + ' Pers. · ' : ''}${(e.dishes || []).length} Gerichte ${badge}${e.totalPrice != null ? ' · ' + eur(e.totalPrice) : ''}</span>
         </div>
+        ${offen ? `<div class="archiv-item-body">
+          <div class="archiv-item-meta">${quelle}${n && n.ueberproduktion && n.ueberproduktion.length ? ' · <span class="badge">' + n.ueberproduktion.length + ' Überproduktion</span>' : ''}</div>
+          <div class="archiv-item-dishes">${(e.dishes || []).map(d => esc(d.name) + (d.price != null ? ` (${num(d.price, 2)}€)` : '')).join(', ')}</div>
+          ${n ? nachtragKurz(n) : ''}
+          <div class="archiv-item-actions">
+            <button type="button" class="btn-primary small-btn" data-act="nachtrag">${n ? 'Nachtrag ansehen/bearbeiten' : 'Nachtrag ausfüllen'}</button>
+            <button type="button" class="btn-ghost small-btn" data-act="edit">Bearbeiten</button>
+            <button type="button" class="btn-ghost small-btn" data-act="kunde">Kundenkartei</button>
+            ${e.pathname ? `<a class="btn-ghost small-btn" href="/api/archiv/${esc(e.id)}/pdf" target="_blank" rel="noopener">PDF ansehen</a>` : ''}
+            ${e.source === 'generator' && e.eventId ? `<button type="button" class="btn-ghost small-btn" data-act="oeffnen">Im Generator öffnen</button>` : ''}
+            <button type="button" class="btn-danger small-btn" data-act="loeschen">Löschen</button>
+          </div></div>` : ''}
       </div>`;
     }).join('') || '<p class="hint">Keine Angebote gefunden.</p>';
   }
@@ -275,7 +280,8 @@ const Kartei = (function () {
     $('archivList').addEventListener('click', async e => {
       const btn = e.target.closest('[data-act]'); if (!btn) return;
       const id = btn.closest('.archiv-item').dataset.id; const eintrag = eintragById(id); if (!eintrag) return;
-      if (btn.dataset.act === 'nachtrag') nachtragOeffnen(id);
+      if (btn.dataset.act === 'toggle') { offenAngebot = offenAngebot === id ? null : id; renderAngebote(); }
+      else if (btn.dataset.act === 'nachtrag') nachtragOeffnen(id);
       else if (btn.dataset.act === 'edit') eintragBearbeiten(id);
       else if (btn.dataset.act === 'kunde') { const g = gruppeFuerName(eintrag.customerName); offenKunde = g ? g.key : null; setSub('kunden'); }
       else if (btn.dataset.act === 'oeffnen') {
