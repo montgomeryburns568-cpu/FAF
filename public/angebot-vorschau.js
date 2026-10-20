@@ -49,8 +49,9 @@ const AngebotVorschau = (() => {
   }
   function render() {
     const rahmen = $('avFrame'); if (!rahmen) return;
-    const q = quelle(), leer = $('avLeer'), link = $('avOeffnen'), name = $('avName');
+    const q = quelle(), leer = $('avLeer'), link = $('avOeffnen'), name = $('avName'), kopf = $('angebotPdfLink');
     rahmen.hidden = !q; leer.hidden = !!q; link.hidden = !q;
+    if (kopf) { kopf.hidden = !q; if (q) kopf.href = q.url; }
     name.textContent = q && q.name ? q.name : '';
     if (!q) { if (gezeigt) { rahmen.removeAttribute('src'); gezeigt = ''; } return; }
     link.href = q.url;
