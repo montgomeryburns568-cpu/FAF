@@ -182,11 +182,12 @@ const Planung = (function () {
   // ---------- Sammelimport mehrerer Angebote ----------
   async function dateiText(file) {
     const istPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-    if (!istPdf) return await file.text();
-    const r = await fetch('/api/parse-pdf', { method: 'POST', headers: { 'content-type': 'application/pdf' }, credentials: 'include', body: await file.arrayBuffer() });
+    if (!istPdf) return { text: await file.text() };
+    const r = await fetch('/api/archiv/upload', { method: 'POST', headers: { 'content-type': 'application/pdf', 'x-filename': encodeURIComponent(file.name) }, credentials: 'include', body: await file.arrayBuffer() });
     if (r.status === 401) { showLogin(); throw new Error('Nicht angemeldet.'); }
     if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
-    return (await r.json()).text;
+    const j = await r.json();
+    return { text: j.text, pathname: j.pathname, filename: j.filename };   // das PDF liegt dann für die Vorschau im Angebotsreiter bereit
   }
   async function sammelImport(files) {
     const status = $('fileImportStatus'), box = $('sammelErgebnis');
@@ -195,9 +196,10 @@ const Planung = (function () {
       const f = files[i];
       status.textContent = `📄 ${i + 1}/${files.length}: ${f.name} …`;
       try {
-        const text = await dateiText(f);
-        const ev = parseDocument(text, f.name);
+        const d = await dateiText(f);
+        const ev = parseDocument(d.text, f.name);
         delete ev.parseHinweis;
+        if (d.pathname) { ev.pdfPathname = d.pathname; ev.pdfFilename = d.filename; }
         if (!ev.days.length) { leer.push(f.name); continue; }
         // Kunde: bei Dateien "Angebot <Kunde> - …" aus dem Dateinamen (verlässlicher als der Ansprechpartner im Text)
         ev.name = typeof Kartei !== 'undefined' ? Kartei.kundenName(f, { name: ev.name }) : (ev.name || f.name.replace(/\.[a-z]+$/i, ''));

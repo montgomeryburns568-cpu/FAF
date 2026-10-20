@@ -83,14 +83,27 @@
   <div id="kundenHinweis" class="card hinweis-card" style="display:none; margin-bottom:18px"></div>
   <div id="lagerHinweis" class="card hinweis-card" style="display:none; margin-bottom:18px"></div>
   <div class="grid-2">
-    <div class="card">
-      <h2>Angebot einlesen</h2>
-      <p class="hint">Text einfügen oder .txt-/.pdf-Datei hochladen – <b>mehrere Dateien auf einmal</b> werden als Sammelimport eingelesen, gespeichert und in die Planung einsortiert. Format wie im "Vom Büro bestätigten Angebot": Kunde, Datum, Personen, dann pro Tag Kategorien (Vorspeise/Hauptgang/Beilagen/Dessert) mit Gerichten.</p>
-      <input type="file" id="fileInput" accept=".txt,.pdf" multiple>
+    <div class="card angebot-vorschau">
+      <div class="av-kopf">
+        <h2>Angebot</h2>
+        <span class="av-name hint" id="avName"></span>
+        <span class="av-aktionen">
+          <label class="btn-ghost small-btn av-datei" title="Angebot als PDF oder Textdatei laden – mehrere Dateien auf einmal werden als Sammelimport eingelesen">📄 Datei laden<input type="file" id="fileInput" accept=".txt,.pdf" multiple hidden></label>
+          <button id="parseBtn" class="btn-primary small-btn" title="Erkennt Kunde, Tage und Gerichte aus dem Angebotstext und trägt sie rechts ein">Angebot einlesen</button>
+          <a id="avOeffnen" class="btn-ghost small-btn" href="#" target="_blank" rel="noopener" hidden>↗ Größer</a>
+        </span>
+      </div>
       <span class="hint" id="fileImportStatus"></span>
       <div id="sammelErgebnis" class="sammel-ergebnis" style="display:none"></div>
-      <textarea id="angebotText" rows="16" placeholder="Angebotstext hier einfügen..."></textarea>
-      <button id="parseBtn" class="btn-primary">Angebot einlesen</button>
+      <div class="av-rahmen">
+        <iframe id="avFrame" title="Vorschau des Angebots-PDFs" hidden></iframe>
+        <div id="avLeer" class="empty-state">Hier erscheint das Angebot als PDF – so, wie der Kunde es liest.<br>Mit <b>„📄 Datei laden“</b> ein Angebot (PDF oder Text) wählen oder unten Text einfügen.</div>
+      </div>
+      <details class="av-text">
+        <summary>Angebotstext einfügen / prüfen</summary>
+        <textarea id="angebotText" rows="12" placeholder="Angebotstext hier einfügen..."></textarea>
+        <p class="hint">Format wie im „Vom Büro bestätigten Angebot“: Kunde, Datum, Personen, dann pro Tag Kategorien (Vorspeise/Hauptgang/Beilagen/Dessert) mit Gerichten. Danach oben auf „Angebot einlesen“ klicken.</p>
+      </details>
     </div>
     <div class="card">
       <h2>Event-Daten</h2>
@@ -401,6 +414,7 @@
 <script src="parser.js"></script>
 <script src="katalog-todo.js"></script>
 <script src="kartei-logik.js"></script>
+<script src="angebot-vorschau.js"></script>
 <script src="app.js"></script>
 <script src="kartei.js"></script>
 <script src="produktion.js"></script>

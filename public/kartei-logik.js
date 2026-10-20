@@ -96,7 +96,7 @@
         dishes.push({ name: d.name, category: d.category || null, price: null, personen: d.personen || null });
       }
       const idx = out.findIndex(e => e.id === id || (e.eventId && e.eventId === ev.id));
-      const neu = { customerName: ev.name || 'Unbenannt', eventDate: dat.text, eventDateIso: dat.iso, personen: eventPersonen(ev), eventId: ev.id, notiz: ev.notiz || '' };
+      const neu = { customerName: ev.name || 'Unbenannt', eventDate: dat.text, eventDateIso: dat.iso, personen: eventPersonen(ev), eventId: ev.id, notiz: ev.notiz || '', ...(ev.pdfPathname ? { pathname: ev.pdfPathname, filename: ev.pdfFilename || null } : {}) };
       if (idx === -1) {
         out.push({ id, source: 'generator', uploadedAt: new Date().toISOString(), totalPrice: null, ...neu, dishes });
         geaendert = true;

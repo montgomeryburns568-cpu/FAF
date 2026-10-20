@@ -473,6 +473,7 @@ function renderEventFields() {
   document.getElementById('evVeg').value = draftEvent.vegAnteil ?? '';
   document.getElementById('evModus').value = draftEvent.modus || 'mittag';
   if (typeof Kartei !== 'undefined') { Kartei.renderKundenHinweis(); Kartei.renderLagerHinweis(); }
+  if (typeof AngebotVorschau !== 'undefined') AngebotVorschau.render();
 }
 
 function renderDaysEditor() {
@@ -682,6 +683,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
   const text = document.getElementById('angebotText').value;
   if (!text.trim()) return;
   draftEvent = parseDocument(text, lastUploadedFilename);
+  AngebotVorschau.anwenden(draftEvent, true);
   const hint = draftEvent.parseHinweis;
   delete draftEvent.parseHinweis;
   if (typeof Kartei !== 'undefined' && Kartei.profilAufEvent(draftEvent)) autoSplitAllDays(draftEvent);
@@ -702,15 +704,9 @@ document.getElementById('fileInput').addEventListener('change', async e => {
   if (isPdf) {
     statusEl.textContent = '📄 PDF wird gelesen …';
     try {
-      const buf = await file.arrayBuffer();
-      const r = await fetch('/api/parse-pdf', {
-        method: 'POST', headers: { 'content-type': 'application/pdf' }, credentials: 'include', body: buf,
-      });
-      if (r.status === 401) { showLogin(); throw new Error('Nicht angemeldet.'); }
-      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
-      const result = await r.json();
+      const result = await AngebotVorschau.laden(file);   // zeigt das PDF links in der Vorschau und liefert den Text
       document.getElementById('angebotText').value = result.text;
-      statusEl.textContent = '✅ PDF-Text eingefügt – bitte kurz prüfen, ob alles sauber erkannt wurde.';
+      statusEl.textContent = '✅ PDF geladen – bitte auf „Angebot einlesen“ klicken und die erkannten Daten kurz prüfen.';
     } catch (err) {
       statusEl.textContent = '❌ PDF konnte nicht gelesen werden: ' + err.message;
     }
@@ -731,6 +727,7 @@ function refreshEventSelect() {
 }
 document.getElementById('eventSelect').addEventListener('change', e => {
   const id = e.target.value;
+  AngebotVorschau.verwerfe();
   if (!id) { draftEvent = newDraftEvent(); }
   else { draftEvent = JSON.parse(JSON.stringify(state.events.find(ev => ev.id === id))); }
   saveCurrentEventId(draftEvent.id);
@@ -747,6 +744,7 @@ document.getElementById('deleteEventBtn').addEventListener('click', async () => 
   if (typeof Vorrat !== 'undefined') await Vorrat.freigeben(state.events[idx]);   // gebuchten Verbrauch wieder dem Bestand gutschreiben
   await API.send('DELETE', '/api/events/' + draftEvent.id);
   state.events.splice(idx, 1);
+  AngebotVorschau.verwerfe();
   draftEvent = newDraftEvent();
   saveCurrentEventId(null);
   refreshEventSelect();
@@ -757,6 +755,7 @@ document.getElementById('deleteEventBtn').addEventListener('click', async () => 
 });
 async function persistEvent() {
   if (!draftEvent.name) { alert('Bitte einen Namen für das Event/Kunden angeben.'); return false; }
+  AngebotVorschau.anwenden(draftEvent);   // geladenes PDF am Angebot festhalten
   const idx = state.events.findIndex(e => e.id === draftEvent.id);
   const method = idx === -1 ? 'POST' : 'PUT';
   const path = idx === -1 ? '/api/events' : '/api/events/' + draftEvent.id;
@@ -765,6 +764,7 @@ async function persistEvent() {
   if (idx === -1) state.events.push(saved); else state.events[idx] = saved;
   saveCurrentEventId(draftEvent.id);
   refreshEventSelect();
+  AngebotVorschau.render();
   // Der Server legt/aktualisiert dazu den Archiv-Eintrag – Archiv, Kartei und Lagerhinweise neu laden
   if (typeof Kartei !== 'undefined') Kartei.ladeArchiv().then(() => Kartei.render());
   // To-Do/Einkaufsliste stehen fest: Verbrauch an Vorratsartikeln und Überproduktion im Hintergrund vom Bestand abziehen

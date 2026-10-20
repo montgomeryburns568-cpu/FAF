@@ -259,6 +259,23 @@ app.delete('/api/events/:id', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// Original-PDF eines Angebots (für die Vorschau im Angebotsreiter)
+app.get('/api/events/:id/pdf', requireAuth, async (req, res) => {
+  const ev = (await store.getEvents()).find(e => e.id === req.params.id);
+  if (!ev || !ev.pdfPathname) return res.status(404).json({ error: 'PDF nicht gefunden.' });
+  try {
+    const { get } = require('@vercel/blob');
+    const result = await get(ev.pdfPathname, { access: 'private' });
+    if (!result) return res.status(404).json({ error: 'PDF nicht gefunden.' });
+    res.setHeader('content-type', 'application/pdf');
+    res.setHeader('content-disposition', `inline; filename="${(ev.pdfFilename || 'angebot.pdf').replace(/[^\w. -]/g, '_')}"`);
+    const { Readable } = require('node:stream');
+    Readable.fromWeb(result.stream).pipe(res);
+  } catch (err) {
+    res.status(500).json({ error: 'PDF konnte nicht geladen werden: ' + err.message });
+  }
+});
+
 // --- KI-Rezeptvorschlag ---
 app.post('/api/suggest-recipe', requireAuth, async (req, res) => {
   if (!ANTHROPIC_API_KEY) {
