@@ -9,7 +9,7 @@ const SelgrosZuordnung = (function () {
   const esc = s => escHtml(s);
   const H = typeof SELGROS_HAEUFIGKEIT !== 'undefined' ? SELGROS_HAEUFIGKEIT : {};
   let sichtbarOffen = 60, filter = '', cache = new Map(), zeigeVerknuepft = true;
-  let ansicht = 'zuordnung', sortKey = 'name', sortUp = true, artFilter = '', bearbeitet = null;   // bearbeitet: Art.-Nr. des Artikels in Bearbeitung   // Ansicht: Zuordnung oder Artikelliste
+  let ansicht = 'zuordnung', sortKey = 'name', sortUp = true, artFilter = '', bearbeitet = null, markiert = new Set();   // bearbeitet: Art.-Nr. des Artikels in Bearbeitung   // Ansicht: Zuordnung oder Artikelliste
 
   // ---------- Daten ----------
   const zu = () => (state.artikelzuordnung = state.artikelzuordnung || {});
@@ -192,15 +192,15 @@ const SelgrosZuordnung = (function () {
   function artikelZeile(x) {   // Reihenfolge wie auf der Zuordnungsseite: verknüpfte Zutaten → Selgros-Artikel
     const a = x.a, nr = esc(a.artNr);
     if (String(bearbeitet) === String(a.artNr)) {
-      return `<tr class="sz-edit" data-artnr="${nr}"><td>${chipsHtml(x)}</td><td class="sz-pf">→</td>${mitBild() ? `<td>${bild(a)}</td>` : ''}
+      return `<tr class="sz-edit" data-artnr="${nr}"><td></td><td>${chipsHtml(x)}</td><td class="sz-pf">→</td>${mitBild() ? `<td>${bild(a)}</td>` : ''}
         <td><input type="text" class="sz-e-name" value="${esc(a.name)}" placeholder="Artikelname"><input type="text" class="sz-e-bild" value="${esc(a.bild || '')}" placeholder="Bild-Adresse (https://…)" style="margin-top:6px"></td>
         <td><input type="text" class="sz-e-nr" value="${esc(a.artNr)}"></td>
         <td><input type="number" step="any" class="sz-e-menge" value="${esc(a.packAmount ?? '')}" style="width:70px"> <input type="text" class="sz-e-einheit" value="${esc(a.packUnit || '')}" style="width:64px"></td>
         <td>${x.n ? x.n + '×' : '–'}</td>
         <td class="sz-aktion"><button type="button" class="btn-primary small-btn sz-e-ok">Speichern</button> <button type="button" class="btn-ghost small-btn sz-e-zu">Abbrechen</button> <button type="button" class="btn-ghost small-btn sz-e-del" title="Artikel aus der Liste löschen">🗑</button></td></tr>`;
     }
-    return `<tr data-artnr="${nr}"><td>${chipsHtml(x)}</td><td class="sz-pf">→</td>${mitBild() ? `<td>${bild(a)}</td>` : ''}<td><strong>${esc(a.name)}</strong></td><td>${nr}</td><td>${esc(a.packAmount ?? '?')} ${esc(a.packUnit || '')}</td><td>${x.n ? x.n + '×' : '–'}</td>
-      <td class="sz-aktion"><button type="button" class="btn-ghost small-btn sz-e-edit" title="Artikel bearbeiten">✎</button></td></tr>`;
+    return `<tr data-artnr="${nr}"><td class="sz-mk"><input type="checkbox" class="sz-mark" ${markiert.has(String(a.artNr)) ? 'checked' : ''} aria-label="Artikel markieren"></td><td>${chipsHtml(x)}</td><td class="sz-pf">→</td>${mitBild() ? `<td>${bild(a)}</td>` : ''}<td><strong>${esc(a.name)}</strong></td><td>${nr}</td><td>${esc(a.packAmount ?? '?')} ${esc(a.packUnit || '')}</td><td>${x.n ? x.n + '×' : '–'}</td>
+      <td class="sz-aktion"><button type="button" class="btn-ghost small-btn sz-e-edit" title="Artikel bearbeiten">✎</button> <button type="button" class="btn-ghost small-btn sz-e-del" title="Artikel löschen" aria-label="Artikel löschen">🗑</button></td></tr>`;
   }
   const chipsHtml = x => `<div class="sz-chips">${x.eintraege.map(n => `<span class="sz-chip" title="in ${n.n} Rezepten: ${esc(rezeptKurz(n.rezepte, 6))}">${esc(n.name)} <button type="button" class="sz-ab" data-key="${esc(n.key)}" title="Verknüpfung lösen" aria-label="Verknüpfung lösen">✕</button></span>`).join('')}
       <input type="text" class="sz-plus" list="szOffeneNamen" placeholder="＋ Zutat" autocomplete="off"></div>`;
@@ -219,8 +219,9 @@ const SelgrosZuordnung = (function () {
         <select id="szArtFilter" title="Anzeige einschränken"><option value="">Alle Artikel</option><option value="verknuepft" ${artFilter === 'verknuepft' ? 'selected' : ''}>Mit Zutaten verknüpft</option><option value="offen" ${artFilter === 'offen' ? 'selected' : ''}>Noch ohne Zutat</option></select>
         <button type="button" class="btn-ghost small-btn" id="szCsv" title="Liste als Tabelle (CSV) herunterladen">CSV</button>
         <button type="button" class="btn-ghost small-btn" id="szNeuerArtikel2">＋ Artikel</button></span></div>
-      <div class="table-scroll"><table class="summary-table sz-tab"><thead><tr>${kopfTh('verkn', 'Verknüpfte Zutaten')}<th></th>${mitBild() ? '<th></th>' : ''}${kopfTh('name', 'Selgros-Artikel')}${kopfTh('nr', 'Art.-Nr.')}${kopfTh('gebinde', 'Gebinde')}${kopfTh('n', 'Bestellt')}<th></th></tr></thead><tbody>
-      ${z.map(artikelZeile).join('') || '<tr><td colspan="8" class="hint">Keine Artikel gefunden.</td></tr>'}
+      ${markiert.size ? `<div class="actions-row sz-markleiste"><strong>${markiert.size} Artikel markiert</strong> <button type="button" class="btn-primary small-btn" id="szMarkLoeschen">🗑 Markierte löschen</button> <button type="button" class="btn-ghost small-btn" id="szMarkAb">Markierung aufheben</button></div>` : ''}
+      <div class="table-scroll"><table class="summary-table sz-tab"><thead><tr><th class="sz-mk"><input type="checkbox" id="szMarkAlle" ${z.length && z.every(x => markiert.has(String(x.a.artNr))) ? 'checked' : ''} title="Alle angezeigten markieren" aria-label="Alle angezeigten markieren"></th>${kopfTh('verkn', 'Verknüpfte Zutaten')}<th></th>${mitBild() ? '<th></th>' : ''}${kopfTh('name', 'Selgros-Artikel')}${kopfTh('nr', 'Art.-Nr.')}${kopfTh('gebinde', 'Gebinde')}${kopfTh('n', 'Bestellt')}<th></th></tr></thead><tbody>
+      ${z.map(artikelZeile).join('') || '<tr><td colspan="9" class="hint">Keine Artikel gefunden.</td></tr>'}
       </tbody></table></div>`;
   }
   async function bearbeiteArtikel(altNr, f) {
@@ -237,13 +238,16 @@ const SelgrosZuordnung = (function () {
     await speichern(); cache = new Map(); bearbeitet = null; render();
     return true;
   }
-  async function loescheArtikel(nr) {
-    const a = artikelNachNr(nr); if (!a) return;
-    const verkn = Object.entries(zu()).filter(([k, e]) => e && String(e.artNr) === String(nr) && !istKatalog(e));
+  async function loescheArtikel(nrs) {
+    nrs = (Array.isArray(nrs) ? nrs : [nrs]).map(String);
+    const arts = nrs.map(artikelNachNr).filter(Boolean); if (!arts.length) return;
     const zut = zutatenAusRezepten();
-    const text = `„${a.name}“ aus der Artikelliste löschen?` + (verkn.length ? `\n\n${verkn.length} verknüpfte Zutat${verkn.length === 1 ? '' : 'en'} (${verkn.slice(0, 5).map(([k]) => (zut.get(k) || {}).name || k).join(', ')}${verkn.length > 5 ? ' …' : ''}) werden wieder frei.` : '');
+    const verkn = Object.entries(zu()).filter(([k, e]) => e && nrs.includes(String(e.artNr)) && !istKatalog(e));
+    const kopf = arts.length === 1 ? `„${arts[0].name}“ aus der Artikelliste löschen?` : `${arts.length} Artikel aus der Artikelliste löschen?\n\n${arts.slice(0, 8).map(x => '• ' + x.name).join('\n')}${arts.length > 8 ? '\n• … und ' + (arts.length - 8) + ' weitere' : ''}`;
+    const text = kopf + (verkn.length ? `\n\n${verkn.length} verknüpfte Zutat${verkn.length === 1 ? '' : 'en'} (${verkn.slice(0, 5).map(([k]) => (zut.get(k) || {}).name || k).join(', ')}${verkn.length > 5 ? ' …' : ''}) werden wieder frei.` : '');
     if (!confirm(text)) return;
-    Object.entries(zu()).forEach(([k, e]) => { if (e && String(e.artNr) === String(nr)) delete zu()[k]; });
+    Object.entries(zu()).forEach(([k, e]) => { if (e && nrs.includes(String(e.artNr))) delete zu()[k]; });
+    nrs.forEach(n => markiert.delete(n));
     await speichern(); cache = new Map(); bearbeitet = null; render();
   }
   function csvHerunterladen() {
@@ -293,6 +297,8 @@ const SelgrosZuordnung = (function () {
       if (t.closest('#szCsv')) { csvHerunterladen(); return; }
       const ed = t.closest('.sz-e-edit'); if (ed) { bearbeitet = ed.closest('tr').dataset.artnr; render(); return; }
       if (t.closest('.sz-e-zu')) { bearbeitet = null; render(); return; }
+      if (t.closest('#szMarkLoeschen')) { await loescheArtikel(Array.from(markiert)); return; }
+      if (t.closest('#szMarkAb')) { markiert.clear(); render(); return; }
       if (t.closest('.sz-e-del')) { await loescheArtikel(t.closest('tr').dataset.artnr); return; }
       if (t.closest('.sz-e-ok')) {
         const tr = t.closest('tr'), v = c => tr.querySelector(c).value.trim();
@@ -315,6 +321,8 @@ const SelgrosZuordnung = (function () {
     box.addEventListener('change', async e => {
       const t = e.target;
       if (t.id === 'szArtFilter') { artFilter = t.value; render(); return; }
+      if (t.classList.contains('sz-mark')) { const nr = t.closest('tr').dataset.artnr; if (t.checked) markiert.add(String(nr)); else markiert.delete(String(nr)); render(); return; }
+      if (t.id === 'szMarkAlle') { box.querySelectorAll('tbody tr[data-artnr]:not(.sz-edit)').forEach(tr => { if (t.checked) markiert.add(String(tr.dataset.artnr)); else markiert.delete(String(tr.dataset.artnr)); }); render(); return; }
       if (t.classList.contains('sz-suche')) {
         const a = katalog().find(x => x.name.toLowerCase() === t.value.trim().toLowerCase());
         if (!a) { if (t.value.trim()) alert('Diesen Artikel gibt es nicht in der Liste – bitte aus den Vorschlägen wählen oder oben mit „＋ Artikel“ aufnehmen.'); t.value = ''; return; }

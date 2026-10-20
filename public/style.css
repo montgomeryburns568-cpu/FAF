@@ -720,3 +720,6 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
 .sz-edit td { vertical-align: top; }
 
 .sz-tab td.sz-pf { width: 28px; text-align: center; color: var(--muted); font-size: 18px; padding-left: 0; padding-right: 0; }
+
+.sz-tab .sz-mk { width: 32px; text-align: center; padding-left: 6px; padding-right: 6px; }
+.sz-markleiste { align-items: center; margin: 8px 0; padding: 8px 12px; border-radius: 10px; background: var(--surface-2, rgba(127,127,127,.12)); }
