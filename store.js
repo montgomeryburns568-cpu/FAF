@@ -41,6 +41,7 @@ const FILES = {
   kunden: path.join(DATA_DIR, 'kunden.json'),
   vorrat: path.join(DATA_DIR, 'vorrat.json'),
   bestellungen: path.join(DATA_DIR, 'bestellungen.json'),
+  preispasswort: path.join(DATA_DIR, 'preispasswort.json'),
 };
 
 function ensureFile(file, defaultValue) {
@@ -136,6 +137,12 @@ module.exports = {
   async setRules(data) { if (useKV) { await kvSet('rules', data); } else { writeJSON(FILES.rules, data); } },
   async getEvents() { return useKV ? kvGetOrInit('events', []) : readJSON(FILES.events); },
   async setEvents(data) { if (useKV) { await kvSet('events', data); } else { writeJSON(FILES.events, data); } },
+  // Preis-Passwort (nur Salt + Hash); null, solange noch keins festgelegt wurde
+  async getPreisPasswort() {
+    if (useKV) { const raw = await (await getKV()).get('preispasswort'); return raw ? JSON.parse(raw) : null; }
+    try { return JSON.parse(fs.readFileSync(FILES.preispasswort, 'utf-8')); } catch (e) { return null; }
+  },
+  async setPreisPasswort(data) { if (useKV) await kvSet('preispasswort', data); else fs.writeFileSync(FILES.preispasswort, JSON.stringify(data), 'utf-8'); },
   async getArchiv() { return useKV ? kvGetOrInit('archiv', []) : readJSON(FILES.archiv); },
   async setArchiv(data) { if (useKV) { await kvSet('archiv', data); } else { writeJSON(FILES.archiv, data); } },
   async getArtikelzuordnung() { return useKV ? kvGetOrInit('artikelzuordnung', {}) : readJSON(FILES.artikelzuordnung); },

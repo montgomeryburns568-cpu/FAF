@@ -738,3 +738,13 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
 .av-text textarea { width: 100%; margin-top: 6px; }
 @media (max-width: 900px) { .angebot-vorschau { position: static; max-height: none; } .av-rahmen, .av-rahmen iframe { min-height: 65vh; } }
 .av-rahmen .empty-state { background: transparent; border: 0; color: var(--muted); }
+
+/* Preise: Sperre für Archiv und PDF-Beträge */
+#preiseBtn { white-space: nowrap; }
+#preiseBtn.frei { color: var(--success, #2e9d6a); }
+.preis-gate { display: none; text-align: center; padding: 28px 18px; }
+.subpanel.preis-gesperrt > .preis-gate { display: block; }
+.subpanel.preis-gesperrt > :not(.preis-gate) { display: none !important; }
+.preis-dialog { width: min(420px, 100%); }
+.preis-dialog input[type=password] { width: 100%; box-sizing: border-box; padding: 9px 12px; margin-top: 4px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--panel); color: var(--text); font-size: 14px; }
+.preis-dialog .preis-fehler { color: var(--danger); font-size: 13px; min-height: 18px; margin: 8px 0 0; }

@@ -31,4 +31,23 @@ function verifyAuthToken(secret, token) {
   }
 }
 
-module.exports = { createAuthToken, verifyAuthToken, MAX_AGE_MS };
+// Freischaltung der Preise (zweites Passwort): kurzlebiges, signiertes Token, gebunden an den Stand des Preis-Passworts (fp)
+const PREIS_MAX_AGE_MS = 12 * 60 * 60 * 1000; // 12 Stunden
+function createPreisToken(secret, fp) {
+  const payload = `preise:${Date.now()}:${fp}`;
+  return Buffer.from(`${payload}:${sign(secret, payload)}`).toString('base64url');
+}
+function verifyPreisToken(secret, token, fp) {
+  if (!token || !fp) return false;
+  try {
+    const decoded = Buffer.from(token, 'base64url').toString('utf-8');
+    const i = decoded.lastIndexOf(':');
+    const payload = decoded.slice(0, i), sig = decoded.slice(i + 1);
+    const a = Buffer.from(sig, 'hex'), b = Buffer.from(sign(secret, payload), 'hex');
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return false;
+    const [tag, ts, f] = payload.split(':');
+    return tag === 'preise' && f === fp && Date.now() - parseInt(ts, 10) <= PREIS_MAX_AGE_MS;
+  } catch { return false; }
+}
+
+module.exports = { createAuthToken, verifyAuthToken, MAX_AGE_MS, createPreisToken, verifyPreisToken, PREIS_MAX_AGE_MS };

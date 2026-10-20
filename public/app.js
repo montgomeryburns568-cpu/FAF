@@ -1615,6 +1615,7 @@ async function boot() {
   try {
     state = await loadState();
     await KatalogTodo.load();   // Speisenkatalog (Komponenten + To-Dos) für die To-Do-Liste
+    await Preise.laden();       // Preis-Sperre: Stand der Freischaltung (Archiv, PDF-Beträge)
     render();
     Vorrat.syncAlle();          // Verbrauch aller anstehenden Aufträge im Hintergrund vom Vorrat abziehen
     Bestellung.badge();         // Hinweis am Reiter, wenn eine Bestellfrist naht

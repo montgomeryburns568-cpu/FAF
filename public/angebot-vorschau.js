@@ -3,7 +3,7 @@
 const AngebotVorschau = (() => {
   const $ = id => document.getElementById(id);
   let aktuell = null;      // { url (Blob-URL im Browser), pathname, filename, fuerEventId }
-  let gezeigt = '';
+  let gezeigt = '', version = 0;
 
   // PDF hochladen: legt es im Blob-Speicher ab (falls vorhanden) und liefert den Text für die Erkennung
   async function laden(file) {
@@ -12,8 +12,13 @@ const AngebotVorschau = (() => {
     if (r.status === 401) { showLogin(); throw new Error('Nicht angemeldet.'); }
     if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
     const result = await r.json();
-    if (aktuell && aktuell.url) URL.revokeObjectURL(aktuell.url);
-    aktuell = { url: URL.createObjectURL(new Blob([buf], { type: 'application/pdf' })), pathname: result.pathname || null, filename: result.filename || file.name, fuerEventId: null };
+    if (aktuell) { URL.revokeObjectURL(aktuell.url); if (aktuell.urlRot) URL.revokeObjectURL(aktuell.urlRot); }
+    aktuell = { url: URL.createObjectURL(new Blob([buf], { type: 'application/pdf' })), urlRot: null, pathname: result.pathname || null, filename: result.filename || file.name, fuerEventId: null };
+    // Ohne Freischaltung wird nur die Fassung mit geschwärzten Beträgen gezeigt
+    try {
+      const rr = await fetch('/api/pdf-schwaerzen', { method: 'POST', headers: { 'content-type': 'application/pdf' }, credentials: 'include', body: buf });
+      if (rr.ok) aktuell.urlRot = URL.createObjectURL(new Blob([await rr.arrayBuffer()], { type: 'application/pdf' }));
+    } catch (e) { /* Vorschau bleibt dann gesperrt */ }
     render();
     return result;
   }
@@ -26,7 +31,7 @@ const AngebotVorschau = (() => {
   }
   // anderes Angebot wird geöffnet: ein noch nicht gespeichertes PDF verwerfen
   function verwerfe() {
-    if (aktuell && !aktuell.fuerEventId) { URL.revokeObjectURL(aktuell.url); aktuell = null; }
+    if (aktuell && !aktuell.fuerEventId) { URL.revokeObjectURL(aktuell.url); if (aktuell.urlRot) URL.revokeObjectURL(aktuell.urlRot); aktuell = null; }
   }
   function archivTreffer(ev) {
     const K = typeof KarteiLogik !== 'undefined' ? KarteiLogik : null;
@@ -40,7 +45,11 @@ const AngebotVorschau = (() => {
   }
   function quelle() {
     const ev = typeof draftEvent !== 'undefined' ? draftEvent : null;
-    if (aktuell && (!aktuell.fuerEventId || (ev && aktuell.fuerEventId === ev.id))) return { url: aktuell.url, name: aktuell.filename };
+    if (aktuell && (!aktuell.fuerEventId || (ev && aktuell.fuerEventId === ev.id))) {
+      const frei = typeof Preise !== 'undefined' && Preise.frei();
+      const u = frei ? aktuell.url : aktuell.urlRot;
+      if (u) return { url: u, name: aktuell.filename, lokal: true };
+    }
     if (!ev) return null;
     const gespeichert = (state.events || []).some(e => e.id === ev.id);
     if (ev.pdfPathname && gespeichert) return { url: `/api/events/${encodeURIComponent(ev.id)}/pdf`, name: ev.pdfFilename || '' };
@@ -54,8 +63,10 @@ const AngebotVorschau = (() => {
     if (kopf) { kopf.hidden = !q; if (q) kopf.href = q.url; }
     name.textContent = q && q.name ? q.name : '';
     if (!q) { if (gezeigt) { rahmen.removeAttribute('src'); gezeigt = ''; } return; }
-    link.href = q.url;
-    if (gezeigt !== q.url) { gezeigt = q.url; rahmen.src = q.url + '#toolbar=0&navpanes=0&view=FitH'; }
+    const adresse = q.lokal ? q.url : q.url + (q.url.includes('?') ? '&' : '?') + 'v=' + version;   // Server liefert je nach Freischaltung andere Fassung
+    link.href = adresse;
+    if (gezeigt !== adresse) { gezeigt = adresse; rahmen.src = adresse + '#toolbar=0&navpanes=0&view=FitH'; }
   }
-  return { laden, anwenden, verwerfe, render };
+  function neuLaden() { version++; gezeigt = ''; render(); }
+  return { laden, anwenden, verwerfe, render, neuLaden };
 })();

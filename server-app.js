@@ -6,7 +6,7 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
 const store = require('./store');
-const { createAuthToken, verifyAuthToken, MAX_AGE_MS } = require('./auth');
+const { createAuthToken, verifyAuthToken, MAX_AGE_MS, createPreisToken, verifyPreisToken, PREIS_MAX_AGE_MS } = require('./auth');
 const { pruefeEmbedToken } = require('./embed-auth');
 const { mergeKatalogDaten } = require('./katalog-merge');
 
@@ -222,6 +222,79 @@ app.get('/api/integration/v1/lager', requireScope('lager'), async (req, res) => 
   });
 });
 
+// --- Preise: Beträge in Angebots-PDFs und der Archiv-Bereich sind durch ein eigenes Passwort geschützt ---
+const preisFp = pw => (pw && pw.hash ? pw.hash.slice(0, 16) : '');
+const preisHash = (passwort, salt) => crypto.scryptSync(passwort, salt, 32).toString('hex');
+async function preisPasswortOk(passwort, pw) {
+  if (!pw || typeof passwort !== 'string' || !passwort) return false;
+  const a = Buffer.from(preisHash(passwort, pw.salt), 'hex'), b = Buffer.from(pw.hash, 'hex');
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+async function preiseFrei(req) {
+  const pw = await store.getPreisPasswort();
+  return !!pw && verifyPreisToken(SESSION_SECRET, req.cookies && req.cookies.preise, preisFp(pw));
+}
+function setzePreisCookie(res, pw) {
+  res.cookie('preise', createPreisToken(SESSION_SECRET, preisFp(pw)), { httpOnly: true, sameSite: 'lax', secure: IS_VERCEL, maxAge: PREIS_MAX_AGE_MS });
+}
+app.get('/api/preise/status', requireAuth, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ gesetzt: !!(await store.getPreisPasswort()), frei: await preiseFrei(req) });
+});
+app.post('/api/preise/entsperren', requireAuth, async (req, res) => {
+  const ip = 'preise:' + (req.headers['x-forwarded-for'] || req.ip);
+  if (isLocked(ip)) return res.status(429).json({ error: 'Zu viele Fehlversuche. Bitte eine Minute warten.' });
+  const pw = await store.getPreisPasswort();
+  if (!pw) return res.status(409).json({ error: 'Es ist noch kein Preis-Passwort festgelegt.' });
+  if (!(await preisPasswortOk((req.body || {}).passwort, pw))) { registerFailure(ip); return res.status(403).json({ error: 'Falsches Passwort.' }); }
+  clearFailures(ip); setzePreisCookie(res, pw);
+  res.json({ ok: true, frei: true });
+});
+// Erstes Passwort festlegen bzw. ändern (ändern nur mit dem bisherigen Passwort); danach ist die Freischaltung sofort aktiv
+app.post('/api/preise/setzen', requireAuth, async (req, res) => {
+  const { neu, alt } = req.body || {};
+  if (typeof neu !== 'string' || neu.length < 4) return res.status(400).json({ error: 'Das Passwort braucht mindestens 4 Zeichen.' });
+  const bisher = await store.getPreisPasswort();
+  if (bisher) {
+    const ip = 'preise:' + (req.headers['x-forwarded-for'] || req.ip);
+    if (isLocked(ip)) return res.status(429).json({ error: 'Zu viele Fehlversuche. Bitte eine Minute warten.' });
+    if (!(await preisPasswortOk(alt, bisher))) { registerFailure(ip); return res.status(403).json({ error: 'Das bisherige Passwort stimmt nicht.' }); }
+  }
+  const salt = crypto.randomBytes(16).toString('hex');
+  const pw = { salt, hash: preisHash(neu, salt), geaendert: new Date().toISOString() };
+  await store.setPreisPasswort(pw);
+  setzePreisCookie(res, pw);
+  res.json({ ok: true, frei: true });
+});
+app.post('/api/preise/sperren', requireAuth, (req, res) => { res.clearCookie('preise'); res.json({ ok: true, frei: false }); });
+
+// Frisch geladenes (noch nicht gespeichertes) PDF für die Vorschau schwärzen
+app.post('/api/pdf-schwaerzen', requireAuth, express.raw({ type: '*/*', limit: '15mb' }), async (req, res) => {
+  if (!req.body || !req.body.length) return res.status(400).json({ error: 'Keine PDF-Daten erhalten.' });
+  try {
+    res.setHeader('content-type', 'application/pdf'); res.setHeader('cache-control', 'private, no-store');
+    res.send((await require('./preise-schwaerzen').schwaerzen(req.body)).pdf);
+  } catch (err) { res.status(500).type('json').send(JSON.stringify({ error: 'PDF konnte nicht geschwärzt werden: ' + err.message })); }
+});
+
+// Angebots-PDF ausliefern: ohne Freischaltung mit geschwärzten Beträgen (schlägt das Schwärzen fehl, wird nichts ausgeliefert)
+async function sendeAngebotPdf(req, res, pathname, filename) {
+  try {
+    const { get } = require('@vercel/blob');
+    const result = await get(pathname, { access: 'private' });
+    if (!result) return res.status(404).json({ error: 'PDF nicht gefunden.' });
+    let daten = Buffer.from(await new Response(result.stream).arrayBuffer());
+    const frei = await preiseFrei(req);
+    if (!frei) daten = (await require('./preise-schwaerzen').schwaerzen(daten)).pdf;
+    res.setHeader('content-type', 'application/pdf');
+    res.setHeader('cache-control', 'private, no-store');
+    res.setHeader('content-disposition', `inline; filename="${String(filename || 'angebot.pdf').replace(/[^\w. -]/g, '_')}"`);
+    res.send(daten);
+  } catch (err) {
+    res.status(500).json({ error: 'PDF konnte nicht geladen werden: ' + err.message });
+  }
+}
+
 // --- events ---
 // Jede gespeicherte Veranstaltung landet automatisch im Archiv (und bleibt dort, auch wenn das Event gelöscht wird).
 const KarteiLogik = require('./public/kartei-logik.js');
@@ -263,17 +336,7 @@ app.delete('/api/events/:id', requireAuth, async (req, res) => {
 app.get('/api/events/:id/pdf', requireAuth, async (req, res) => {
   const ev = (await store.getEvents()).find(e => e.id === req.params.id);
   if (!ev || !ev.pdfPathname) return res.status(404).json({ error: 'PDF nicht gefunden.' });
-  try {
-    const { get } = require('@vercel/blob');
-    const result = await get(ev.pdfPathname, { access: 'private' });
-    if (!result) return res.status(404).json({ error: 'PDF nicht gefunden.' });
-    res.setHeader('content-type', 'application/pdf');
-    res.setHeader('content-disposition', `inline; filename="${(ev.pdfFilename || 'angebot.pdf').replace(/[^\w. -]/g, '_')}"`);
-    const { Readable } = require('node:stream');
-    Readable.fromWeb(result.stream).pipe(res);
-  } catch (err) {
-    res.status(500).json({ error: 'PDF konnte nicht geladen werden: ' + err.message });
-  }
+  await sendeAngebotPdf(req, res, ev.pdfPathname, ev.pdfFilename);
 });
 
 // --- KI-Rezeptvorschlag ---
@@ -445,17 +508,7 @@ app.get('/api/archiv/:id/pdf', requireAuth, async (req, res) => {
   const archiv = await store.getArchiv();
   const entry = archiv.find(e => e.id === req.params.id);
   if (!entry || !entry.pathname) return res.status(404).json({ error: 'PDF nicht gefunden.' });
-  try {
-    const { get } = require('@vercel/blob');
-    const result = await get(entry.pathname, { access: 'private' });
-    if (!result) return res.status(404).json({ error: 'PDF nicht gefunden.' });
-    res.setHeader('content-type', 'application/pdf');
-    res.setHeader('content-disposition', `inline; filename="${entry.filename || 'angebot.pdf'}"`);
-    const { Readable } = require('node:stream');
-    Readable.fromWeb(result.stream).pipe(res);
-  } catch (err) {
-    res.status(500).json({ error: 'PDF konnte nicht geladen werden: ' + err.message });
-  }
+  await sendeAngebotPdf(req, res, entry.pathname, entry.filename);
 });
 
 module.exports = app;
