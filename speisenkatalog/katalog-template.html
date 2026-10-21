@@ -82,6 +82,12 @@
   .bsum { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:14px 0 4px; }
   .bsum .lg { font-size:13px; padding:5px 12px; border-radius:8px; font-weight:600; }
   .bsum .gesamt { color:var(--muted); font-size:13px; margin-right:6px; }
+  .dish.has-add { padding-right:56px; }
+  .addq { position:absolute; right:26px; top:3px; width:24px; height:24px; padding:0; border-radius:50%; border:0; background:var(--accent); color:var(--on-accent); font-size:17px; line-height:24px; cursor:pointer; font-weight:700; }
+  .addq:hover { filter:brightness(1.25); }
+  .bgrp { margin:10px 0 4px; }
+  .bgh { display:flex; align-items:center; gap:8px; margin:6px 0 2px; font-size:14px; }
+  .bgh .sbar { width:5px; height:18px; border-radius:3px; display:inline-block; }
   .bchips { display:flex; flex-wrap:wrap; gap:7px; padding:6px 0 4px; }
   .bchip { display:inline-flex; align-items:center; gap:7px; padding:5px 11px; border-radius:8px; font-size:14px; line-height:1.3; }
   .bchip .bn { font-size:11px; font-weight:700; padding:1px 7px; border-radius:999px; background:rgba(255,255,255,.28); }
@@ -158,7 +164,7 @@
   </div>
   <div class="sub">Komponenten farbig markiert. <b>Klick auf ein Gericht = Details (Tags, Hinzufügen …) · Klick auf eine Komponente = Bearbeiten oder To-Dos ansehen.</b></div>
   <details class="legend-box" id="legendBox"><summary>Farbcodes (Legende)</summary><div class="legend" id="legend"></div></details>
-  <div class="tabs"><button id="tabD" class="active">Gerichte</button><button id="tabK">Sammlungen (Komponenten + To-Do)</button><button id="tabB">Beilagen</button></div>
+  <div class="tabs"><button id="tabD" class="active">Gerichte</button><button id="tabK">Sammlungen (Komponenten + To-Do)</button></div>
   <div class="toolbar">
     <input id="q" placeholder="Suchen (Gericht oder Komponente)…">
     <select id="fKueche"><option value="">Alle Küchen</option></select>
@@ -551,7 +557,7 @@ function dishHtml(e) {
         : `${EMB && EMB.select ? `<button class="link" data-sel="${esc(g.id)}"><b>+ Zum Angebot</b></button>` : ''}<button class="link" data-add="${esc(g.id)}">+ Komponente hinzufügen</button><button class="link" data-copy="${esc(g.id)}">Als neue Speise kopieren</button>${(e.mod || hasTagMod) ? `<button class="link" data-reset="${esc(g.id)}">Änderungen zurücksetzen</button>` : ''}<button class="link danger" data-remove="${esc(g.id)}">Gericht entfernen</button><button class="link" data-close="${esc(g.id)}">Zuklappen</button>`}</div>
     </div>`;
   }
-  return `<div class="card ${e.mod ? 'modded' : ''} ${e.removed ? 'rem' : ''} ${open ? 'open' : ''}" data-card="${esc(g.id)}"><div class="dish" data-toggle="${esc(g.id)}">${html}<span class="chev">${OPEN.has(g.id) ? '▴' : '▾'}</span></div>${details}</div>`;
+  return `<div class="card ${e.mod ? 'modded' : ''} ${e.removed ? 'rem' : ''} ${open ? 'open' : ''}" data-card="${esc(g.id)}"><div class="dish${EMB && EMB.select && !e.removed ? ' has-add' : ''}" data-toggle="${esc(g.id)}">${html}${EMB && EMB.select && !e.removed ? `<button class="addq" data-sel="${esc(g.id)}" title="Zum Angebot hinzufügen" aria-label="Zum Angebot hinzufügen">+</button>` : ''}<span class="chev">${OPEN.has(g.id) ? '▴' : '▾'}</span></div>${details}</div>`;
 }
 function compHtml(c, uses) {
   const n = uses[c.id] || 0;
@@ -595,6 +601,7 @@ function refreshFilters(all) {
   const sam = [...new Set(all.map(e => e.sammlung))];
   const samListe = ORDER.filter(k => sam.includes(k)).concat(sam.filter(k => !ORDER.includes(k)).sort());
   if (sam.some(k => DESSERT_SAMM.has(k))) samListe.splice(Math.max(0, samListe.indexOf('Desserts')), 0, 'Alle Desserts');
+  samListe.splice(Math.max(0, samListe.indexOf('Aufschnitt & Käse') + 1), 0, 'Beilagen');
   fill('fSammlung', samListe);
   state.kueche = document.getElementById('fKueche').value; state.gang = document.getElementById('fGang').value; state.sammlung = document.getElementById('fSammlung').value;
 }
@@ -614,6 +621,29 @@ function secHtml(key, titel, count, inner, opts) {
   opts = opts || {};
   const bar = '<span class="sbar"' + (opts.farbe ? ' style="background:' + opts.farbe + '"' : '') + '></span>';
   return `<details class="sec ${opts.cls || ''}" data-sec="${esc(key)}"${secOffen(key, opts.standard) ? ' open' : ''}><summary>${bar}<span class="sname">${esc(titel)}</span> <span class="count">${count}</span></summary>${inner}</details>`;
+}
+// Abschnitt "Beilagen" in der Gerichte-Ansicht: alle Beilagen (Kartoffeln, Reis, Nudeln, Brot) sowie Gemüse und Salate als farbige Etiketten,
+// nach Gruppen geordnet. Die Zahl zeigt, in wie vielen Gerichten die Beilage vorkommt; Klick zeigt diese Gerichte.
+const beilagenAnzeigen = () => !state.showRemoved && !state.gang && !state.comp && !state.tag && (!state.sammlung || state.sammlung === 'Beilagen');
+function beilagenSektion(active) {
+  if (!beilagenAnzeigen()) return '';
+  const uses = {};
+  active.forEach(e => e.ids.forEach(id => uses[id] = (uses[id] || 0) + 1));
+  const list = DB.komponenten.filter(c => (c.rolle === 'B' || c.rolle === 'G') && matchesComp(c));
+  if (!list.length) return '';
+  const groups = { B: {}, G: {} };
+  list.forEach(c => { (groups[c.rolle][c.gruppe] = groups[c.rolle][c.gruppe] || []).push(c); });
+  const nB = list.filter(c => c.rolle === 'B').length, nG = list.length - nB;
+  let inner = '<div class="bsum"><span class="gesamt">' + nB + ' Beilagen (Kartoffeln, Reis, Nudeln, Brot) · ' + nG + ' Gemüse &amp; Salate · die Zahl zeigt die Verwendung in Gerichten, Klick zeigt diese Gerichte</span></div>';
+  [['B', 'Beilagen'], ['G', 'Gemüse & Salate']].forEach(([r, label]) => {
+    Object.keys(groups[r]).forEach(gr => {
+      const cs = groups[r][gr].slice().sort((a, b) => a.name.localeCompare(b.name, 'de'));
+      const farbe = roleClass(cs[0]) === 'rB1' ? '#0a2cff' : roleClass(cs[0]) === 'rB2' ? '#001b8a' : '#96e5b8';
+      const chips = cs.map(c => { const k = uses[c.id] || 0; return '<span class="c bchip ' + roleClass(c) + (k ? '' : ' zero') + '" data-comp="' + c.id + '" title="' + (k ? 'In ' + k + ' Gericht' + (k === 1 ? '' : 'en') + ' – Klick zeigt sie' : 'Noch in keinem Gericht verwendet') + '">' + esc(c.name) + '<span class="bn">' + k + '</span></span>'; }).join('');
+      inner += '<div class="bgrp"><div class="bgh"><span class="sbar" style="background:' + farbe + '"></span><b>' + esc(gr) + '</b> <span class="count">' + label + ' · ' + cs.length + '</span></div><div class="bchips">' + chips + '</div></div>';
+    });
+  });
+  return secHtml('D:Beilagen', 'Beilagen', list.length + ' Beilagen', '<div class="sec-body">' + inner + '</div>', { farbe: '#0a2cff' });
 }
 function render() {
   const m = document.getElementById('main');
@@ -636,32 +666,16 @@ function render() {
     // Zusammenfassung: alle Desserts (normale + Fingerfood) in einem Abschnitt, davor die beiden einzelnen Abschnitte
     const dess = [].concat(by['Desserts'] || [], by['FF Desserts'] || []);
     if (dess.length) { by['Alle Desserts'] = dess; keys.splice(Math.max(0, keys.indexOf('Desserts') >= 0 ? keys.indexOf('Desserts') : keys.indexOf('FF Desserts')), 0, 'Alle Desserts'); }
+    // "Beilagen" steht bei den Komponenten-Sammlungen (nach Aufschnitt & Käse, vor den Desserts)
+    const bSek = beilagenSektion(active);
+    if (bSek) {
+      const ordPos = k => k === 'Alle Desserts' ? ORDER.indexOf('Desserts') - 0.25 : (ORDER.indexOf(k) < 0 ? 999 : ORDER.indexOf(k));
+      let at = keys.findIndex(k => ordPos(k) > ORDER.indexOf('Aufschnitt & Käse') + 0.5); if (at < 0) at = keys.length;
+      keys.splice(at, 0, 'Beilagen');
+    }
     if (neueVariante) { const g0 = dishOf(neueVariante); if (g0) SEC['D:' + eff(g0).sammlung] = true; }
-    keys.forEach(k => { html += secHtml('D:' + k, k, by[k].length + ' Gerichte', `<div class="grid">${by[k].map(dishHtml).join('')}</div>`, { farbe: secFarbe(k), standard: state.showRemoved ? true : undefined }); });
-    if (!list.length) html = `<div class="empty">${state.showRemoved ? 'Keine entfernten Gerichte.' : 'Keine Gerichte für diesen Filter.'}</div>`;
-  } else if (state.view === 'B') {
-    // Zusammenfassung aller Beilagen (Sättigung) und Gemüse/Salate, farbcodiert wie in der Legende; Klick auf eine Beilage zeigt ihre Gerichte
-    const uses = {};
-    active.forEach(e => e.ids.forEach(id => uses[id] = (uses[id] || 0) + 1));
-    const alle = DB.komponenten.filter(c => c.rolle === 'B' || c.rolle === 'G');
-    const list = alle.filter(matchesComp);
-    const groups = {};
-    list.forEach(c => ((groups[c.rolle] = groups[c.rolle] || {})[c.gruppe] = (groups[c.rolle][c.gruppe] || [])).push(c));
-    const nB = list.filter(c => c.rolle === 'B').length, nG = list.filter(c => c.rolle === 'G').length, benutzt = list.filter(c => uses[c.id]).length;
-    let tiles = '';
-    [['B', 'Beilagen'], ['G', 'Gemüse & Salate']].forEach(([r]) => Object.keys(groups[r] || {}).forEach(gr => { const cs = groups[r][gr]; tiles += '<span class="lg ' + roleClass(cs[0]) + '">' + esc(gr) + ' · ' + cs.length + '</span>'; }));
-    if (list.length) html += '<div class="bsum"><span class="gesamt"><b>' + list.length + '</b> Beilagen insgesamt · ' + nB + ' Sättigung · ' + nG + ' Gemüse &amp; Salate · ' + benutzt + ' davon in Gerichten verwendet</span>' + tiles + '</div>';
-    [['B', 'Beilagen (Sättigung)'], ['G', 'Gemüse & Salate']].forEach(([r, label]) => {
-      const gs = groups[r]; if (!gs) return;
-      const n = Object.values(gs).reduce((a, b) => a + b.length, 0);
-      html += '<h2>' + label + ' <span class="count">' + n + '</span></h2>';
-      Object.keys(gs).forEach(gr => {
-        const cs = gs[gr].slice().sort((a, b) => a.name.localeCompare(b.name, 'de'));
-        const chips = cs.map(c => { const k = uses[c.id] || 0; return '<span class="c bchip ' + roleClass(c) + (k ? '' : ' zero') + '" data-comp="' + c.id + '" title="' + (k ? 'In ' + k + ' Gericht' + (k === 1 ? '' : 'en') + ' – Klick zeigt sie' : 'Noch in keinem Gericht verwendet') + '">' + esc(c.name) + '<span class="bn">' + k + '</span></span>'; }).join('');
-        html += secHtml('B:' + r + ':' + gr, gr, cs.length + ' Beilagen', '<div class="bchips">' + chips + '</div>', { cls: 'sub', farbe: roleClass(cs[0]) === 'rB1' ? '#0a2cff' : roleClass(cs[0]) === 'rB2' ? '#001b8a' : '#96e5b8', standard: true });
-      });
-    });
-    if (!list.length) html = '<div class="empty">Keine Beilagen für diesen Filter.</div>';
+    keys.forEach(k => { if (k === 'Beilagen') { html += bSek; return; } html += secHtml('D:' + k, k, by[k].length + ' Gerichte', `<div class="grid">${by[k].map(dishHtml).join('')}</div>`, { farbe: secFarbe(k), standard: state.showRemoved ? true : undefined }); });
+    if (!list.length && !bSek) html = `<div class="empty">${state.showRemoved ? 'Keine entfernten Gerichte.' : 'Keine Gerichte für diesen Filter.'}</div>`;
   } else {
     const uses = {};
     active.forEach(e => e.ids.forEach(id => uses[id] = (uses[id] || 0) + 1));
@@ -933,10 +947,9 @@ document.getElementById('pk').addEventListener('click', ev => {
 });
 
 // ================= Bedienung =================
-const setTab = v => { state.view = v; document.getElementById('tabD').classList.toggle('active', v === 'D'); document.getElementById('tabK').classList.toggle('active', v === 'K'); document.getElementById('tabB').classList.toggle('active', v === 'B'); render(); };
+const setTab = v => { state.view = v; document.getElementById('tabD').classList.toggle('active', v === 'D'); document.getElementById('tabK').classList.toggle('active', v === 'K'); render(); };
 document.getElementById('tabD').onclick = () => setTab('D');
 document.getElementById('tabK').onclick = () => setTab('K');
-document.getElementById('tabB').onclick = () => setTab('B');
 document.getElementById('q').oninput = e => { state.q = e.target.value; render(); };
 document.getElementById('fKueche').onchange = e => { state.kueche = e.target.value; render(); };
 document.getElementById('fGang').onchange = e => { state.gang = e.target.value; render(); };
