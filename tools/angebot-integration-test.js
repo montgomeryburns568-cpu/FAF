@@ -181,6 +181,32 @@ check('gleiche Version -> keine Änderung', IA.vergleiche(a1, IA.bereinige(basis
     check('ungültige Adresse wird abgelehnt', (await sj('PUT', '/api/buero-verbindung', { origins: 'ht!tp://' }, { cookie })).s === 400);
     const neu = (await sj('POST', '/api/buero-verbindung/schluessel', null, { cookie })).j.schluessel;
     check('neuer Schlüssel macht den alten ungültig', (await mitKey(key, 'GET', '/api/integration/v1/lager')).s === 401 && (await mitKey(neu, 'GET', '/api/integration/v1/lager')).s === 200);
+
+
+    // ---------- Synergie-Empfehlung: schon in bestätigten Aufträgen produzierte Gerichte ----------
+    const d1 = plus(40), d3 = plus(47);
+    const syn = (name, datum, positionen, id) => { const x = basis(); x.officeEventId = id; x.kunde = { name }; x.tage[0].datum = datum; x.tage[0].positionen = positionen; return x; };
+    const gHuhn = { katalogId: 'g1', gang: 'Hauptgang', name: 'Gegrillte Hähnchenbrust Orangen-Mandelsoße mit Rosmarinkartoffeln und Kräuterbutter', komponenten: ['k1', 'k2', 'k3', 'k4'] };
+    await post(syn('Synergie Kunde Eins', d1, [gHuhn, { katalogId: 'g236', gang: 'Vorspeise', name: 'Antipastiplatte', komponenten: [] }], 'test-syn-0001'));
+    await post(syn('Synergie Kunde Zwei', d1, [gHuhn], 'test-syn-0002'));
+    await post(syn('Synergie Kunde Drei', d3, [gHuhn], 'test-syn-0003'));
+    const sy = await mitKey(neu, 'GET', '/api/integration/v1/synergien?datum=' + d1);
+    check('Synergien: 200 mit Schlüssel', sy.s === 200 && sy.j.format === 'kuechen-synergien/1', sy.j);
+    const huhn = (sy.j.gerichte || []).find(x => x.katalogId === 'g1');
+    check('Gericht vom selben Tag steht vorn, Passung „gleicher Tag“', sy.j.gerichte[0] && sy.j.gerichte[0].passung === 'gleicher Tag' && huhn && huhn.passung === 'gleicher Tag', sy.j.gerichte && sy.j.gerichte.slice(0, 3));
+    check('mehrere Aufträge werden gezählt, Termine mit Gästen genannt', huhn && huhn.anzahlAuftraege >= 3 && huhn.tage.some(t => t.datum === d1 && t.gaeste >= 2) && huhn.gaesteGesamt > 0, huhn);
+    check('Begründung nennt den selben Tag', huhn && /selben Tag/.test(huhn.begruendung), huhn && huhn.begruendung);
+    check('Komponenten des Gerichts sind aufgeführt', huhn && huhn.komponenten.some(c => c.id === 'k1'), huhn && huhn.komponenten);
+    check('keine Kundennamen in der Antwort', !/Synergie Kunde|Beispiel GmbH|Testkunde/.test(JSON.stringify(sy.j)), 'Kundenname gefunden');
+    const sy3 = await mitKey(neu, 'GET', '/api/integration/v1/synergien?datum=' + d3);
+    check('anderer Wunschtermin: Passung richtet sich danach', (sy3.j.gerichte.find(x => x.katalogId === 'g1') || {}).passung === 'gleicher Tag' && (sy3.j.gerichte.find(x => x.katalogId === 'g236') || {}).passung !== 'gleicher Tag', sy3.j.gerichte.slice(0, 3));
+    const syFern = await mitKey(neu, 'GET', '/api/integration/v1/synergien?datum=' + plus(200));
+    check('weit entfernter Wunschtermin: nur „anderer Zeitraum“', syFern.j.gerichte.every(x => x.passung === 'anderer Zeitraum') && syFern.j.komponenten.length === 0, syFern.j.gerichte.map(x => x.passung));
+    const sOhne = await mitKey(neu, 'GET', '/api/integration/v1/synergien');
+    check('ohne Wunschtermin: Liste vorhanden', sOhne.s === 200 && sOhne.j.gerichte.length > 0 && sOhne.j.datum === null);
+    const lg = await mitKey(neu, 'GET', '/api/integration/v1/lager?datum=' + d1);
+    check('Lager-Antwort enthält die Kurzfassung der Synergien', lg.s === 200 && Array.isArray(lg.j.synergien) && lg.j.synergien.length > 0 && lg.j.synergien[0].katalogId, lg.j.synergien);
+    check('Synergien nur mit Schlüssel/Lager-Bereich', (await fetch(base + '/api/integration/v1/synergien')).status === 401);
   } catch (e) { bad++; console.log('✗ Ausnahme:', e.stack || e.message); }
   server.close();
   fs.rmSync(dataDir, { recursive: true, force: true });

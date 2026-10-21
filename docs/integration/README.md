@@ -34,6 +34,7 @@ Das Büro ist dabei ein **weiterer Nutzer des Katalogs** – nicht eine Kopie da
 - **Nachrichten-Schnittstelle** zwischen Katalog-Seite und Office-App (Gericht hinzufügen, Hell/Dunkel, Token erneuern).
 - Nur-Lese-Tokens für Nutzer ohne Bearbeitungsrecht.
 - **Lager-Übersicht** (Überproduktion + Basisvorrat, ohne Kundendaten) als lesende Schnittstelle mit eigenem Token-Bereich.
+- **Synergie-Empfehlung** (`GET /api/integration/v1/synergien?datum=…`): Gerichte und Komponenten, die in bestätigten anstehenden Aufträgen ohnehin produziert werden – das Büro soll sie für neue Angebote bevorzugt anbieten (spart Aufwand und Einkauf); Vorrang für den Wunschtermin (gleicher Tag, gleiche Bestellwoche).
 - **Empfang bestätigter Angebote** (`POST /api/integration/v1/angebote`, Token-Bereich `angebote`): legt Auftrag samt Küchensheet/To-Do/Einkauf an, nimmt Änderungen nach dem **Bestellrhythmus** an oder legt sie der Küche zur Bestätigung vor, Storno, Angebots-**PDF** für die Vorschau (Preise geschwärzt), Statusabfrage fürs Büro. Getestet mit `node tools/angebot-integration-test.js`.
 
 ## Was als Nächstes gemeinsam entsteht

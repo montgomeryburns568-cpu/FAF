@@ -227,6 +227,17 @@ function requireScope(scope) {
     res.status(401).json({ error: 'Nicht angemeldet.' });
   };
 }
+// Synergie-Empfehlung: Gerichte/Komponenten, die in bestätigten anstehenden Aufträgen ohnehin produziert werden (optional mit Wunschtermin ?datum=JJJJ-MM-TT)
+async function synergienBerechnen(datumParam, max) {
+  const datum = /^\d{4}-\d{2}-\d{2}$/.test(String(datumParam || '')) ? String(datumParam) : null;
+  let gerichte = []; try { gerichte = require('./speisenkatalog/katalog-gerichte.js'); } catch (e) { /* ältere Auslieferung */ }
+  const komp = Object.fromEntries(require('./speisenkatalog/katalog-komponenten.js').komponenten.map(k => [k.id, k]));
+  return require('./synergie').synergien({ events: await store.getEvents(), gerichte, komponenten: komp, heute: IA.berlinJetzt().slice(0, 10), datum, max });
+}
+app.get('/api/integration/v1/synergien', requireScope('lager'), async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try { res.json(await synergienBerechnen(req.query.datum, 20)); } catch (err) { console.error('Synergien:', err.stack || err.message); res.status(500).json({ error: 'Synergien konnten nicht berechnet werden.' }); }
+});
 app.get('/api/integration/v1/lager', requireScope('lager'), async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const KL = require('./public/kartei-logik.js');
@@ -244,6 +255,7 @@ app.get('/api/integration/v1/lager', requireScope('lager'), async (req, res) => 
     ueberproduktion: ue.map(r => ({ id: r.itemId, name: r.name, menge: r.menge, einheit: r.einheit, klasse: r.klasse, klasseLabel: r.klasseLabel, haltbarBis: r.haltbarBis, tageRest: r.tageRest, ampel: r.ampel, notiz: r.notiz, herkunftDatum: r.datum,
       vorschlaege: { ideen: KL.ideenFuer(r.name, kat.komponenten).kuratiert, gerichte: KL.gerichteFuer(r.name, kat.komponenten, gerichte, 6) } })),
     vorrat,
+    synergien: await synergienBerechnen(req.query.datum, 8).then(r => r.gerichte).catch(() => []),   // Kurzfassung; Details mit Komponenten: GET /api/integration/v1/synergien
   });
 });
 

@@ -29,6 +29,11 @@ Kurz: Der Generator liefert die Katalog-Seite unter `/api/speisenkatalog/embed` 
 **Phase 1b – Lager-Übersicht im Angebots-Editor**
 - Ruf serverseitig `GET /api/integration/v1/lager` auf (Token mit Bereich `lager`, siehe `LAGER-SCHNITTSTELLE.md`) und zeige eine kleine Karte „Auf Lager – bitte bevorzugt anbieten“: Überproduktion mit Menge, Haltbarkeit und Ampel. Die Vorschläge (`vorschlaege.gerichte`) lassen sich per Nachricht `ks-katalog:select-dish` ins Angebot übernehmen. Zusätzlich ein kurzer Hinweis, wenn der Basisvorrat knapp ist.
 
+**Phase 1c – Synergie-Empfehlung im Angebots-Editor (Wunsch der Küche)**
+- Zusätzlich zur Lager-Karte soll der Editor **„Schon in der Produktion – bitte bevorzugt anbieten“** zeigen: Gerichte, die in bestätigten, anstehenden Aufträgen ohnehin produziert werden. Wer sie für einen neuen Kunden wieder anbietet (idealerweise am selben Tag), spart der Küche Aufwand und Einkauf. Beispiel: Kunde A isst am Fr 27.11. Hähnchenbrust in Orangen-Mandelsoße → für Kunde B am 27.11. dieses Gericht bevorzugt vorschlagen.
+- Aufruf serverseitig: `GET {KUECHE_URL}/api/integration/v1/synergien?datum=<Wunschtermin JJJJ-MM-TT>` (gleicher Schlüssel). Bei jeder Änderung des Termins im Editor neu abrufen. Felder, Sortierung (Passung: gleicher Tag → gleiche Bestellwoche → anderer Zeitraum) und Beispiel: `LAGER-SCHNITTSTELLE.md` Abschnitt „Synergie-Empfehlung“. Antwort enthält keine Kundennamen.
+- Anzeige: Karte mit `begruendung`, Termin, Gästezahl und Knopf „+ Zum Angebot“ (`ks-katalog:select-dish` mit der `katalogId`); Gerichte mit `passung: "gleicher Tag"` hervorheben, `verwandteGerichte` als Variante anbieten. Keine Preise oder Kundendaten dazu übertragen.
+
 **Phase 2 – Angebote mit Kennungen**
 - Beim Nachricht `ks-katalog:add-dish` eine Angebotszeile mit `katalogId`, Name, `komponenten` (Kennungen) und Gang anlegen. Wunsch-Abweichungen (Beilage tauschen) gelten **nur für das Angebot**, nicht für den Katalog.
 - Preise bleiben in der Office-App und hängen an `katalogId` bzw. Komponenten (Mapping nach deinem Datenmodell). Für die meisten Gerichte gibt es bereits Preisvorschläge; **fehlende Preise werden im Editor markiert und nachgetragen** (und für künftige Angebote in der Preisliste gemerkt).
