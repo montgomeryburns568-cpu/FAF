@@ -99,8 +99,36 @@ function hauptgangArt(pos) {
   return null;   // unbekannt: der Generator entscheidet nach dem Namen
 }
 
+let katalogGerichte = null;
+function gerichteInfo() {
+  if (katalogGerichte) return katalogGerichte;
+  try { katalogGerichte = Object.fromEntries(require('./speisenkatalog/katalog-gerichte.js').map(g => [g.id, g])); } catch (e) { katalogGerichte = {}; }
+  return katalogGerichte;
+}
+// Prüft eine Position gegen den Speisenkatalog (Grundkatalog + von der Küche angelegte Varianten). Nichts wird erraten:
+// unbekannte Kennungen werden gemeldet, bekannte Komponenten übernommen, fehlt die Zusammensetzung, kommt sie aus dem Katalog-Gericht.
+function pruefePosition(p, ctx) {
+  const komp = komponentenInfo(), ger = gerichteInfo();
+  const custom = !!(ctx && ctx.customGerichte && ctx.customGerichte.has(p.katalogId));
+  const gKat = ger[p.katalogId];
+  const unbekannt = p.komponenten.filter(id => !komp[id]);
+  let ids = p.komponenten.filter(id => komp[id]);
+  if (!ids.length && gKat) ids = (gKat.ids || []).filter(id => komp[id]);
+  const hinweise = [];
+  if (!gKat && !custom) hinweise.push(`Gericht „${p.katalogId}“ ist im Speisenkatalog nicht zu finden`);
+  if (unbekannt.length) hinweise.push('Komponente' + (unbekannt.length === 1 ? '' : 'n') + ' ' + unbekannt.join(', ') + ' nicht im Speisenkatalog');
+  if (!ids.length) hinweise.push('keine Komponente aus dem Speisenkatalog erkannt');
+  return { ids, hinweis: hinweise.join('; ') };
+}
+// Liste der Auffälligkeiten (für die Antwort an das Büro und die Anzeige)
+function katalogWarnungen(a, ctx) {
+  const out = [];
+  a.tage.forEach(t => t.positionen.forEach(p => { const r = pruefePosition(p, ctx); if (r.hinweis) out.push({ tag: t.datum, katalogId: p.katalogId, name: p.name, hinweis: r.hinweis }); }));
+  return out;
+}
+
 // ---------- Angebot -> Auftrag ----------
-function angebotZuEvent(a, bisher) {
+function angebotZuEvent(a, bisher, ctx) {
   const ev = bisher ? JSON.parse(JSON.stringify(bisher)) : { id: undefined, todoChecks: {} };
   const wuensche = [];
   ev.name = a.kunde.name; ev.personen = a.gaesteGesamt; ev.modus = a.modus; ev.vegAnteil = a.vegetarischAnteil;
@@ -113,9 +141,11 @@ function angebotZuEvent(a, bisher) {
       dishes: t.positionen.map(p => {
         const n = zaehler[p.katalogId] = (zaehler[p.katalogId] || 0) + 1;
         const category = kategorieAusGang(p.gang);
-        const d = { id: `${t.datum}-${p.katalogId}-${n}`, name: p.name, category, personen: p.personen || 0, katalogId: p.katalogId, komponentenIds: p.komponenten.slice() };
+        const chk = pruefePosition(p, ctx);
+        const d = { id: `${t.datum}-${p.katalogId}-${n}`, name: p.name, category, personen: p.personen || 0, katalogId: p.katalogId, komponentenIds: chk.ids };
+        if (chk.hinweis) d.katalogHinweis = chk.hinweis;
         if (p.personen) d.personenFix = p.personen;
-        if (category === 'hauptgang') { const art = hauptgangArt(p); if (art) d.art = art; }
+        if (category === 'hauptgang') { const art = hauptgangArt({ ...p, komponenten: chk.ids }); if (art) d.art = art; }
         if (p.wunsch) wuensche.push(`${p.name}: ${p.wunsch}`);
         return d;
       }),
@@ -178,4 +208,4 @@ function pruefeFrist(tage, jetzt, runden) {
   return { gesperrt: gesperrt.length > 0, tage: je, gruende: Array.from(new Set(gesperrt.map(x => `${tagText(x.tag)}: ${x.grund}`))) };
 }
 
-module.exports = { FORMAT, pruefeAngebot, bereinige, angebotZuEvent, vergleiche, pruefeFrist, fristFuerTag, berlinJetzt, kategorieAusGang, isoDE, tagText };
+module.exports = { FORMAT, katalogWarnungen, pruefePosition, pruefeAngebot, bereinige, angebotZuEvent, vergleiche, pruefeFrist, fristFuerTag, berlinJetzt, kategorieAusGang, isoDE, tagText };

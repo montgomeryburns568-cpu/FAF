@@ -230,7 +230,14 @@ function computeDish(dish, recipes, rules) {
   if (!behalteAlt && typeof KatalogTodo !== 'undefined') {
     const k = KatalogTodo.fuerGericht(dish, { rules, recipes, findRecipe: findRecipeForDish, unitToGrams, gesamtGramm: result.gesamtGramm, gesamtFormel: result.gesamtFormel });
     if (k) { result.komponenten = k.komponenten; result.komponentenRest = k.rest; }
+    // Weder Komponenten aus dem Speisenkatalog noch ein Rezept gefunden: nichts erfinden, sondern ausdrücklich als nicht erkannt kennzeichnen
+    if (KatalogTodo.isReady() && !(result.komponenten && result.komponenten.length) && !result.recipe) {
+      result.unerkannt = true; result.missing = true;
+      result.formula = ''; result.totalLabel = ''; result.gesamtGramm = undefined; result.gesamtFormel = '';
+      result.missingHint = 'Nicht im Speisenkatalog gefunden – nicht erkannt. Es werden keine Mengen geschätzt.';
+    }
   }
+  if (dish.katalogHinweis) result.katalogHinweis = dish.katalogHinweis;   // Büro-Angebot: was an der Katalog-Kennung nicht stimmt
   return result;
 }
 function computeDishBase(dish, recipes, rules) {
@@ -532,7 +539,7 @@ function renderDishRow(dish) {
 function kompVorschauHTML(dish) {
   if (typeof KatalogTodo === 'undefined' || !KatalogTodo.isReady() || !dish.name || ['pfanne', 'brot'].includes(dish.category)) return '';
   const { gefunden } = KatalogTodo.erkenne(dish.name, dish.category);
-  if (!gefunden.length) return '<span class="komp-none">Im Speisenkatalog nicht erkannt</span>';
+  if (!gefunden.length) return '<span class="komp-none">⚠️ Nicht im Speisenkatalog gefunden – nicht erkannt</span>';
   return '<span class="hint">Komponenten:</span> ' + gefunden.map(c => `<span class="komp-chip komp-${c.rolle}" title="${escHtml(c.gruppe || '')}">${escHtml(c.name)}</span>`).join('');
 }
 
@@ -865,8 +872,9 @@ function renderDishCard(d, dayId) {
     html += `<ul class="ingredient-list">${d.ingredients.map(i => `<li>${fmtAmount(i.amount)} ${i.unit} ${i.name}</li>`).join('')}</ul>`;
   }
   if (d.steps) html += `<div class="dish-steps">${d.steps}</div>`;
+  if (!d.missing && d.katalogHinweis) html += `<div class="unerkannt-note">⚠️ ${escHtml(d.katalogHinweis)}</div>`;
   if (d.missing) {
-    html += `<div class="missing-note no-print">⚠️ ${d.missingHint} <button type="button" class="btn-ghost small-btn quick-add-recipe">Rezept anlegen</button> <button type="button" class="btn-ghost small-btn ai-suggest-recipe">✨ KI-Vorschlag</button></div>`;
+    html += `<div class="${d.unerkannt ? 'unerkannt-note' : 'missing-note no-print'}">⚠️ ${d.missingHint}${d.katalogHinweis ? ' <em>(' + escHtml(d.katalogHinweis) + ')</em>' : ''} <button type="button" class="btn-ghost small-btn quick-add-recipe no-print">Rezept anlegen</button> <button type="button" class="btn-ghost small-btn ai-suggest-recipe">✨ KI-Vorschlag</button></div>`;
   }
   html += `</div>`;
   return html;
@@ -1009,6 +1017,16 @@ function ezTabelleHTML(items) {
   return html;
 }
 let ekModus = 'woche';   // 'woche' (Wochenbestellung nach Bestellrhythmus) oder 'auftrag' (Liste des geöffneten Angebots)
+// Gerichte, die nicht erkannt wurden, liefern keine Zutaten – das muss auf der Einkaufsliste ausdrücklich stehen
+function unerkannteGerichte(computed, auftrag) {
+  const seen = new Set(), out = [];
+  (computed.days || []).forEach(day => (day.dishes || []).forEach(d => { if (!d.unerkannt) return; const k = (auftrag || '') + '|' + day.date + '|' + d.name; if (!seen.has(k)) { seen.add(k); out.push({ auftrag, tag: day.date, name: d.name }); } }));
+  return out;
+}
+function unerkanntBlockHTML(liste) {
+  if (!liste || !liste.length) return '';
+  return '<div class="unerkannt-note"><strong>⚠️ Nicht auf der Einkaufsliste – nicht im Speisenkatalog gefunden:</strong> ' + liste.map(u => escHtml((u.auftrag ? u.auftrag + ': ' : '') + u.name + (u.tag ? ' (' + u.tag + ')' : ''))).join(' · ') + '<div class="hint">Für diese Gerichte wurden keine Zutaten berechnet. Bitte im Speisenkatalog anlegen oder ein Rezept hinterlegen – sonst fehlen sie in der Bestellung.</div></div>';
+}
 function renderEinkaufsliste() {
   const out = document.getElementById('einkaufslisteOutput');
   document.getElementById('einkaufslisteBestellliste').style.display = 'none';
@@ -1021,14 +1039,15 @@ function renderEinkaufsliste() {
   }
   const computed = computeEvent(draftEvent, state.recipes, state.rules);
   const totals = aggregateIngredients(computed);
-  if (!totals.length) { out.innerHTML = '<p class="hint">Keine Zutaten gefunden.</p>'; return; }
+  const unerk = unerkanntBlockHTML(unerkannteGerichte(computed, ''));
+  if (!totals.length) { out.innerHTML = unerk + '<p class="hint">Keine Zutaten gefunden.</p>'; return; }
   // Erst mit Vorrat (Basisartikel) und Überproduktion verrechnen - nur der Rest wird bestellt (siehe vorrat.js)
   const verr = Vorrat.verrechne(draftEvent, totals);
   const bestellen = verr.rows.filter(r => !r.gedeckt).map(r => ({ name: r.name, unit: r.unit, amount: r.rest, row: r }))
     .concat(verr.nachbestellen.map(n => ({ name: n.item.name, unit: n.item.einheit, amount: n.menge, nach: n })));
 
-  let html = ezTabelleHTML(bestellen);
-  if (!bestellen.length) html = '<p class="hint">✅ Alles aus Vorrat und Überproduktion gedeckt – nichts zu bestellen.</p>';
+  let html = unerk + ezTabelleHTML(bestellen);
+  if (!bestellen.length) html = unerk + '<p class="hint">✅ Alles aus Vorrat und Überproduktion gedeckt – nichts zu bestellen.</p>';
   html += Vorrat.vorraetigHTML(verr.rows);
   html += Vorrat.buchungHTML(draftEvent);
   out.innerHTML = html;
@@ -1163,7 +1182,7 @@ function todoGerichteHTML(ev, day) {
         <span class="todo-formula">${d.formula || ''}</span>
         ${d.totalLabel ? '<strong> ' + d.totalLabel + '</strong>' : ''}
         ${d.name} ${d.steps ? '– ' + d.steps : ''}
-        ${d.missing ? ' <em>(kein Rezept hinterlegt)</em>' : ''}
+        ${d.unerkannt ? `<div class="unerkannt-note">⚠️ Nicht im Speisenkatalog gefunden – nicht erkannt. Es werden keine Mengen geschätzt.${d.katalogHinweis ? ' (' + escHtml(d.katalogHinweis) + ')' : ''}</div>` : d.missing ? ' <em>(kein Rezept hinterlegt)</em>' : ''}
       </div>
     </div>`;
   });
@@ -1217,6 +1236,7 @@ function renderKomponentenTodo(d, day, ev) {
       </div>
     </div>`;
   });
+  if (d.katalogHinweis) html += `<div class="unerkannt-note">⚠️ ${escHtml(d.katalogHinweis)}</div>`;
   if (d.komponentenRest && d.komponentenRest.length) {
     html += `<div class="hint no-print" style="margin:4px 0 0 28px">Nicht zugeordnet: ${d.komponentenRest.map(escHtml).join(', ')}</div>`;
   }

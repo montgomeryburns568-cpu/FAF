@@ -780,3 +780,9 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
 
 .bv-schluessel { margin: 10px 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-strong); background: rgba(127,127,127,.08); }
 .bv-schluessel code { display: block; word-break: break-all; font-size: 13px; margin: 6px 0; user-select: all; }
+
+/* Nicht erkannte Gerichte (nicht im Speisenkatalog): auffällig kennzeichnen statt etwas zu erfinden */
+.unerkannt-note { margin: 6px 0; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(217,164,65,.65); border-left-width: 4px; background: rgba(217,164,65,.14); color: var(--text); font-size: 13px; }
+.unerkannt-note .hint { margin-top: 4px; }
+.prod-unklar { color: var(--text); background: rgba(217,164,65,.14); border: 1px solid rgba(217,164,65,.55); border-radius: 8px; padding: 6px 10px; font-weight: 600; }
+.komp-none { color: var(--text); background: rgba(217,164,65,.14); border: 1px solid rgba(217,164,65,.55); border-radius: 6px; padding: 2px 8px; font-style: normal; }

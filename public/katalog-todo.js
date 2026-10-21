@@ -169,9 +169,8 @@ const KatalogTodo = (function () {
     const catId = dish.category;
     const P = dish.personen || 0;
     let { gefunden, rest } = erkenne(dish.name, catId);
-    if (dish.komponentenIds && dish.komponentenIds.length) {   // Angebot aus der Office-App: Zusammensetzung steht fest
-      const ausIds = dish.komponentenIds.map(id => byId[id]).filter(Boolean);
-      if (ausIds.length) { gefunden = ausIds; rest = []; }
+    if (dish.katalogId) {   // Angebot aus der Office-App: nur die Kennungen zählen – kein Raten über den Namen
+      gefunden = (dish.komponentenIds || []).map(id => byId[id]).filter(Boolean); rest = [];
     }
     if (!gefunden.length) return null;
     const gleicheRolle = {};

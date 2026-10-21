@@ -82,7 +82,7 @@ const Produktion = (function () {
               <span class="prod-anzahl">${d.personen || 0} Pers.${d.label ? ' · ' + esc(d.label) : ''}${d.regeln.length ? ` <span title="Eigene Regel: ${esc(d.regeln.join(', '))}">⚙</span>` : ''}</span>
               ${d.comps.length > 1 ? `<span class="prod-progress">${fertig}/${d.comps.length}</span>` : ''}</div>
             <div class="prod-chips">${d.comps.map(k => chipHTML(day.id, d, k)).join('')}</div>
-            ${!d.erkannt && !['brot'].includes(c.id) ? '<div class="prod-unklar">Nicht im Speisenkatalog erkannt – nur als ganzes Gericht abhakbar.</div>' : ''}
+            ${!d.erkannt && !['brot'].includes(c.id) ? '<div class="prod-unklar">⚠️ Nicht im Speisenkatalog gefunden – nicht erkannt. Nur als ganzes Gericht abhakbar.</div>' : ''}
           </div>`;
         });
       });

@@ -446,9 +446,12 @@ async function pdfLoeschen(pathname) {
 function ereignis(ev, text) { (ev.buero = ev.buero || []).push({ am: new Date().toISOString(), text }); ev.buero = ev.buero.slice(-30); }
 
 // Übernimmt eine Angebotsversion in den Auftrag (neu oder als Änderung)
+async function katalogKontext() {
+  try { const k = await store.getSpeisenkatalog(); return { customGerichte: new Set(Object.keys(((k && k.daten) || {}).speisen_custom || {})) }; } catch (e) { return { customGerichte: new Set() }; }
+}
 async function angebotUebernehmen(events, idx, a, pdf) {
   const alt = idx >= 0 ? events[idx] : null;
-  const neu = IA.angebotZuEvent(a, alt);
+  const neu = IA.angebotZuEvent(a, alt, await katalogKontext());
   if (!alt) neu.id = crypto.randomUUID();
   else if (alt.lagerGebucht) neu.lagerAbgleich = true;   // Verbrauch im Vorrat wird beim nächsten Öffnen der App neu verrechnet
   if (pdf) { if (alt && alt.pdfPathname && alt.pdfPathname !== pdf.pdfPathname) await pdfLoeschen(alt.pdfPathname); neu.pdfPathname = pdf.pdfPathname; neu.pdfFilename = pdf.pdfFilename; }
@@ -465,7 +468,9 @@ async function angebotVerarbeiten(roh) {
   const ev = idx >= 0 ? events[idx] : null;
   const runden = await store.getBestellungen();
   const jetzt = new Date();
-  const fertig = async (neu, body) => { await store.setEvents(events); await archivSynchronisieren(events).catch(err => console.error('Archiv-Sync:', err.message)); return { code: 200, body: { ok: true, kuechenEventId: neu.id, version: a.version, ...body } }; };
+  const ktx = await katalogKontext();
+  const warn = a.status === 'CONFIRMED' ? IA.katalogWarnungen(a, ktx) : [];
+  const fertig = async (neu, body) => { await store.setEvents(events); await archivSynchronisieren(events).catch(err => console.error('Archiv-Sync:', err.message)); return { code: 200, body: { ok: true, kuechenEventId: neu.id, version: a.version, ...body, ...(warn.length ? { warnungen: warn } : {}) } }; };
 
   if (ev && a.version < (ev.angebotVersion || 0)) return { code: 409, body: { ok: false, status: 'veraltet', aktuelleVersion: ev.angebotVersion, fehler: ['Es liegt bereits eine neuere Version vor.'] } };
   if (ev && ev.offeneAenderung && ev.offeneAenderung.version === a.version) return { code: 200, body: { ok: true, status: 'wartet_auf_kueche', kuechenEventId: ev.id, version: a.version, gruende: ev.offeneAenderung.gruende } };

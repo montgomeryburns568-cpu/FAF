@@ -138,6 +138,22 @@ check('gleiche Version -> keine Änderung', IA.vergleiche(a1, IA.bereinige(basis
     check('Storno vor der Frist: sofort storniert', sto2.j.status === 'storniert', sto2);
     check('Storno unbekannter Auftrag: kein Fehler', (await post({ format: 'kuechen-angebot/1', officeEventId: 'test-event-9999', status: 'CANCELLED', version: 1 })).j.status === 'unbekannt');
 
+    // ---------- Nicht im Speisenkatalog: nichts erfinden, sondern melden ----------
+    const u = basis(); u.officeEventId = 'test-event-unbekannt'; u.tage[0].datum = plus(80);
+    u.tage[0].positionen = [
+      { katalogId: 'g99999', gang: 'Hauptgang', name: 'Fantasiegericht', komponenten: ['k99999'] },
+      { katalogId: 'g1', gang: 'Hauptgang', name: 'Gegrillte Hähnchenbrust …', komponenten: ['k1', 'k99998'] },
+      { katalogId: 'g2', gang: 'Hauptgang', name: 'Gemüselasagne', komponenten: [] },
+    ];
+    const ru = await post(u);
+    check('unbekanntes Gericht: Antwort enthält Warnungen', ru.s === 200 && ru.j.status === 'angelegt' && Array.isArray(ru.j.warnungen) && ru.j.warnungen.length === 2, ru.j);
+    check('Warnung nennt Gericht und Komponente', ru.j.warnungen.some(w => w.katalogId === 'g99999' && /nicht zu finden/.test(w.hinweis)) && ru.j.warnungen.some(w => w.katalogId === 'g1' && /k99998/.test(w.hinweis)), ru.j.warnungen);
+    const evu = (await get('/api/events')).find(e => e.officeEventId === 'test-event-unbekannt');
+    const du = evu.days[0].dishes;
+    check('unbekanntes Gericht: keine Komponenten erfunden, Hinweis am Gericht', du[0].komponentenIds.length === 0 && /nicht zu finden/.test(du[0].katalogHinweis), du[0]);
+    check('bekanntes Gericht mit falscher Kennung: nur gültige Komponenten, Hinweis', du[1].komponentenIds.join() === 'k1' && /k99998/.test(du[1].katalogHinweis), du[1]);
+    check('bekanntes Gericht ohne Komponenten: Zusammensetzung aus dem Katalog, kein Hinweis', du[2].komponentenIds.length > 0 && !du[2].katalogHinweis, du[2]);
+
     // ---------- Verbindungsschlüssel (dauerhaft, statt Geheimnis + selbst gebauter Token) ----------
     const sj = async (m, p, body, h = {}) => { const r = await fetch(base + p, { method: m, headers: { 'content-type': 'application/json', ...h }, body: body ? JSON.stringify(body) : undefined }); return { s: r.status, j: await r.json().catch(() => ({})), h: r.headers }; };
     check('Schlüssel erzeugen verlangt Anmeldung', (await sj('POST', '/api/buero-verbindung/schluessel')).s === 401);

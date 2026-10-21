@@ -27,13 +27,14 @@ const Bestellung = (function () {
   function bedarfFuerBlock(start) {
     const info = B.blockInfo(start);
     const imBlock = iso => iso && iso >= info.start && iso <= info.ende;
-    const map = new Map(), nach = new Map(), auftraege = [];
+    const map = new Map(), nach = new Map(), auftraege = [], unerkannt = [];
     for (const ev of state.events || []) {
       if (!ev.days || !ev.days.length) continue;
       const tage = ev.days.filter(d => imBlock(K.parseDatumDE(d.date)));
       if (!tage.length) continue;
       let comp; try { comp = computeEvent(ev, state.recipes, state.rules); } catch (e) { continue; }
       const blockTage = comp.days.filter(d => tage.some(t => t.id === d.id));
+      unerkannt.push(...unerkannteGerichte({ days: blockTage }, ev.name));
       const totalsBlock = aggregateIngredients({ days: blockTage });
       const v = Vorrat.verrechne(ev, aggregateIngredients(comp));
       const faktor = new Map(v.rows.map(r => [keyOf(r.name, r.unit), r.amount > 0 ? r.rest / r.amount : 1]));
@@ -48,7 +49,7 @@ const Bestellung = (function () {
     nach.forEach(n => { const k = keyOf(n.item.name, n.item.einheit); const e = map.get(k) || { name: n.item.name, unit: n.item.einheit, amount: 0 }; e.amount += n.menge; e.nach = n; map.set(k, e); });
     const positionen = Array.from(map.values()).filter(p => p.amount > 1e-6).map(p => ({ name: p.name, unit: p.unit, amount: Math.round(p.amount * 100) / 100, nach: p.nach }))
       .sort((a, b) => a.name.localeCompare(b.name, 'de'));
-    return { positionen, auftraege, info };
+    return { positionen, auftraege, info, unerkannt };
   }
   const zustandFuer = (start, bedarf) => B.blockZustand(B.blockInfo(start), bedarf.positionen, runden().filter(r => r.block === start));
 
@@ -96,6 +97,7 @@ const Bestellung = (function () {
     h += `<details class="ek-auftraege"><summary><strong>${d.auftraege.length}</strong> ${d.auftraege.length === 1 ? 'Auftrag' : 'Aufträge'} in diesem Zeitraum</summary>
       ${d.auftraege.length ? `<ul>${d.auftraege.sort((a, b) => (a.tage[0] || '').localeCompare(b.tage[0] || '')).map(a => `<li>${esc(a.ev.name)} <span class="hint">· ${esc(a.tage.join(', '))} · ${a.gaeste || '?'} Gäste</span></li>`).join('')}</ul>` : '<p class="hint">Keine Aufträge mit Datum in diesem Zeitraum.</p>'}</details>`;
 
+    h += unerkanntBlockHTML(d.unerkannt);
     const titel = z.typ === 'haupt'
       ? (z.ueberfaellig ? 'Hauptbestellung – Frist überschritten (bitte außer der Reihe bestellen)' : 'Hauptbestellung')
       : 'Nachbestellung – separate Liste (nach der Hauptbestellung hinzugekommen oder geändert)';
