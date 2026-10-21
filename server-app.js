@@ -7,7 +7,7 @@ const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
 const store = require('./store');
 const { createAuthToken, verifyAuthToken, MAX_AGE_MS, createPreisToken, verifyPreisToken, PREIS_MAX_AGE_MS } = require('./auth');
-const { pruefeEmbedToken } = require('./embed-auth');
+const { pruefeEmbedToken, erzeugeEmbedToken } = require('./embed-auth');
 const { mergeKatalogDaten } = require('./katalog-merge');
 const IA = require('./integration-angebot');
 
@@ -18,6 +18,7 @@ const IS_VERCEL = !!process.env.VERCEL;
 // Einbindung des Speisenkatalogs in andere Anwendungen (Office-App): gemeinsames Geheimnis + erlaubte Herkunft(en), nur als Umgebungsvariablen
 const OFFICE_EMBED_SECRET = process.env.OFFICE_EMBED_SECRET || '';
 const OFFICE_ORIGINS = (process.env.OFFICE_ORIGIN || '').split(',').map(s => s.trim().replace(/\/$/, '')).filter(Boolean);
+const embedGeheimnis = () => OFFICE_EMBED_SECRET || crypto.createHmac('sha256', SESSION_SECRET || 'kein-geheimnis').update('kuechen-embed-v1').digest('hex');
 
 if (!APP_PASSWORD || !SESSION_SECRET) {
   console.error('FEHLER: APP_PASSWORD und/oder SESSION_SECRET sind nicht gesetzt (siehe .env.example).');
@@ -49,23 +50,47 @@ function registerFailure(ip) {
 }
 function clearFailures(ip) { loginAttempts.delete(ip); }
 
-// Katalog-Endpunkte: Anmeldung im Generator ODER kurzlebiges Token der Office-App (nur Scope "katalog")
-function katalogNutzer(req) {
-  if (verifyAuthToken(SESSION_SECRET, req.cookies && req.cookies.auth)) return { sub: 'generator', name: 'Küche' };
-  const h = req.headers.authorization || '';
-  return h.startsWith('Bearer ') ? pruefeEmbedToken(OFFICE_EMBED_SECRET, h.slice(7).trim()) : null;
+// --- Verbindung zur Office-App ---
+// Ein dauerhafter Verbindungsschlüssel ("ksk_…", in der App unter Regeln erzeugt) ersetzt Geheimnis und selbst gebaute Token:
+// Die Office-App schickt ihn bei jedem Aufruf als "Authorization: Bearer ksk_…" mit. Für die eingebettete Katalog-Seite holt sie sich
+// damit per POST /api/integration/v1/token ein kurzlebiges Token (der Schlüssel selbst gehört nie in den Browser).
+const sha256 = t => crypto.createHash('sha256').update(String(t)).digest('hex');
+async function bueroSchluesselOk(v) {
+  if (!v || !v.startsWith('ksk_')) return false;
+  const verb = await store.getBueroVerbindung();
+  if (!verb || !verb.keyHash) return false;
+  const x = Buffer.from(sha256(v), 'hex'), y = Buffer.from(verb.keyHash, 'hex');
+  if (x.length !== y.length || !crypto.timingSafeEqual(x, y)) return false;
+  if (!verb.zuletzt || Date.now() - Date.parse(verb.zuletzt) > 10 * 60 * 1000) { verb.zuletzt = new Date().toISOString(); store.setBueroVerbindung(verb).catch(() => {}); }
+  return true;
 }
-function requireKatalogAuth(req, res, next) {
-  const u = katalogNutzer(req);
-  if (u) { req.katalogNutzer = u; return next(); }
+// scope: 'katalog' | 'lager' | 'angebote'
+async function integrationsNutzer(req, scope) {
+  const h = req.headers.authorization || '';
+  if (!h.startsWith('Bearer ')) return null;
+  const v = h.slice(7).trim();
+  if (v.startsWith('ksk_')) return (await bueroSchluesselOk(v)) ? { sub: 'office', name: 'Büro', scope: 'katalog lager angebote' } : null;
+  return pruefeEmbedToken(embedGeheimnis(), v, scope);
+}
+async function erlaubteHerkuenfte() {
+  const verb = await store.getBueroVerbindung().catch(() => null);
+  return Array.from(new Set(OFFICE_ORIGINS.concat((verb && verb.origins) || [])));
+}
+// Katalog-Endpunkte: Anmeldung im Generator ODER Büro-Zugang (Schlüssel bzw. kurzlebiges Token, nur Bereich "katalog")
+async function katalogNutzer(req) {
+  if (verifyAuthToken(SESSION_SECRET, req.cookies && req.cookies.auth)) return { sub: 'generator', name: 'Küche' };
+  return integrationsNutzer(req, 'katalog');
+}
+async function requireKatalogAuth(req, res, next) {
+  try { const u = await katalogNutzer(req); if (u) { req.katalogNutzer = u; return next(); } } catch (e) { console.error('Katalog-Auth:', e.message); }
   res.status(401).json({ error: 'Nicht angemeldet.' });
 }
 // CORS nur für die eingetragene Office-Herkunft (Server-zu-Server-Aufrufe brauchen kein CORS)
-app.use(['/api/speisenkatalog', '/api/integration'], (req, res, next) => {
+app.use(['/api/speisenkatalog', '/api/integration'], async (req, res, next) => {
   const o = req.headers.origin;
-  if (o && OFFICE_ORIGINS.includes(o)) {
+  if (o && (await erlaubteHerkuenfte()).includes(o)) {
     res.setHeader('Access-Control-Allow-Origin', o); res.setHeader('Vary', 'Origin');
-    res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type'); res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type'); res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, POST, OPTIONS');
     if (req.method === 'OPTIONS') return res.status(204).end();
   }
   next();
@@ -182,12 +207,12 @@ app.put('/api/speisenkatalog/state', requireKatalogAuth, async (req, res) => {
 
 // Eingebettete Katalog-Seite für andere Anwendungen (iframe): Token kommt per Adresse (iframes können keine Header senden), wird in die Seite
 // eingesetzt und von dort bei jedem Zugriff auf die Katalog-Schnittstelle mitgeschickt. Erlaubt ist das Einbetten nur durch OFFICE_ORIGIN.
-app.get('/api/speisenkatalog/embed', (req, res) => {
-  const u = pruefeEmbedToken(OFFICE_EMBED_SECRET, String(req.query.token || ''));
+app.get('/api/speisenkatalog/embed', async (req, res) => {
+  const u = pruefeEmbedToken(embedGeheimnis(), String(req.query.token || ''));
   if (!u) return res.status(401).type('text').send('Token ungültig oder abgelaufen.');
   const cfg = { token: String(req.query.token), user: u.name || '', readonly: !!u.ro, select: req.query.select === '1', theme: req.query.theme === 'dark' ? 'dark' : req.query.theme === 'light' ? 'light' : '' };
   res.setHeader('Cache-Control', 'no-store');
-  res.setHeader('Content-Security-Policy', `frame-ancestors 'self' ${OFFICE_ORIGINS.join(' ')}`);
+  res.setHeader('Content-Security-Policy', `frame-ancestors 'self' ${(await erlaubteHerkuenfte()).join(' ')}`);
   res.setHeader('Referrer-Policy', 'no-referrer');
   const html = require('./speisenkatalog/katalog-html.js').replace('<!--KATALOG_EMBED-->', () => '<script>window.__KATALOG_EMBED = ' + JSON.stringify(cfg).replace(/</g, '\\u003c') + ';</script>');
   res.type('html').send(html);
@@ -197,11 +222,9 @@ app.get('/api/speisenkatalog/embed', (req, res) => {
 // Zeigt dem Büro bei der Angebotserstellung, was ohnehin da ist bzw. überproduziert wurde und verkauft werden soll – samt Vorschlägen aus dem Katalog.
 // Keine Kundennamen, nur Artikel, Mengen, Haltbarkeit.
 function requireScope(scope) {
-  return (req, res, next) => {
-    const h = req.headers.authorization || '';
-    const u = h.startsWith('Bearer ') ? pruefeEmbedToken(OFFICE_EMBED_SECRET, h.slice(7).trim(), scope) : null;
-    if (!u) return res.status(401).json({ error: 'Nicht angemeldet.' });
-    req.integrationNutzer = u; next();
+  return async (req, res, next) => {
+    try { const u = await integrationsNutzer(req, scope); if (u) { req.integrationNutzer = u; return next(); } } catch (e) { console.error('Auth:', e.message); }
+    res.status(401).json({ error: 'Nicht angemeldet.' });
   };
 }
 app.get('/api/integration/v1/lager', requireScope('lager'), async (req, res) => {
@@ -290,6 +313,7 @@ async function sendeAngebotPdf(req, res, pathname, filename) {
     if (!frei) daten = (await require('./preise-schwaerzen').schwaerzen(daten)).pdf;
     res.setHeader('content-type', 'application/pdf');
     res.setHeader('cache-control', 'private, no-store');
+    res.setHeader('x-preise', frei ? 'frei' : 'gesperrt');
     res.setHeader('content-disposition', `inline; filename="${String(filename || 'angebot.pdf').replace(/[^\w. -]/g, '_')}"`);
     res.send(daten);
   } catch (err) {
@@ -344,10 +368,47 @@ app.get('/api/events/:id/pdf', requireAuth, async (req, res) => {
   await sendeAngebotPdf(req, res, ev.pdfPathname, ev.pdfFilename);
 });
 
-// --- Angebote aus der Office-App (Token-Bereich "angebote"; Format: docs/integration/ANGEBOT-FORMAT.md) ---
-function angebotsNutzer(req, res, next) {
+// Kurzlebiges Token für die eingebettete Katalog-Seite (die Office-App ruft das serverseitig mit ihrem Schlüssel ab)
+app.post('/api/integration/v1/token', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   const h = req.headers.authorization || '';
-  const u = h.startsWith('Bearer ') ? pruefeEmbedToken(OFFICE_EMBED_SECRET, h.slice(7).trim(), 'angebote') : null;
+  if (!(await bueroSchluesselOk(h.startsWith('Bearer ') ? h.slice(7).trim() : ''))) return res.status(401).json({ error: 'Nicht angemeldet.' });
+  const { name, readonly, lebensdauerS } = req.body || {};
+  const ttl = Math.max(300, Math.min(Number(lebensdauerS) || 3600, 4 * 3600));
+  const token = erzeugeEmbedToken(embedGeheimnis(), { sub: 'office', name: String(name || 'Büro').slice(0, 60), scope: 'katalog lager', lebensdauerS: ttl, readonly: !!readonly });
+  const basis = (IS_VERCEL ? 'https://' : req.protocol + '://') + req.headers.host;
+  res.json({ ok: true, token, laeuftAbIn: ttl, embedUrl: `${basis}/api/speisenkatalog/embed?token=${token}&select=1` });
+});
+// Einstellungen in der App (Regeln -> Büro-Verbindung): Adresse(n) des Büro-Programms, Schlüssel erzeugen
+app.get('/api/buero-verbindung', requireAuth, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const v = await store.getBueroVerbindung();
+  res.json({ vorhanden: !!(v && v.keyHash), endung: v && v.endung || '', erzeugt: v && v.erzeugt || null, zuletzt: v && v.zuletzt || null, origins: (v && v.origins) || [], aussenUmgebung: OFFICE_ORIGINS });
+});
+app.put('/api/buero-verbindung', requireAuth, async (req, res) => {
+  const roh = Array.isArray(req.body && req.body.origins) ? req.body.origins : String((req.body && req.body.origins) || '').split(/[\s,;]+/);
+  const origins = [];
+  for (const t of roh.map(x => String(x).trim()).filter(Boolean)) {
+    try { const u = new URL(/^https?:\/\//i.test(t) ? t : 'https://' + t); if (!/^[a-z0-9.-]+$/i.test(u.hostname) || !(u.hostname.includes('.') || u.hostname === 'localhost')) throw new Error('Adresse'); origins.push(u.origin); } catch (e) { return res.status(400).json({ error: 'Das ist keine gültige Adresse: ' + t }); }
+  }
+  const v = (await store.getBueroVerbindung()) || {};
+  v.origins = Array.from(new Set(origins));
+  await store.setBueroVerbindung(v);
+  res.json({ ok: true, origins: v.origins });
+});
+app.post('/api/buero-verbindung/schluessel', requireAuth, async (req, res) => {
+  const schluessel = 'ksk_' + crypto.randomBytes(32).toString('base64url');
+  const v = (await store.getBueroVerbindung()) || {};
+  Object.assign(v, { keyHash: sha256(schluessel), endung: schluessel.slice(-4), erzeugt: new Date().toISOString(), zuletzt: null });
+  await store.setBueroVerbindung(v);
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ ok: true, schluessel });   // wird nur dieses eine Mal angezeigt; gespeichert ist nur der Hash
+});
+
+// --- Angebote aus der Office-App (Token-Bereich "angebote"; Format: docs/integration/ANGEBOT-FORMAT.md) ---
+async function angebotsNutzer(req, res, next) {
+  let u = null;
+  try { u = await integrationsNutzer(req, 'angebote'); } catch (err) { console.error('Auth:', err.message); }
   if (!u) return res.status(401).json({ error: 'Nicht angemeldet.' });
   if (u.ro) return res.status(403).json({ error: 'Nur Lesezugriff.' });
   req.integrationNutzer = u; next();

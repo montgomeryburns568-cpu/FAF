@@ -137,6 +137,34 @@ check('gleiche Version -> keine Änderung', IA.vergleiche(a1, IA.bereinige(basis
     const sto2 = await post({ format: 'kuechen-angebot/1', officeEventId: 'test-event-0001', status: 'CANCELLED', version: 4 });
     check('Storno vor der Frist: sofort storniert', sto2.j.status === 'storniert', sto2);
     check('Storno unbekannter Auftrag: kein Fehler', (await post({ format: 'kuechen-angebot/1', officeEventId: 'test-event-9999', status: 'CANCELLED', version: 1 })).j.status === 'unbekannt');
+
+    // ---------- Verbindungsschlüssel (dauerhaft, statt Geheimnis + selbst gebauter Token) ----------
+    const sj = async (m, p, body, h = {}) => { const r = await fetch(base + p, { method: m, headers: { 'content-type': 'application/json', ...h }, body: body ? JSON.stringify(body) : undefined }); return { s: r.status, j: await r.json().catch(() => ({})), h: r.headers }; };
+    check('Schlüssel erzeugen verlangt Anmeldung', (await sj('POST', '/api/buero-verbindung/schluessel')).s === 401);
+    const sk = await sj('POST', '/api/buero-verbindung/schluessel', null, { cookie });
+    const key = sk.j.schluessel; check('Schlüssel wird einmal angezeigt', sk.s === 200 && /^ksk_/.test(key));
+    const stt = await sj('GET', '/api/buero-verbindung', null, { cookie });
+    check('Status zeigt nur die Endung, nicht den Schlüssel', stt.j.vorhanden && stt.j.endung === key.slice(-4) && !JSON.stringify(stt.j).includes(key));
+    const mitKey = (k, m, p, body) => sj(m, p, body, { authorization: 'Bearer ' + k });
+    const ak = basis(); ak.officeEventId = 'test-event-key-1'; ak.tage[0].datum = plus(70);
+    check('Angebot mit Schlüssel senden', (await mitKey(key, 'POST', '/api/integration/v1/angebote', ak)).j.status === 'angelegt');
+    check('falscher Schlüssel: 401', (await mitKey('ksk_falsch', 'POST', '/api/integration/v1/angebote', ak)).s === 401);
+    check('Lager mit Schlüssel lesbar', (await mitKey(key, 'GET', '/api/integration/v1/lager')).s === 200);
+    check('Katalog mit Schlüssel lesbar', (await mitKey(key, 'GET', '/api/speisenkatalog/state')).s === 200);
+    check('Rezepte bleiben gesperrt (auch mit Schlüssel)', (await mitKey(key, 'GET', '/api/recipes')).s === 401);
+    const tk = await mitKey(key, 'POST', '/api/integration/v1/token', { name: 'Anna Büro' });
+    check('Schlüssel liefert kurzlebiges Token für die Katalog-Seite', tk.s === 200 && tk.j.token && /embed\?token=/.test(tk.j.embedUrl), tk.j);
+    check('Token öffnet den Katalog', (await mitKey(tk.j.token, 'GET', '/api/speisenkatalog/state')).s === 200);
+    check('Token reicht nicht für Angebote', (await mitKey(tk.j.token, 'POST', '/api/integration/v1/angebote', ak)).s === 401);
+    check('Katalog-Seite lässt sich mit dem Token einbetten', (await fetch(base + '/api/speisenkatalog/embed?token=' + tk.j.token)).status === 200);
+    check('Adresse speichern', (await sj('PUT', '/api/buero-verbindung', { origins: 'buero.example.org' }, { cookie })).j.origins[0] === 'https://buero.example.org');
+    const em = await fetch(base + '/api/speisenkatalog/embed?token=' + tk.j.token);
+    check('Adresse landet in der Einbettungs-Regel', /frame-ancestors[^;]*https:\/\/buero\.example\.org/.test(em.headers.get('content-security-policy') || ''), em.headers.get('content-security-policy'));
+    const cors = await fetch(base + '/api/integration/v1/lager', { headers: { origin: 'https://buero.example.org', authorization: 'Bearer ' + key } });
+    check('Aufrufe von der eingetragenen Adresse sind erlaubt (CORS)', cors.headers.get('access-control-allow-origin') === 'https://buero.example.org');
+    check('ungültige Adresse wird abgelehnt', (await sj('PUT', '/api/buero-verbindung', { origins: 'ht!tp://' }, { cookie })).s === 400);
+    const neu = (await sj('POST', '/api/buero-verbindung/schluessel', null, { cookie })).j.schluessel;
+    check('neuer Schlüssel macht den alten ungültig', (await mitKey(key, 'GET', '/api/integration/v1/lager')).s === 401 && (await mitKey(neu, 'GET', '/api/integration/v1/lager')).s === 200);
   } catch (e) { bad++; console.log('✗ Ausnahme:', e.stack || e.message); }
   server.close();
   fs.rmSync(dataDir, { recursive: true, force: true });

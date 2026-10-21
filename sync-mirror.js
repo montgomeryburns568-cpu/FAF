@@ -57,8 +57,15 @@ async function main() {
     body: JSON.stringify({ password: APP_PASSWORD }),
   });
   if (!loginResp.ok) throw new Error(`Login fehlgeschlagen: ${loginResp.status}`);
-  const cookie = extractCookie(loginResp.headers.get('set-cookie'));
+  let cookie = extractCookie(loginResp.headers.get('set-cookie'));
   if (!cookie) throw new Error('Kein Auth-Cookie erhalten.');
+  // Angebots-PDFs sind ohne Preis-Passwort geschwärzt. Für die Sicherung der Originale PREIS_PASSWORD in die .env eintragen.
+  let preiseFrei = false;
+  if (process.env.PREIS_PASSWORD) {
+    const pr = await fetch(`${MIRROR_URL}/api/preise/entsperren`, { method: 'POST', headers: { 'content-type': 'application/json', cookie }, body: JSON.stringify({ passwort: process.env.PREIS_PASSWORD }) });
+    const pc = extractCookie(pr.headers.get('set-cookie'));
+    if (pr.ok && pc) { cookie = cookie + '; ' + pc; preiseFrei = true; } else console.error('Preis-Passwort wurde nicht akzeptiert – PDFs werden nicht gesichert.');
+  } else console.error('Hinweis: PREIS_PASSWORD fehlt in der .env – neue Angebots-PDFs werden deshalb nicht gesichert (sie wären geschwärzt).');
 
   for (const name of ['recipes', 'rules', 'events', 'archiv', 'artikelzuordnung', 'speisenkatalog', 'kunden', 'vorrat', 'bestellungen']) {
     const apiPath = name === 'speisenkatalog' ? 'speisenkatalog/state' : name;
@@ -75,8 +82,10 @@ async function main() {
     const localName = `${entry.id}_${safeFilename(entry.filename)}`;
     const localPath = path.join(ARCHIV_PDF_DIR, localName);
     if (fs.existsSync(localPath)) continue; // PDF aendert sich nicht mehr nach Upload, kein erneuter Download noetig
+    if (!preiseFrei) continue;
     const pdfResp = await fetch(`${MIRROR_URL}/api/archiv/${entry.id}/pdf`, { headers: { cookie } });
     if (!pdfResp.ok) { console.error(`PDF-Download fuer ${entry.id} fehlgeschlagen: ${pdfResp.status}`); continue; }
+    if (pdfResp.headers.get('x-preise') !== 'frei') { console.error(`PDF ${entry.id}: Server lieferte die geschwärzte Fassung – nicht gesichert.`); continue; }
     const buf = Buffer.from(await pdfResp.arrayBuffer());
     fs.writeFileSync(localPath, buf);
     pdfCount++;

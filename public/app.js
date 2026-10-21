@@ -1619,6 +1619,7 @@ async function boot() {
     await Preise.laden();       // Preis-Sperre: Stand der Freischaltung (Archiv, PDF-Beträge)
     render();
     Vorrat.syncAlle();          // Verbrauch aller anstehenden Aufträge im Hintergrund vom Vorrat abziehen
+    BueroVerbindung.start();
     OfficeAngebote.start();     // Angebote aus der Office-App nachladen, Änderungen zur Bestätigung anzeigen
     Bestellung.badge();         // Hinweis am Reiter, wenn eine Bestellfrist naht
     Start.aktivieren();         // Startseite: nächster Auftrag, Küchensheet und To-Do auf einen Blick

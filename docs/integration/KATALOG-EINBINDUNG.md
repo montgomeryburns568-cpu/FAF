@@ -4,6 +4,19 @@ Der Generator stellt den Speisenkatalog **genau so bereit, wie die Küche ihn be
 (Suchen, Filtern, Details, Tags, Komponenten tauschen/hinzufügen, Varianten, Rückgängig, To-Dos, Sicherung), derselbe Stand.
 Die Office-App entscheidet selbst, wo und wie sie ihn zeigt.
 
+## 0. Einfachste Einrichtung: dauerhafter Verbindungsschlüssel (empfohlen)
+Die Küche erzeugt in ihrer App unter **Regeln → Büro-Verbindung** einen **Verbindungsschlüssel** (`ksk_…`) und trägt dort die Internetadresse der Office-App ein. Der Schlüssel wird einmal angezeigt; die Küche kopiert ihn samt Adresse zur Office-Seite. Mehr braucht es nicht – **kein gemeinsames Geheimnis, kein selbst erzeugtes Token, keine Anmeldung pro Nutzer an der Küchen-App**.
+
+Die Office-App legt zwei Werte als Umgebungsvariablen ab (Namen frei wählbar), z. B. `KUECHE_URL` (Adresse der Küchen-App) und `KUECHE_KEY` (der Schlüssel) – nur auf dem Server, nie im Browser-Code, nie in Chats oder Commits.
+
+| Was die Office-App braucht | Wie |
+|---|---|
+| Angebote senden, Stand abfragen, Lager lesen, Katalog-Daten lesen (Server-zu-Server) | bei jedem Aufruf `Authorization: Bearer <KUECHE_KEY>` mitschicken |
+| Katalog-Seite im iframe zeigen | serverseitig `POST {KUECHE_URL}/api/integration/v1/token` mit dem Schlüssel (Body optional: `{ "name": "Anna", "readonly": false, "lebensdauerS": 3600 }`) → Antwort `{ "token", "embedUrl", "laeuftAbIn" }`; `embedUrl` ins iframe setzen. Das Token gilt nur kurz (max. 4 h) und ist nur für den Browser des Nutzers gedacht – es wird bei jedem Seitenaufruf (oder vor Ablauf per `ks-katalog:token`) neu geholt. Nutzer ohne Bearbeitungsrecht: `"readonly": true` |
+
+Der Schlüssel gilt dauerhaft, bis die Küche einen neuen erzeugt (der alte ist dann sofort ungültig). Er erlaubt nur Katalog, Lager und Angebote – **nicht** Rezepte, Vorrat, Archiv oder Preise.
+Die Abschnitte 2–3 unten beschreiben die ältere Variante mit gemeinsamem Geheimnis (`OFFICE_EMBED_SECRET`); sie funktioniert weiterhin, ist aber nicht mehr nötig.
+
 ## 1. Überblick
 ```
  Browser des Büro-Mitarbeiters

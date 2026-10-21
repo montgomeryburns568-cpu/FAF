@@ -42,6 +42,7 @@ const FILES = {
   vorrat: path.join(DATA_DIR, 'vorrat.json'),
   bestellungen: path.join(DATA_DIR, 'bestellungen.json'),
   preispasswort: path.join(DATA_DIR, 'preispasswort.json'),
+  buerover: path.join(DATA_DIR, 'buero-verbindung.json'),
 };
 
 function ensureFile(file, defaultValue) {
@@ -143,6 +144,12 @@ module.exports = {
     try { return JSON.parse(fs.readFileSync(FILES.preispasswort, 'utf-8')); } catch (e) { return null; }
   },
   async setPreisPasswort(data) { if (useKV) await kvSet('preispasswort', data); else fs.writeFileSync(FILES.preispasswort, JSON.stringify(data), 'utf-8'); },
+  // Verbindung zur Office-App: Hash des Verbindungsschlüssels + erlaubte Adressen
+  async getBueroVerbindung() {
+    if (useKV) { const raw = await (await getKV()).get('buerover'); return raw ? JSON.parse(raw) : null; }
+    try { return JSON.parse(fs.readFileSync(FILES.buerover, 'utf-8')); } catch (e) { return null; }
+  },
+  async setBueroVerbindung(data) { if (useKV) await kvSet('buerover', data); else fs.writeFileSync(FILES.buerover, JSON.stringify(data), 'utf-8'); },
   async getArchiv() { return useKV ? kvGetOrInit('archiv', []) : readJSON(FILES.archiv); },
   async setArchiv(data) { if (useKV) { await kvSet('archiv', data); } else { writeJSON(FILES.archiv, data); } },
   async getArtikelzuordnung() { return useKV ? kvGetOrInit('artikelzuordnung', {}) : readJSON(FILES.artikelzuordnung); },

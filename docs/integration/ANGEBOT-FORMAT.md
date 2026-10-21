@@ -106,7 +106,7 @@ Die Übergabe geschieht **durch das Bestätigen** (nicht durch Speichern) und so
 | `preise`, Telefon, E-Mail, Adresse | – | **werden nicht übertragen** – unbekannte Felder werden verworfen, nicht gespeichert |
 
 ## Schnittstelle
-Token-Bereich **`angebote`** (siehe `KATALOG-EINBINDUNG.md` §3; z. B. `scope: "katalog lager angebote"`; Lese-Token dürfen nicht schreiben). Nur Server-zu-Server, nie aus dem Browser.
+Anmeldung mit dem **Verbindungsschlüssel** der Küche (`Authorization: Bearer ksk_…`, siehe `KATALOG-EINBINDUNG.md` §0). Nur Server-zu-Server, nie aus dem Browser. (Ältere Variante: Token mit Bereich `angebote`.)
 
 | Aufruf | Zweck |
 |---|---|

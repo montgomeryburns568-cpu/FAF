@@ -777,3 +777,6 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
 .office-offen ul { margin: 6px 0 6px 18px; padding: 0; }
 .office-verlauf ul { margin: 4px 0 0 18px; padding: 0; font-size: 12.5px; }
 .office-badge { margin-left: 4px; }
+
+.bv-schluessel { margin: 10px 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-strong); background: rgba(127,127,127,.08); }
+.bv-schluessel code { display: block; word-break: break-all; font-size: 13px; margin: 6px 0; user-select: all; }
