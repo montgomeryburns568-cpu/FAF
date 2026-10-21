@@ -407,7 +407,7 @@ async function loadKatalog() {
         d.head.appendChild(s);
         // Wechselt der Katalog selbst die Ansicht (z. B. "Gerichte mit dieser zeigen"), zieht die Leiste oben nach
         const mo = new MutationObserver(() => { skLeisteAktualisieren(); if (typeof Navi !== 'undefined') Navi.merke(); });
-        ['tabD', 'tabK'].forEach(id => { const b = d.getElementById(id); if (b) mo.observe(b, { attributes: true, attributeFilter: ['class'] }); });
+        ['tabD', 'tabK', 'tabB'].forEach(id => { const b = d.getElementById(id); if (b) mo.observe(b, { attributes: true, attributeFilter: ['class'] }); });
         katalogTab(skWunsch); skLeisteAktualisieren();
       } catch (e) { /* ignorieren */ }
     };
@@ -420,10 +420,10 @@ async function loadKatalog() {
 // früher eigener Reiter). Die Leiste des Katalogs im Rahmen wird ausgeblendet; Gerichte/Sammlungen schalten die Ansicht im Rahmen um.
 let skWunsch = 'gerichte';
 const katalogDoc = () => { try { return document.getElementById('katalogFrame').contentDocument; } catch (e) { return null; } };
-function katalogTabAktiv() { const d = katalogDoc(), k = d && d.getElementById('tabK'); return k && k.classList.contains('active') ? 'sammlungen' : (d && d.getElementById('tabD') ? 'gerichte' : skWunsch); }
+function katalogTabAktiv() { const d = katalogDoc(), k = d && d.getElementById('tabK'), b = d && d.getElementById('tabB'); return k && k.classList.contains('active') ? 'sammlungen' : b && b.classList.contains('active') ? 'beilagen' : (d && d.getElementById('tabD') ? 'gerichte' : skWunsch); }
 function katalogTab(v) {   // Ansicht im Rahmen umschalten (Klick auf die verborgene Katalog-Leiste)
   const d = katalogDoc(); if (!d) return;
-  const b = d.getElementById(v === 'sammlungen' ? 'tabK' : 'tabD');
+  const b = d.getElementById(v === 'sammlungen' ? 'tabK' : v === 'beilagen' ? 'tabB' : 'tabD');
   if (b && !b.classList.contains('active')) b.click();
 }
 function aktuelleSkAnsicht() { const r = document.getElementById('skRezepte'), s = document.getElementById('skSelgros'); return r && !r.hidden ? 'rezepte' : s && !s.hidden ? 'selgros' : katalogTabAktiv(); }
@@ -437,7 +437,7 @@ function setSkAnsicht(v) {
   document.getElementById('skRezepte').hidden = !rez;
   document.getElementById('skSelgros').hidden = !sg;
   if (sg && typeof SelgrosZuordnung !== 'undefined') SelgrosZuordnung.render();
-  if (!rez && !sg) { skWunsch = v === 'sammlungen' ? 'sammlungen' : 'gerichte'; loadKatalog(); katalogTab(skWunsch); }
+  if (!rez && !sg) { skWunsch = v === 'sammlungen' || v === 'beilagen' ? v : 'gerichte'; loadKatalog(); katalogTab(skWunsch); }
   skLeisteAktualisieren();
   if (typeof Navi !== 'undefined') Navi.merke();
 }
