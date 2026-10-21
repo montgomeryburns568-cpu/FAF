@@ -37,7 +37,7 @@ So geht es weiter (für den Claude/Entwickler der Büro-App):
         : 'Es gibt noch keinen Schlüssel.'}
         Der Schlüssel ist wie ein Hausschlüssel für die Büro-App: Damit darf sie den Katalog nutzen und bestätigte Angebote senden – sonst nichts (kein Zugriff auf Rezepte, Vorrat oder Archiv).</p>
       ${schluessel ? `<div class="bv-schluessel"><div class="hint">Nur jetzt sichtbar – bitte kopieren:</div><code id="bvKey">${esc(schluessel)}</code>
-        <div class="actions-row"><button type="button" class="btn-primary small-btn" id="bvKopieren">Alles für den Geschäftspartner kopieren</button><button type="button" class="btn-ghost small-btn" id="bvNurKey">Nur den Schlüssel kopieren</button></div>
+        <div class="actions-row"><button type="button" class="btn-primary small-btn" id="bvKopieren">Schlüssel + Readme kopieren</button><button type="button" class="btn-ghost small-btn" id="bvNurKey">Nur Schlüssel kopieren</button></div>
         <p class="hint" id="bvKopiert"></p></div>` : ''}
       <div class="actions-row"><button type="button" class="btn-ghost small-btn" id="bvNeu">${st.vorhanden ? 'Neuen Schlüssel erzeugen (der alte wird ungültig)' : 'Schlüssel erzeugen'}</button></div>`;
   }
