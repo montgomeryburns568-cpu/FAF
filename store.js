@@ -43,6 +43,7 @@ const FILES = {
   bestellungen: path.join(DATA_DIR, 'bestellungen.json'),
   preispasswort: path.join(DATA_DIR, 'preispasswort.json'),
   buerover: path.join(DATA_DIR, 'buero-verbindung.json'),
+  kuecheninfo: path.join(DATA_DIR, 'kuecheninfo.json'),
 };
 
 function ensureFile(file, defaultValue) {
@@ -150,6 +151,13 @@ module.exports = {
     try { return JSON.parse(fs.readFileSync(FILES.buerover, 'utf-8')); } catch (e) { return null; }
   },
   async setBueroVerbindung(data) { if (useKV) await kvSet('buerover', data); else fs.writeFileSync(FILES.buerover, JSON.stringify(data), 'utf-8'); },
+  // Infobox "Küchen-Info" auf der Übersicht: { text, geaendert }
+  async getKuechenInfo() {
+    const leer = { text: '', geaendert: null };
+    if (useKV) { const raw = await (await getKV()).get('kuecheninfo'); return raw ? JSON.parse(raw) : leer; }
+    try { return JSON.parse(fs.readFileSync(FILES.kuecheninfo, 'utf-8')); } catch (e) { return leer; }
+  },
+  async setKuechenInfo(data) { if (useKV) await kvSet('kuecheninfo', data); else writeJSON(FILES.kuecheninfo, data); },
   async getArchiv() { return useKV ? kvGetOrInit('archiv', []) : readJSON(FILES.archiv); },
   async setArchiv(data) { if (useKV) { await kvSet('archiv', data); } else { writeJSON(FILES.archiv, data); } },
   async getArtikelzuordnung() { return useKV ? kvGetOrInit('artikelzuordnung', {}) : readJSON(FILES.artikelzuordnung); },

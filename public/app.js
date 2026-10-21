@@ -1640,6 +1640,7 @@ async function boot() {
     render();
     Vorrat.syncAlle();          // Verbrauch aller anstehenden Aufträge im Hintergrund vom Vorrat abziehen
     BueroVerbindung.start();
+    KuecheInfo.start();
     OfficeAngebote.start();     // Angebote aus der Office-App nachladen, Änderungen zur Bestätigung anzeigen
     Bestellung.badge();         // Hinweis am Reiter, wenn eine Bestellfrist naht
     Start.aktivieren();         // Startseite: nächster Auftrag, Küchensheet und To-Do auf einen Blick

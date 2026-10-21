@@ -67,7 +67,7 @@ async function main() {
     if (pr.ok && pc) { cookie = cookie + '; ' + pc; preiseFrei = true; } else console.error('Preis-Passwort wurde nicht akzeptiert – PDFs werden nicht gesichert.');
   } else console.error('Hinweis: PREIS_PASSWORD fehlt in der .env – neue Angebots-PDFs werden deshalb nicht gesichert (sie wären geschwärzt).');
 
-  for (const name of ['recipes', 'rules', 'events', 'archiv', 'artikelzuordnung', 'speisenkatalog', 'kunden', 'vorrat', 'bestellungen']) {
+  for (const name of ['recipes', 'rules', 'events', 'archiv', 'artikelzuordnung', 'speisenkatalog', 'kunden', 'vorrat', 'bestellungen', 'kuecheninfo']) {
     const apiPath = name === 'speisenkatalog' ? 'speisenkatalog/state' : name;
     const resp = await fetch(`${MIRROR_URL}/api/${apiPath}`, { headers: { cookie } });
     if (!resp.ok) throw new Error(`Abruf von ${name} fehlgeschlagen: ${resp.status}`);

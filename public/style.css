@@ -786,3 +786,12 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
 .unerkannt-note .hint { margin-top: 4px; }
 .prod-unklar { color: var(--text); background: rgba(217,164,65,.14); border: 1px solid rgba(217,164,65,.55); border-radius: 8px; padding: 6px 10px; font-weight: 600; }
 .komp-none { color: var(--text); background: rgba(217,164,65,.14); border: 1px solid rgba(217,164,65,.55); border-radius: 6px; padding: 2px 8px; font-style: normal; }
+
+/* Küchen-Info (Infobox oben auf der Übersicht) */
+.kinfo { margin-bottom: 14px; padding: 10px 14px; border-left: 4px solid var(--accent, #4b5563); }
+.kinfo-kopf { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.kinfo-kopf .kinfo-edit { margin-left: auto; padding: 2px 9px; }
+.kinfo-kopf .hint { font-size: 12px; }
+.kinfo-text { margin-top: 6px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.45; max-height: 9.5em; overflow-y: auto; }
+.kinfo-leer { margin: 4px 0 0; }
+.kinfo textarea { width: 100%; box-sizing: border-box; margin-top: 8px; min-height: 90px; resize: vertical; }

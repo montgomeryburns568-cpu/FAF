@@ -247,6 +247,15 @@ app.get('/api/integration/v1/lager', requireScope('lager'), async (req, res) => 
   });
 });
 
+// --- Küchen-Info (Infobox auf der Übersicht) ---
+app.get('/api/kuecheninfo', requireAuth, async (req, res) => { res.setHeader('Cache-Control', 'no-store'); res.json(await store.getKuechenInfo()); });
+app.put('/api/kuecheninfo', requireAuth, async (req, res) => {
+  const text = typeof (req.body || {}).text === 'string' ? req.body.text.replace(/\r\n/g, '\n').slice(0, 4000) : '';
+  const d = { text, geaendert: new Date().toISOString() };
+  await store.setKuechenInfo(d);
+  res.json(d);
+});
+
 // --- Preise: Beträge in Angebots-PDFs und der Archiv-Bereich sind durch ein eigenes Passwort geschützt ---
 const preisFp = pw => (pw && pw.hash ? pw.hash.slice(0, 16) : '');
 const preisHash = (passwort, salt) => crypto.scryptSync(passwort, salt, 32).toString('hex');
