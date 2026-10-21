@@ -6,7 +6,7 @@ Beim Schreiben eines Angebots soll das Büro sehen, **was in der Küche ohnehin 
 `GET {KATALOG_URL}/api/integration/v1/lager` – **nur lesend**, **nur mit Token**, Bereich `lager`.
 
 ```
-Authorization: Bearer <token>        (Token wie in KATALOG-EINBINDUNG.md §3, aber  scope: "lager"  – oder  "katalog lager"  für beides)
+Authorization: Bearer <Verbindungsschlüssel>        (der dauerhafte Schlüssel aus KATALOG-EINBINDUNG.md §0; ältere Variante: Token mit Bereich "lager")
 ```
 Der Aufruf kommt vom **Server der Office-App** (kein Geheimnis im Browser). Ein Token mit Bereich `katalog` reicht nicht, das Cookie des Generators ebenfalls nicht. Browser-Aufrufe sind für die in `OFFICE_ORIGIN` eingetragene Herkunft per CORS möglich.
 
