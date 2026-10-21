@@ -7,17 +7,22 @@ const BueroVerbindung = (() => {
   let st = null, schluessel = '';
 
   const kuechenAdresse = () => location.origin;
-  function uebergabeText() {
-    return `Verbindung Küchen-App ↔ Büro-App
+  // Text zum Einfügen in Claude: Verbindungsdaten + alle Unterlagen (Briefing, Angebotsformat, Einrichtung)
+  async function uebergabeText() {
+    let unterlagen = '';
+    try { const r = await fetch('/api/buero-verbindung/readme', { credentials: 'include' }); if (r.ok) unterlagen = await r.text(); } catch (e) { /* ohne Unterlagen weiter */ }
+    return `VERBINDUNG KÜCHEN-APP ↔ BÜRO-APP – bitte vollständig lesen
 
 Adresse der Küchen-App:  ${kuechenAdresse()}
 Verbindungsschlüssel:    ${schluessel}
 
-So geht es weiter (für den Claude/Entwickler der Büro-App):
-1. Beides als Einstellungen der Büro-App ablegen (Umgebungsvariablen in Vercel), z. B. KUECHE_URL und KUECHE_KEY. Den Schlüssel niemals im Code oder in Chats weitergeben.
+Was zu tun ist:
+1. Beides als Einstellungen der Büro-App ablegen (Umgebungsvariablen in Vercel, nur serverseitig), z. B. KUECHE_URL und KUECHE_KEY. Den Schlüssel niemals im Code, in Commits oder in Chats weitergeben.
 2. Bei JEDEM Aufruf an die Küchen-App den Schlüssel mitschicken:  Authorization: Bearer <Schlüssel>
-3. Beschreibung und Auftrag: docs/integration/BRIEFING-OFFICE-CLAUDE.md im Küchen-Repository (GitHub: FAF).
-4. Für die eingebettete Katalog-Seite holt die Büro-App serverseitig ein kurzes Token:  POST ${kuechenAdresse()}/api/integration/v1/token  (mit dem Schlüssel) – die Antwort enthält die fertige Adresse für das iframe.`;
+3. Für die eingebettete Katalog-Seite serverseitig ein kurzes Token holen:  POST ${kuechenAdresse()}/api/integration/v1/token  (mit dem Schlüssel) – die Antwort enthält die fertige Adresse für das iframe.
+4. Auftrag, Format und Regeln stehen vollständig unten. Die dort genannten Dateien (docs/integration/…) sind hier im Text enthalten, ihr müsst sie nicht extra suchen.
+
+${unterlagen ? unterlagen : '(Die ausführlichen Unterlagen konnten nicht geladen werden – sie liegen im Küchen-Repository unter docs/integration.)'}`;
   }
 
   async function laden() {
@@ -41,8 +46,8 @@ So geht es weiter (für den Claude/Entwickler der Büro-App):
         <p class="hint" id="bvKopiert"></p></div>` : ''}
       <div class="actions-row"><button type="button" class="btn-ghost small-btn" id="bvNeu">${st.vorhanden ? 'Neuen Schlüssel erzeugen (der alte wird ungültig)' : 'Schlüssel erzeugen'}</button></div>`;
   }
-  async function kopieren(text, hinweisId) {
-    try { await navigator.clipboard.writeText(text); $(hinweisId).textContent = '✅ In die Zwischenablage kopiert. Jetzt z. B. in eine Nachricht oder direkt in die Büro-App einfügen.'; }
+  async function kopieren(textOderPromise, hinweisId) {
+    try { await navigator.clipboard.writeText(await textOderPromise); $(hinweisId).textContent = '✅ In die Zwischenablage kopiert. Jetzt einfach bei Claude (Büro-Seite) einfügen.'; }
     catch (e) { $(hinweisId).textContent = 'Kopieren hat nicht geklappt – bitte den Text markieren und mit Strg+C kopieren.'; }
   }
   function start() {
@@ -55,7 +60,7 @@ So geht es weiter (für den Claude/Entwickler der Büro-App):
       } else if (t.closest('#bvNeu')) {
         if (st.vorhanden && !confirm('Neuen Schlüssel erzeugen? Der bisherige funktioniert dann sofort nicht mehr – die Büro-App braucht den neuen.')) return;
         try { const r = await API.send('POST', '/api/buero-verbindung/schluessel'); schluessel = r.schluessel; await laden(); } catch (err) { alert('Das hat nicht geklappt: ' + err.message); }
-      } else if (t.closest('#bvKopieren')) kopieren(uebergabeText(), 'bvKopiert');
+      } else if (t.closest('#bvKopieren')) { $('bvKopiert').textContent = 'Wird zusammengestellt …'; kopieren(uebergabeText(), 'bvKopiert'); }
       else if (t.closest('#bvNurKey')) kopieren(schluessel, 'bvKopiert');
     });
     laden();

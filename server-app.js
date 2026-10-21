@@ -385,6 +385,19 @@ app.get('/api/buero-verbindung', requireAuth, async (req, res) => {
   const v = await store.getBueroVerbindung();
   res.json({ vorhanden: !!(v && v.keyHash), endung: v && v.endung || '', erzeugt: v && v.erzeugt || null, zuletzt: v && v.zuletzt || null, origins: (v && v.origins) || [], aussenUmgebung: OFFICE_ORIGINS });
 });
+// Alle Unterlagen für die Büro-Seite als ein Text (Briefing + Angebotsformat + Einrichtung) – zum Einfügen in deren Claude
+app.get('/api/buero-verbindung/readme', requireAuth, (req, res) => {
+  const fs = require('fs'), path = require('path');
+  const lies = n => { try { return fs.readFileSync(path.join(__dirname, 'docs', 'integration', n), 'utf8'); } catch (e) { return null; } };
+  const teile = [
+    ['BRIEFING-OFFICE-CLAUDE.md', lies('BRIEFING-OFFICE-CLAUDE.md')],
+    ['ANGEBOT-FORMAT.md', lies('ANGEBOT-FORMAT.md')],
+    ['KATALOG-EINBINDUNG.md', lies('KATALOG-EINBINDUNG.md')],
+  ].filter(t => t[1]);
+  if (!teile.length) return res.status(404).json({ error: 'Unterlagen nicht gefunden.' });
+  res.setHeader('Cache-Control', 'no-store');
+  res.type('text/plain; charset=utf-8').send(teile.map(([n, t]) => `===== ${n} =====\n\n${t.replace(/\r\n/g, '\n').trim()}`).join('\n\n\n'));
+});
 app.put('/api/buero-verbindung', requireAuth, async (req, res) => {
   const roh = Array.isArray(req.body && req.body.origins) ? req.body.origins : String((req.body && req.body.origins) || '').split(/[\s,;]+/);
   const origins = [];
