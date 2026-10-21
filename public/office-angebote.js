@@ -65,8 +65,13 @@ const OfficeAngebote = (() => {
   async function aktualisieren() {
     if (laeuft) return; laeuft = true;
     try {
-      const server = await API.get('/api/events');
+      const serverAlle = await API.get('/api/events');
+      const archiviert = serverAlle.filter(e => e.archiviert), server = serverAlle.filter(e => !e.archiviert);
       let geaendert = false, infoNeu = false;
+      // anderswo archivierte Aufträge hier ausblenden, anderswo zurückgeholte wieder einblenden
+      const archIds = new Set(archiviert.map(e => e.id));
+      if (state.events.some(e => archIds.has(e.id))) { state.events = state.events.filter(e => !archIds.has(e.id)); geaendert = true; }
+      if (JSON.stringify((state.archivierteEvents || []).map(e => e.id).sort()) !== JSON.stringify(archiviert.map(e => e.id).sort())) { state.archivierteEvents = archiviert; geaendert = true; }
       for (const s of server) {
         const i = state.events.findIndex(e => e.id === s.id);
         if (i < 0) { state.events.push(s); geaendert = true; continue; }

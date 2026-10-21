@@ -50,7 +50,7 @@ async function loadState() {
     API.get('/api/recipes'), API.get('/api/rules'), API.get('/api/events'), API.get('/api/archiv'),
     API.get('/api/artikelzuordnung'), API.get('/api/kunden').catch(() => []), API.get('/api/vorrat').catch(() => []), API.get('/api/bestellungen').catch(() => []),
   ]);
-  return { recipes, rules: normalizeRules(rules), events, archiv: archiv.filter(e => !e.ausgeblendet), kunden, vorrat, bestellungen, artikelzuordnung, currentEventId: getCurrentEventId() };
+  return { recipes, rules: normalizeRules(rules), events: events.filter(e => !e.archiviert), archivierteEvents: events.filter(e => e.archiviert), archiv: archiv.filter(e => !e.ausgeblendet), kunden, vorrat, bestellungen, artikelzuordnung, currentEventId: getCurrentEventId() };
 }
 
 // ---------- Regelsätze: Mittag/Business (Basis) und Abend/Privat ----------
@@ -761,6 +761,43 @@ document.getElementById('deleteEventBtn').addEventListener('click', async () => 
   renderKueche();
   renderTodo();
 });
+// Auftrag nach Löschen/Archivieren abwählen und die Ansichten auffrischen (die Übersicht öffnet den nächsten anstehenden Auftrag)
+function auftragAbgewaehlt(id) {
+  if (draftEvent && draftEvent.id === id) { draftEvent = newDraftEvent(); saveCurrentEventId(null); }
+  refreshEventSelect(); renderEventFields(); renderDaysEditor(); renderKueche(); renderTodo();
+  if (typeof Start !== 'undefined') Start.aktivieren();
+}
+async function auftragLoeschen(id) {
+  const ev = state.events.find(e => e.id === id) || (state.archivierteEvents || []).find(e => e.id === id); if (!ev) return;
+  if (!confirm('Küchensheet „' + (ev.name || 'Unbenannt') + '“ wirklich löschen?\n\nEs verschwindet aus Übersicht, Planung und Einkauf. Der Eintrag im Archiv (Kundenkartei) bleibt erhalten.\n\nTipp: „Archivieren“ blendet es nur aus und lässt sich jederzeit zurückholen.')) return;
+  try {
+    if (typeof Vorrat !== 'undefined') await Vorrat.freigeben(ev);   // gebuchten Verbrauch wieder dem Bestand gutschreiben
+    await API.send('DELETE', '/api/events/' + id);
+  } catch (e) { alert('Löschen hat nicht geklappt: ' + e.message); return; }
+  state.events = state.events.filter(e => e.id !== id);
+  state.archivierteEvents = (state.archivierteEvents || []).filter(e => e.id !== id);
+  auftragAbgewaehlt(id);
+}
+// an = true: archivieren (ausblenden, bleibt gespeichert); an = false: zurückholen
+async function auftragArchivieren(id, an) {
+  const liste = an ? state.events : (state.archivierteEvents || []);
+  const ev = liste.find(e => e.id === id); if (!ev) return;
+  const basis = an && draftEvent && draftEvent.id === id ? draftEvent : ev;   // das geöffnete Angebot hat den neuesten Stand
+  const neu = { ...basis };
+  if (an) { neu.archiviert = true; neu.archiviertAm = new Date().toISOString(); } else { delete neu.archiviert; delete neu.archiviertAm; }
+  let saved;
+  try { saved = await API.send('PUT', '/api/events/' + id, neu); } catch (e) { alert('Das hat nicht geklappt: ' + e.message); return; }
+  if (an) {
+    state.events = state.events.filter(e => e.id !== id);
+    state.archivierteEvents = (state.archivierteEvents || []).filter(e => e.id !== id).concat(saved);
+    auftragAbgewaehlt(id);
+  } else {
+    state.archivierteEvents = (state.archivierteEvents || []).filter(e => e.id !== id);
+    state.events.push(saved);
+    refreshEventSelect();
+    if (typeof Start !== 'undefined') Start.render();
+  }
+}
 async function persistEvent() {
   if (!draftEvent.name) { alert('Bitte einen Namen für das Event/Kunden angeben.'); return false; }
   AngebotVorschau.anwenden(draftEvent);   // geladenes PDF am Angebot festhalten

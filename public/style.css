@@ -801,3 +801,10 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
 .kinfo-ev .kinfo-text { max-height: 7.5em; }
 .kinfo-ev textarea { min-height: 64px; }
 .sa-info { font-size: 13px; }
+
+/* Küchensheets in der Übersicht archivieren/löschen */
+.start-acc-aktionen { display: flex; gap: 8px; justify-content: flex-end; margin: 2px 0 6px; flex-wrap: wrap; }
+.start-archiv { margin-top: 10px; border: 1px dashed var(--border-strong); border-radius: 12px; padding: 4px 10px; }
+.start-archiv > summary { cursor: pointer; padding: 6px 2px; color: var(--muted); font-weight: 600; }
+.start-archiv-zeile { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 6px 2px; border-top: 1px solid var(--border); }
+.start-archiv-zeile strong { flex: 1; min-width: 120px; }

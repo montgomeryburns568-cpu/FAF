@@ -83,11 +83,17 @@ const Start = (function () {
           <span class="sa-datum">${datum}</span><strong>${esc(ev.name || 'Unbenannt')}</strong><span class="sa-info" title="Küchen-Info vorhanden">${ev.kuecheInfo && ev.kuecheInfo.text && ev.kuecheInfo.text.trim() ? '📌' : ''}</span>
           <span class="hint">${ev.personen ? ev.personen + ' Gäste' : ''}${ev.modus === 'abend' ? ' · Abend' : ''}</span>
           <span class="sa-fort">${fortschrittBalken(Planung.fortschrittGesamt(ev))}</span></button>
-        <div class="start-acc-body"><div class="kinfo kinfo-ev" data-kinfo-ev="${esc(ev.id)}">${typeof KuecheInfo !== 'undefined' ? KuecheInfo.evHtml(ev) : ''}</div></div></div>`;
+        <div class="start-acc-body"><div class="start-acc-aktionen no-print"><button type="button" class="btn-ghost small-btn" data-acc-act="archivieren" data-ev="${esc(ev.id)}" title="Aus der Übersicht ausblenden – bleibt gespeichert und lässt sich zurückholen">📥 Archivieren</button><button type="button" class="btn-ghost small-btn" data-acc-act="loeschen" data-ev="${esc(ev.id)}" title="Küchensheet endgültig löschen">🗑 Löschen</button></div><div class="kinfo kinfo-ev" data-kinfo-ev="${esc(ev.id)}">${typeof KuecheInfo !== 'undefined' ? KuecheInfo.evHtml(ev) : ''}</div></div></div>`;
     };
     host.innerHTML = a.mit.length || a.ohne.length
       ? a.mit.map(x => eintrag(x.ev, x)).join('') + a.ohne.map(ev => eintrag(ev, null)).join('')
       : '<div class="hint" style="padding:6px">Keine anstehenden Aufträge. Bestätigte Angebote erscheinen hier automatisch; bis dahin kannst du Angebote im Reiter „Angebot“ einlesen.</div>';
+    // Archivierte Küchensheets: eingeklappt am Ende, mit Zurückholen
+    const arch = (state.archivierteEvents || []).slice().sort((a, b) => (b.archiviertAm || '').localeCompare(a.archiviertAm || ''));
+    if (arch.length) host.insertAdjacentHTML('beforeend', `<details class="start-archiv"><summary>📥 Archivierte Küchensheets (${arch.length})</summary>${arch.map(ev => {
+      const isos = (ev.days || []).map(d => K.parseDatumDE(d.date)).filter(Boolean).sort();
+      return `<div class="start-archiv-zeile"><span class="sa-datum">${isos.length ? kurz(isos[0]) : 'ohne Datum'}</span><strong>${esc(ev.name || 'Unbenannt')}</strong><span class="hint">${ev.personen ? ev.personen + ' Gäste' : ''}</span><button type="button" class="btn-ghost small-btn" data-acc-act="zurueckholen" data-ev="${esc(ev.id)}">Zurückholen</button><button type="button" class="btn-ghost small-btn" data-acc-act="loeschen" data-ev="${esc(ev.id)}" title="Endgültig löschen">🗑</button></div>`;
+    }).join('')}</details>`);
     const body = host.querySelector('.start-acc.offen .start-acc-body');
     if (body) body.appendChild(kueche);
     $('startKuecheHint').textContent = a.mit.length ? `${a.mit.length} anstehende Aufträge` : '';
@@ -198,6 +204,8 @@ const Start = (function () {
 
   function init() {
     $('startListe').addEventListener('click', e => {
+      const akt = e.target.closest('[data-acc-act]');
+      if (akt) { const id = akt.dataset.ev, a = akt.dataset.accAct; if (a === 'archivieren') auftragArchivieren(id, true); else if (a === 'zurueckholen') auftragArchivieren(id, false); else if (a === 'loeschen') auftragLoeschen(id); return; }
       const kopf = e.target.closest('.start-acc-kopf'); if (!kopf) return;
       const id = kopf.closest('.start-acc').dataset.ev;
       if (draftEvent && draftEvent.id === id) { eingeklappt = !eingeklappt; renderListe(); }
