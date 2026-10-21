@@ -18,9 +18,11 @@ Lies zuerst, in dieser Reihenfolge:
 Kurz: Der Generator liefert die Katalog-Seite unter `/api/speisenkatalog/embed` aus, abgesichert durch ein von **deinem Server** erzeugtes, kurzlebiges Token (HMAC mit gemeinsamem Geheimnis). Die Seite meldet per `postMessage`, wenn das Büro ein Gericht zum Angebot hinzufügt (mit Kennungen und aktueller Komponentenliste).
 
 ## Dein Auftrag (Vorschlag in Phasen – Reihenfolge und Details bestimmst du)
+**Verbindung (zuerst lesen): `KATALOG-EINBINDUNG.md` §0.** Die Küche gibt euch **einen dauerhaften Verbindungsschlüssel** (`ksk_…`) und ihre Adresse; beides gehört als Umgebungsvariablen (z. B. `KUECHE_URL`, `KUECHE_KEY`) in euer Vercel-Projekt – nur serverseitig. Damit authentifiziert sich die Office-App bei **jedem** Aufruf (`Authorization: Bearer <Schlüssel>`); gemeinsames Geheimnis, selbst gebaute Token und Nutzer-Anmeldung an der Küchen-App entfallen.
+
 **Phase 1 – Katalog sichtbar machen**
-- Erzeuge serverseitig ein Token pro angemeldetem Office-Nutzer (Beispiel in `KATALOG-EINBINDUNG.md` §3) und binde den Katalog per iframe ein (Route/Seite nach deinem Ermessen; vermutlich im Bereich der Angebote).
-- Prüfe `event.origin` bei allen Nachrichten. Erneuere das Token vor Ablauf (`ks-katalog:token`) bzw. bei `ks-katalog:auth-expired`.
+- Hole serverseitig pro Seitenaufruf mit dem Schlüssel ein kurzes Token (`POST {KUECHE_URL}/api/integration/v1/token`, die Antwort enthält `embedUrl`) und binde den Katalog per iframe ein (Route/Seite nach deinem Ermessen; vermutlich im Bereich der Angebote).
+- Prüfe `event.origin` bei allen Nachrichten. Hole ein neues Token (gleicher Aufruf) vor Ablauf und gib es per `ks-katalog:token` weiter bzw. bei `ks-katalog:auth-expired`.
 - Rechte: Nutzer mit Bearbeitungsrecht erhalten ein normales Token, alle anderen ein `readonly`-Token.
 - Die Office-App hat unseres Wissens bereits Seiten für Küchenblätter/Katalog (`/admin/kitchen-sheets/katalog`) und Angebotsbausteine (`/admin/angebote/bausteine`). Bitte klären und uns mitteilen, wie sich das zum neuen Katalog verhält (ersetzen, daneben, später ablösen) – **wir wollen nicht zwei Wahrheiten**.
 
@@ -34,7 +36,7 @@ Kurz: Der Generator liefert die Katalog-Seite unter `/api/speisenkatalog/embed` 
 - Speichere zu jeder Zeile zusätzlich den **Text-Stand** (Name, Komponentennamen) – Kennungen werden nie wiederverwendet, aber Gerichte können aus dem Katalog ausgeblendet werden.
 
 **Neu seit der ersten Fassung dieses Briefings (bitte beachten):**
-- Der **Empfang ist fertig**: `POST /api/integration/v1/angebote` mit Token-Bereich `angebote` (z. B. `scope: "katalog lager angebote"`) und `GET /api/integration/v1/angebote/{officeEventId}` für den Stand. Genaue Beschreibung, Antworten und Fehlercodes: `ANGEBOT-FORMAT.md` (Abschnitt „Schnittstelle“).
+- Der **Empfang ist fertig**: `POST /api/integration/v1/angebote` (mit dem Verbindungsschlüssel) und `GET /api/integration/v1/angebote/{officeEventId}` für den Stand. Genaue Beschreibung, Antworten und Fehlercodes: `ANGEBOT-FORMAT.md` (Abschnitt „Schnittstelle“).
 - **Änderungsfrist = Bestellrhythmus der Küche** (keine feste Tageszahl): Die Küche bestellt Di 11:30 für alle Aufträge von Fr bis Do der Folgewoche. Änderungen **vor** dieser Frist übernimmt die Küche automatisch, **danach** (z. B. Dienstag 15 Uhr für einen Termin im kommenden Fr–Do-Zeitraum) legt sie sie der Küche zur Bestätigung vor (Antwort `wartet_auf_kueche`). Bitte zeige dem Büro diesen Zustand an („Küche prüft Änderung“) und frage den Stand per GET ab; abgelehnte Änderungen kommen mit Grund zurück. Dasselbe gilt für Storno.
 - **Das Angebots-PDF mitschicken** (Feld `pdf`, Base64): Die Küche zeigt es im Angebotsreiter als Vorschau, sobald die Veranstaltung gewählt ist – ohne Hochladen. **Preise im PDF sind dort geschwärzt**, solange die Küche das Preis-Passwort nicht eingegeben hat; die Preise selbst übertragen wir nie (`preise` wird verworfen), ebenso keine Telefonnummern, E-Mails oder Adressen.
 - Sende bei jeder Änderung die **vollständige** neue Version (Version +1, gleiche `officeEventId`), nie nur die Differenz. Dieselbe Version nochmals zu senden ist gefahrlos.
@@ -47,7 +49,7 @@ Kurz: Der Generator liefert die Katalog-Seite unter `/api/speisenkatalog/embed` 
 
 ## Grenzen (bitte einhalten)
 - **Nichts am Katalog „simulieren“ oder kopieren.** Einbetten oder die dokumentierten Endpunkte nutzen; keine eigene Kopie der Gerichte pflegen.
-- **Keine Geheimnisse** in Code, Commits, Issues oder Chats. Das gemeinsame Geheimnis (`OFFICE_EMBED_SECRET`) tragen die Betreiber selbst in Vercel ein.
+- **Keine Geheimnisse** in Code, Commits, Issues oder Chats. Den Verbindungsschlüssel der Küche tragen die Betreiber selbst in Vercel ein.
 - **Keine Kundendaten** (Telefon, E-Mail, Adresse) an die Küche übertragen; die Küche braucht Name/Kürzel, Datum, Gäste, Anlass.
 - Änderungen an der Küchen-App nicht direkt vornehmen, sondern als Wunsch/Pull Request an deren Betreiber richten.
 - Alles, was du an der Office-App änderst, läuft über einen Pull Request, den ein Mensch freigibt.

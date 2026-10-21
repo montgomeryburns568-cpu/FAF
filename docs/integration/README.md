@@ -27,7 +27,8 @@ Das Büro ist dabei ein **weiterer Nutzer des Katalogs** – nicht eine Kopie da
 | [`mockup-office/`](mockup-office/) | **Lauffähiger Entwurf**, wie der Katalog in der Office-App aussehen könnte, plus Bilder |
 
 ## Was schon fertig ist (Generator-Seite)
-- Katalog per **iframe** einbettbar, Anmeldung über kurzlebiges, signiertes **Token** (kein Passwort-Austausch, Token gilt nur für den Katalog).
+- **Eine dauerhafte Verbindung per Schlüssel**: Die Küche erzeugt unter *Regeln → Büro-Verbindung* einen Verbindungsschlüssel und trägt die Adresse der Office-App ein – mehr Einrichtung gibt es nicht (siehe `KATALOG-EINBINDUNG.md` §0).
+- Katalog per **iframe** einbettbar; die Office-App holt dafür mit dem Schlüssel ein kurzes Token (gilt nur für den Katalog).
 - Katalog-Schnittstellen auch **server-zu-server** nutzbar.
 - **Gleichzeitiges Arbeiten** von Küche und Büro: Änderungen werden je Eintrag zusammengeführt, nichts wird überschrieben; Änderungen anderer erscheinen automatisch.
 - **Nachrichten-Schnittstelle** zwischen Katalog-Seite und Office-App (Gericht hinzufügen, Hell/Dunkel, Token erneuern).
