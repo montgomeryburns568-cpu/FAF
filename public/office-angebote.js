@@ -66,17 +66,22 @@ const OfficeAngebote = (() => {
     if (laeuft) return; laeuft = true;
     try {
       const server = await API.get('/api/events');
-      let geaendert = false;
+      let geaendert = false, infoNeu = false;
       for (const s of server) {
         const i = state.events.findIndex(e => e.id === s.id);
         if (i < 0) { state.events.push(s); geaendert = true; continue; }
         const l = state.events[i];
+        if (((l.kuecheInfo || {}).geaendert || '') !== ((s.kuecheInfo || {}).geaendert || '')) {
+          l.kuecheInfo = s.kuecheInfo; infoNeu = true;
+          if (typeof draftEvent !== 'undefined' && draftEvent && draftEvent.id === s.id) draftEvent.kuecheInfo = s.kuecheInfo;
+        }
         if ((l.angebotVersion || 0) !== (s.angebotVersion || 0) || ((l.offeneAenderung || {}).version || 0) !== ((s.offeneAenderung || {}).version || 0) || !!l.storniert !== !!s.storniert || !!l.lagerAbgleich !== !!s.lagerAbgleich) {
           state.events[i] = s; geaendert = true;
           if (draftEvent && draftEvent.id === s.id) draftEvent = JSON.parse(JSON.stringify(s));
         }
       }
       if (geaendert) uebernehmenInAnsicht(); else render();
+      if (infoNeu && typeof KuecheInfo !== 'undefined') KuecheInfo.zeichneEv();
       await abgleich();
     } catch (e) { /* offline oder abgemeldet */ } finally { laeuft = false; }
   }

@@ -247,7 +247,17 @@ app.get('/api/integration/v1/lager', requireScope('lager'), async (req, res) => 
   });
 });
 
-// --- Küchen-Info (Infobox auf der Übersicht) ---
+// --- Küchen-Info je Auftrag (Box in jedem Küchensheet der Übersicht) ---
+app.put('/api/events/:id/kuecheninfo', requireAuth, async (req, res) => {
+  const events = await store.getEvents();
+  const ev = events.find(e => e.id === req.params.id);
+  if (!ev) return res.status(404).json({ error: 'Auftrag nicht gefunden.' });
+  const text = typeof (req.body || {}).text === 'string' ? req.body.text.replace(/\r\n/g, '\n').slice(0, 2000) : '';
+  ev.kuecheInfo = { text, geaendert: new Date().toISOString() };
+  await store.setEvents(events);
+  res.json(ev.kuecheInfo);
+});
+// --- Küchen-Info (Infobox oben auf der Übersicht) ---
 app.get('/api/kuecheninfo', requireAuth, async (req, res) => { res.setHeader('Cache-Control', 'no-store'); res.json(await store.getKuechenInfo()); });
 app.put('/api/kuecheninfo', requireAuth, async (req, res) => {
   const text = typeof (req.body || {}).text === 'string' ? req.body.text.replace(/\r\n/g, '\n').slice(0, 4000) : '';
@@ -341,7 +351,7 @@ async function archivSynchronisieren(events) {
   return b.archiv;
 }
 // Angaben, die nur über die Büro-Schnittstelle (bzw. die Entscheidung der Küche) geändert werden
-const SERVER_FELDER = ['officeEventId', 'officeOfferId', 'angebotVersion', 'officeAngebot', 'offeneAenderung', 'abgelehnteAenderung', 'quelle', 'storniert', 'storniertAm', 'buero'];
+const SERVER_FELDER = ['officeEventId', 'officeOfferId', 'angebotVersion', 'officeAngebot', 'offeneAenderung', 'abgelehnteAenderung', 'quelle', 'storniert', 'storniertAm', 'buero', 'kuecheInfo'];
 app.get('/api/events', requireAuth, async (req, res) => res.json(await store.getEvents()));
 
 app.post('/api/events', requireAuth, async (req, res) => {

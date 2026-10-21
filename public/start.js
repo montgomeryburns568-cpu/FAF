@@ -80,10 +80,10 @@ const Start = (function () {
       const datum = x ? (x.erster === heute ? 'Heute' : kurz(x.erster)) + (x.isos.length > 1 ? ' …' : '') : 'ohne Datum';
       return `<div class="start-acc ${aktiv ? 'aktiv' : ''} ${offen ? 'offen' : ''} ${x && x.erster === heute ? 'heute' : ''}" data-ev="${esc(ev.id)}">
         <button type="button" class="start-acc-kopf" aria-expanded="${offen}"><span class="acc-pfeil">▸</span>
-          <span class="sa-datum">${datum}</span><strong>${esc(ev.name || 'Unbenannt')}</strong>
+          <span class="sa-datum">${datum}</span><strong>${esc(ev.name || 'Unbenannt')}</strong><span class="sa-info" title="Küchen-Info vorhanden">${ev.kuecheInfo && ev.kuecheInfo.text && ev.kuecheInfo.text.trim() ? '📌' : ''}</span>
           <span class="hint">${ev.personen ? ev.personen + ' Gäste' : ''}${ev.modus === 'abend' ? ' · Abend' : ''}</span>
           <span class="sa-fort">${fortschrittBalken(Planung.fortschrittGesamt(ev))}</span></button>
-        <div class="start-acc-body"></div></div>`;
+        <div class="start-acc-body"><div class="kinfo kinfo-ev" data-kinfo-ev="${esc(ev.id)}">${typeof KuecheInfo !== 'undefined' ? KuecheInfo.evHtml(ev) : ''}</div></div></div>`;
     };
     host.innerHTML = a.mit.length || a.ohne.length
       ? a.mit.map(x => eintrag(x.ev, x)).join('') + a.ohne.map(ev => eintrag(ev, null)).join('')
