@@ -195,6 +195,10 @@ const HCOL = {
   'Pasta & Aufläufe': ['#e8d3a2', '#4a3a10'], 'Suppen & Eintöpfe': ['#f2b48a', '#4a2200'], 'Backwaren, Quiches & Wraps': ['#b89b72', '#2d1f08'],
   'Aufschnitt & Käse': ['#cdb4f6', '#2b1a4d'], 'Desserts': ['#f7a1e8', '#4a0f40']
 };
+// Desserts: "Alle Desserts" (normale + Fingerfood-Desserts zusammen) und "FF Desserts" (nur Fingerfood) bekommen eigene Farben
+const DESSERT_SAMM = new Set(['Desserts', 'FF Desserts']);
+const SEC_FARBE = { 'Alle Desserts': '#a21caf', 'FF Desserts': '#e879f9' };
+const secFarbe = k => SEC_FARBE[k] || (HCOL[k] && HCOL[k][0]);
 const cstyle = c => { const x = c.rolle === 'H' && HCOL[c.gruppe]; return x ? ' style="background:' + x[0] + ';color:' + x[1] + '"' : ''; };
 const ROLE_LABEL = { H: 'Hauptkomponente', S: 'Soße', B: 'Beilage', G: 'Gemüse', E: 'Extra' };
 const ROLE_ORDER = { H: 0, S: 1, B: 2, G: 3, E: 4 };
@@ -563,7 +567,7 @@ function matchesDish(e) {
   const g = e.g;
   if (state.kueche && g.kueche !== state.kueche) return false;
   if (state.gang && g.gang !== state.gang) return false;
-  if (state.sammlung && e.sammlung !== state.sammlung) return false;
+  if (state.sammlung && !(state.sammlung === 'Alle Desserts' ? DESSERT_SAMM.has(e.sammlung) : e.sammlung === state.sammlung)) return false;
   if (state.tag && !e.tags.some(t => t.t === state.tag)) return false;
   if (state.comp && !e.ids.includes(state.comp)) return false;
   if (state.q) {
@@ -589,7 +593,9 @@ function refreshFilters(all) {
   fill('fKueche', [...new Set(allDishes().map(g => g.kueche))].sort());
   fill('fGang', [...new Set(allDishes().map(g => g.gang))]);
   const sam = [...new Set(all.map(e => e.sammlung))];
-  fill('fSammlung', ORDER.filter(k => sam.includes(k)).concat(sam.filter(k => !ORDER.includes(k)).sort()));
+  const samListe = ORDER.filter(k => sam.includes(k)).concat(sam.filter(k => !ORDER.includes(k)).sort());
+  if (sam.some(k => DESSERT_SAMM.has(k))) samListe.splice(Math.max(0, samListe.indexOf('Desserts')), 0, 'Alle Desserts');
+  fill('fSammlung', samListe);
   state.kueche = document.getElementById('fKueche').value; state.gang = document.getElementById('fGang').value; state.sammlung = document.getElementById('fSammlung').value;
 }
 function legendHtml() {
@@ -627,8 +633,11 @@ function render() {
     const by = {};
     list.forEach(e => (by[e.sammlung] = by[e.sammlung] || []).push(e));
     const keys = ORDER.filter(k => by[k]).concat(Object.keys(by).filter(k => !ORDER.includes(k)).sort());
+    // Zusammenfassung: alle Desserts (normale + Fingerfood) in einem Abschnitt, davor die beiden einzelnen Abschnitte
+    const dess = [].concat(by['Desserts'] || [], by['FF Desserts'] || []);
+    if (dess.length) { by['Alle Desserts'] = dess; keys.splice(Math.max(0, keys.indexOf('Desserts') >= 0 ? keys.indexOf('Desserts') : keys.indexOf('FF Desserts')), 0, 'Alle Desserts'); }
     if (neueVariante) { const g0 = dishOf(neueVariante); if (g0) SEC['D:' + eff(g0).sammlung] = true; }
-    keys.forEach(k => { html += secHtml('D:' + k, k, by[k].length + ' Gerichte', `<div class="grid">${by[k].map(dishHtml).join('')}</div>`, { farbe: HCOL[k] && HCOL[k][0], standard: state.showRemoved ? true : undefined }); });
+    keys.forEach(k => { html += secHtml('D:' + k, k, by[k].length + ' Gerichte', `<div class="grid">${by[k].map(dishHtml).join('')}</div>`, { farbe: secFarbe(k), standard: state.showRemoved ? true : undefined }); });
     if (!list.length) html = `<div class="empty">${state.showRemoved ? 'Keine entfernten Gerichte.' : 'Keine Gerichte für diesen Filter.'}</div>`;
   } else if (state.view === 'B') {
     // Zusammenfassung aller Beilagen (Sättigung) und Gemüse/Salate, farbcodiert wie in der Legende; Klick auf eine Beilage zeigt ihre Gerichte
