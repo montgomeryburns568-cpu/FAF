@@ -513,6 +513,8 @@ function dativPhrase(name, weak) {
   if (plural && /(e|el|er)$/i.test(head)) out[last] = head + 'n';
   return out.join(' ') + paren;
 }
+// Zusatz-Tags/Entfernungen aus dem Datenbestand (z. B. "kantinengeeignet", Korrektur von Ernährungsformen) auf die berechneten Tags anwenden
+const buildTags = (g, basis) => basis.filter(x => !(g.tagsMinus || []).includes(x.t)).concat((g.tagsPlus || []).filter(p => !basis.some(x => x.t === p)).map(p => ({ t: p, auto: false })));
 function eff(g) {
   const mod = !!MODS[g.id];
   const ids = MODS[g.id] || g.teile.map(p => p.comp);
@@ -534,7 +536,7 @@ function eff(g) {
   });
   const name = segList.map(s => s.lit !== undefined ? s.lit : texts[s.i]).join('');
   const cs = ids.map(id => C[id]);
-  return { g, mod, ids, name, texts, segList, tags: effTags('d:' + g.id, dishTags(g.kueche, cs)), allergene: [...new Set(cs.flatMap(c => c.allergene))], sammlung: sammlungOf(g, cs, name), removed: REMOVED.has(g.id) };
+  return { g, mod, ids, name, texts, segList, tags: effTags('d:' + g.id, buildTags(g, dishTags(g.kueche, cs))), allergene: [...new Set(cs.flatMap(c => c.allergene))], sammlung: sammlungOf(g, cs, name), removed: REMOVED.has(g.id) };
 }
 
 // ================= Darstellung =================
@@ -550,7 +552,7 @@ function dishHtml(e) {
     const hasTagMod = !!TAGMODS['d:' + g.id];
     details = `<div class="details">
       ${tagsBlock(e.tags, 'd:' + g.id)}
-      <div class="meta">${esc(g.gang)} · ${esc(e.sammlung)}${g.quelle === 'Büro-Katalog' ? ' · aus dem Büro-Katalog' : ''}${g.variante ? ' · <b>Eigene Variante</b> von „' + esc(((dishOf(g.basis) || {}).name) || g.name) + '“' : ''}</div>
+      <div class="meta">${esc(g.gang)} · ${esc(e.sammlung)}${g.quelle === 'Büro-Katalog' ? ' · aus dem Büro-Katalog' : /^Kundenkatalog/.test(g.quelle || '') ? ' · ' + esc(g.quelle) : ''}${g.variante ? ' · <b>Eigene Variante</b> von „' + esc(((dishOf(g.basis) || {}).name) || g.name) + '“' : ''}</div>
       ${e.allergene.length ? `<div class="al">Allergene (Hinweis): ${esc(e.allergene.join(', '))}</div>` : ''}
       <div class="rowbtns">${e.removed
         ? `<button class="link" data-restore="${esc(g.id)}">Gericht wiederherstellen</button>`

@@ -1,0 +1,93 @@
+# Gerichte für den Kunden Motherson (Kantine) – aus motherson-gerichte-katalog.csv (Stand Oktober 2026).
+# Nur Gerichte, die im Speisenkatalog noch NICHT vorhanden waren. Alle bekommen den Tag "kantinengeeignet" (hinter " ;; " ).
+# Bereits vorhandene Gerichte/Komponenten aus der Liste bekommen den Tag über tags-nachtrag.json.
+
+@infer
+
+@gang Vorspeise
+[[G:Gebratenes mediterranes Gemüse]] mit [[E:frischen Kräutern|Frische Kräuter]] (Paprika, Aubergine, Zucchini) ;; kantinengeeignet
+[[G:Rucolasalat]] mit [[E:Cocktailtomate|Cocktailtomaten]] und [[E:gehobeltem Parmesan|Gehobelter Parmesan]], dazu ein [[S:Johannisbeer-Balsamicodressing]] ;; kantinengeeignet, Vegetarisch, -Vegan, -Laktose frei
+[[G:Gedämpfte Champignons]] mit [[E:getrockneten Tomaten|Getrocknete Tomaten]] und [[E:schwarzen Oliven|Schwarze Oliven]] ;; kantinengeeignet
+[[G:Salat aus geschmorten Kirschtomaten]], [[E:roten Zwiebeln|Rote Zwiebeln]] und frischem [[E:Basilikum]] ;; kantinengeeignet
+[[G:Asiatischer Kartoffel-Gurkensalat]] ;; kantinengeeignet
+[[H:Quiche mit getrockneten Tomaten und gebratenen Oliven|Tomaten-Oliven-Quiche]] ;; kantinengeeignet, Vegetarisch, -Vegan, -gluten frei, -Laktose frei
+[[G:Rote-Bete-Salat]] mit [[E:Hirtenkäse]] ;; kantinengeeignet, Vegetarisch, -Vegan, -Laktose frei
+[[G:Veganer Speck-Bohnen-Salat]] ;; kantinengeeignet
+[[G:Broccoli-Mandelsalat|Brokkoli-Mandelsalat]] ;; kantinengeeignet, Vegetarisch, -Vegan, -Laktose frei
+[[G:Coleslaw-Salad|Coleslaw-Salat]] ;; kantinengeeignet, Vegetarisch, -Vegan, -Laktose frei
+[[G:Speck-Bohnensalat]] ;; kantinengeeignet
+[[H:Carpaccio vom Schweinerücken]] bestrichen mit einer [[S:Meerrettichcreme]] ;; kantinengeeignet, -Laktose frei
+[[H:Carpaccio vom Schweinerücken]] bestrichen mit [[S:Frankfurter Grüner Sauce|Frankfurter Grüne Soße]] ;; kantinengeeignet, -Laktose frei
+[[H:Putennuggets]] mit einem [[S:Sweet-Chili-Dip]] ;; kantinengeeignet
+[[H:Carpaccio vom gebackenen Schweinerücken]] mit einer [[S:Dijonsenfcreme]] ;; kantinengeeignet, -Laktose frei
+[[G:Schweizer Wurstsalat]] mit [[E:Käsestreifen]] und einer [[S:Kräutervinaigrette]] ;; kantinengeeignet, -Laktose frei
+[[H:Quiche Lorraine]] ;; kantinengeeignet, -gluten frei, -Laktose frei
+[[H:Quiche mit Lachs und Blattspinat|Lachs-Spinat-Quiche]] ;; kantinengeeignet, -gluten frei, -Laktose frei
+[[H:Lachsrösti]] mit einem [[S:Kräuterfrischkäse]] ;; kantinengeeignet, -gluten frei
+[[G:Mediterraner Thunfischsalat]] mit [[E:Cherrytomaten]] und [[E:roten Zwiebeln|Rote Zwiebeln]] ;; kantinengeeignet
+
+@gang Hauptgang
+[[H:Tortelloni/Orecchiette/Strozzapreti/Penne/Farfalle|Pasta-Auswahl (Tortelloni, Orecchiette, Strozzapreti, Penne, Farfalle)]] in einer [[S:fruchtigen Tomatensoße|Tomatensoße]] mit [[E:Mozzarella]] und [[E:frischem Basilikum|Frisches Basilikum]] ;; kantinengeeignet, Vegetarisch
+[[H:Tortelloni/Orecchiette/Strozzapreti/Penne/Farfalle|Pasta-Auswahl (Tortelloni, Orecchiette, Strozzapreti, Penne, Farfalle)]] in einer [[S:fruchtigen Tomatensoße|Tomatensoße]] und [[G:gebratenem Gemüse|Gebratenes Gemüse (Zucchini, Aubergine, Paprika)]] ;; kantinengeeignet, Vegetarisch
+[[H:Tortelloni/Orecchiette/Strozzapreti/Penne/Farfalle|Pasta-Auswahl (Tortelloni, Orecchiette, Strozzapreti, Penne, Farfalle)]] in einer [[S:Waldpilzsoße|Waldpilzsoße]] ;; kantinengeeignet, Vegetarisch
+[[H:Tortelloni/Orecchiette/Strozzapreti/Penne/Farfalle|Pasta-Auswahl (Tortelloni, Orecchiette, Strozzapreti, Penne, Farfalle)]] in einer leichten [[S:Gorgonzolasoße]] ;; kantinengeeignet, Vegetarisch
+[[H:Tortelloni/Orecchiette/Strozzapreti/Penne/Farfalle|Pasta-Auswahl (Tortelloni, Orecchiette, Strozzapreti, Penne, Farfalle)]] in einer [[S:Basilikumpestocreme|Pesto-Rahmsoße]] und gerösteten [[E:Walnüssen|Geröstete Walnüsse]] ;; kantinengeeignet, Vegetarisch
+[[H:Tortelloni/Orecchiette/Strozzapreti/Penne/Farfalle|Pasta-Auswahl (Tortelloni, Orecchiette, Strozzapreti, Penne, Farfalle)]] in einer [[S:Parmesansauce|Parmesansoße]] ;; kantinengeeignet, Vegetarisch
+[[H:Tortelloni/Orecchiette/Strozzapreti/Penne/Farfalle|Pasta-Auswahl (Tortelloni, Orecchiette, Strozzapreti, Penne, Farfalle)]] in einer [[S:Kräutersauce|Kräutersoße]] ;; kantinengeeignet, Vegetarisch
+[[H:Tortelloni/Orecchiette/Strozzapreti/Penne/Farfalle|Pasta-Auswahl (Tortelloni, Orecchiette, Strozzapreti, Penne, Farfalle)]] in einer [[S:Champignoncremesauce|Champignonrahmsoße]] ;; kantinengeeignet, Vegetarisch
+[[H:Tortelloni/Orecchiette/Strozzapreti/Penne/Farfalle|Pasta-Auswahl (Tortelloni, Orecchiette, Strozzapreti, Penne, Farfalle)]] in einer [[S:Broccolicreme|Brokkolicreme]] ;; kantinengeeignet, Vegetarisch
+[[H:Italienische Reispfanne]] mit [[G:buntem Gemüse|Buntes Gemüse]], [[E:getrockneten Tomaten|Getrocknete Tomaten]] und [[E:schwarzen Oliven|Schwarze Oliven]] ;; kantinengeeignet
+[[H:Süßkartoffel-Kichererbsen-Curry]] mit [[G:Gemüse|Buntes Gemüse]], [[E:schwarzen Bohnen|Schwarze Bohnen]] und frischen [[E:Kräutern|Frische Kräuter]] ;; kantinengeeignet
+[[H:Kartoffel-Kichererbsen-Curry]] ;; kantinengeeignet
+[[H:Italienisches Schmorgemüse]] mit einer [[S:Tomatensauce|Tomatensoße]] ;; kantinengeeignet
+[[H:Gnocchi-Gemüse-Auflauf]] mit gratiniertem [[E:Parmesan]] ;; kantinengeeignet
+[[H:Gratinierter Kartoffel-Gemüse-Auflauf]] ;; kantinengeeignet
+[[H:Käsespätzle]] mit gerösteten [[E:Zwiebeln|Geröstete Zwiebeln]] ;; kantinengeeignet
+[[H:Serviettenknödel]] in einer [[S:Waldpilzsauce|Waldpilzsoße]] ;; kantinengeeignet, Vegetarisch
+[[H:Tortelloni/Orecchiette/Strozzapreti/Penne/Farfalle|Pasta-Auswahl (Tortelloni, Orecchiette, Strozzapreti, Penne, Farfalle)]] in einer [[S:Schinken-Sahnesauce|Schinken-Sahnesoße]] ;; kantinengeeignet
+[[H:Tortelloni/Orecchiette/Strozzapreti/Penne/Farfalle|Pasta-Auswahl (Tortelloni, Orecchiette, Strozzapreti, Penne, Farfalle)]] in einer [[S:Hähnchen-Champignonsauce|Hähnchen-Champignonsoße]] mit [[E:frischen Kräutern|Frische Kräuter]] ;; kantinengeeignet
+[[H:Tortelloni/Orecchiette/Strozzapreti/Penne/Farfalle|Pasta-Auswahl (Tortelloni, Orecchiette, Strozzapreti, Penne, Farfalle)]] in einer [[S:Tomatensauce|Tomatensoße]] mit [[E:Hackfleischbällchen (Schweinehackfleisch)|Schweine-Hackfleischbällchen]] ;; kantinengeeignet, -Helal
+[[H:Tortelloni/Orecchiette/Strozzapreti/Penne/Farfalle|Pasta-Auswahl (Tortelloni, Orecchiette, Strozzapreti, Penne, Farfalle)]] in einer [[S:Tomatensauce|Tomatensoße]] mit [[E:Salsiccia]] ;; kantinengeeignet, -Helal
+[[H:Tortelloni/Orecchiette/Strozzapreti/Penne/Farfalle|Pasta-Auswahl (Tortelloni, Orecchiette, Strozzapreti, Penne, Farfalle)]] in einer [[S:Bolognesesauce (Schweinehackfleisch)|Schweine-Bolognese]] ;; kantinengeeignet
+[[H:Tortelloni/Orecchiette/Strozzapreti/Penne/Farfalle|Pasta-Auswahl (Tortelloni, Orecchiette, Strozzapreti, Penne, Farfalle)]] in einer [[S:Tomatensauce|Tomatensoße]] mit [[E:Speck]] und [[E:Zwiebeln]] ;; kantinengeeignet, -Helal
+[[H:Tortelloni/Orecchiette/Strozzapreti/Penne/Farfalle|Pasta-Auswahl (Tortelloni, Orecchiette, Strozzapreti, Penne, Farfalle)]] in einer [[S:Tomatensauce|Tomatensoße]] mit [[E:Schweineragout]] ;; kantinengeeignet, -Helal
+[[H:Mediterrane Lasagne]] mit [[E:Schweinehackfleisch]] und einer [[S:Bechamel|Béchamelsoße]] ;; kantinengeeignet, -Vegetarisch, -Helal
+[[H:Schweinefilet/Schweinerücken|Schweinefilet]] „Italienischer Art" mit [[E:Champignons]] und [[E:frischen Tomaten|Frische Tomaten]] ;; kantinengeeignet
+[[H:Schweinefilet/Schweinerücken|Schweinefilet]] in einer [[S:provinzialen Sauce|Provenzalische Soße]] ;; kantinengeeignet
+[[H:Schweinefilet/Schweinerücken|Schweinefilet]] in einer [[S:Marsalasauce|Marsalasoße]] ;; kantinengeeignet
+[[H:Schweinefilet/Schweinerücken|Schweinefilet]] in einer [[S:Waldpilzsauce|Waldpilzsoße]] ;; kantinengeeignet
+[[H:Schweinenackensteaks]] mit [[E:Schmorzwiebeln]] ;; kantinengeeignet
+[[H:Piccata vom Schweinerücken]] mit [[S:Tomatensauce|Tomatensoße]] ;; kantinengeeignet
+[[H:Schweinebraten]] in [[S:Thymianjus]] ;; kantinengeeignet
+[[H:Schweinenackenbraten]] in [[S:Balsamicosauce|Balsamicosoße]] ;; kantinengeeignet
+[[H:Schweinebraten]] in einer dunklen [[S:Portweinsauce|Portweinjus]] ;; kantinengeeignet
+[[H:Geschmortes Schweineragout|Schweineragout]] in einer [[S:Rotweinjus]] ;; kantinengeeignet
+[[H:Puten-/Hähnchengeschnetzeltes|Putengeschnetzeltes]] mit [[G:Gemüse|Buntes Gemüse]] in einer [[S:Thai-Kokossauce mit rotem Curry|Thai-Kokossoße mit rotem Curry]] ;; kantinengeeignet
+[[H:Puten-/Hähnchengeschnetzeltes|Putengeschnetzeltes]] mit [[G:Gemüse|Buntes Gemüse]] in einer gelben [[S:Kokos-Curry-Sauce|Kokos-Currysoße]] ;; kantinengeeignet
+[[H:Hähnchenbrust in Kokospanade]] mit [[S:Sweet-Chili-Dip]] ;; kantinengeeignet
+[[H:Putenbrust/Hähnchenbrust|Putenbrust]] in einer [[S:Limetten-Chilisauce|Limetten-Chilisoße]] ;; kantinengeeignet
+[[H:Putenbrust/Hähnchenbrust|Putenbrust]] in einer [[S:Dijonsenfsauce|Dijon-Senf-Soße]] ;; kantinengeeignet
+[[H:Putenbrust/Hähnchenbrust|Putenbrust]] in einer [[S:Champignonrahmsauce|Champignonrahmsoße]] ;; kantinengeeignet
+[[H:Putenbrust/Hähnchenbrust|Putenbrust]] in einer [[S:Kräuterjus]] ;; kantinengeeignet
+[[H:Putenbrust/Hähnchenbrust|Putenbrust]] in einer [[S:Currysauce|Currysoße]] ;; kantinengeeignet
+[[H:Putenbrust/Hähnchenbrust|Putenbrust]] in einer [[S:Lauch-Frischkäsecreme]] ;; kantinengeeignet
+[[H:Gegrilltes Hähnchenbrustfilet]] auf [[G:Marktgemüse]], wahlweise mit einer [[S:Kräutersauce|Kräutersoße]] ;; kantinengeeignet
+[[H:Hähnchenbrust in Sesampanade]] mit einer [[S:Süß-Sauer-Sauce|Süß-Sauer-Soße]] ;; kantinengeeignet
+[[H:Orientalisches Hähnchengeschnetzeltes]] mit frischem [[E:Koriander]] und [[E:Kichererbsen]] ;; kantinengeeignet
+[[H:Hähnchengeschnetzeltes „Züricher Art"|Hähnchengeschnetzeltes Züricher Art]] ;; kantinengeeignet
+[[H:Hähnchen-Kokos-Curry]] mit [[G:Spinat]] ;; kantinengeeignet
+[[H:Chicken Curry]] ;; kantinengeeignet
+[[H:Italienische Lachs-Spinatlasagne]] mit gratiniertem [[E:Käse]] ;; kantinengeeignet
+[[H:Wildlachs/Tilapia/Pangasius/St. Pierre|Fischfilet-Auswahl]] in einer [[S:Limetten-Chili-Sauce|Limetten-Chilisoße]] ;; kantinengeeignet
+[[H:Wildlachs/Tilapia/Pangasius/St. Pierre|Fischfilet-Auswahl]] in einer [[S:Currycremesauce|Currycreme]] ;; kantinengeeignet
+[[H:Seelachsfilet im Backteig]], dazu selbst gemachte [[S:Remoulade|Remouladensoße]] ;; kantinengeeignet
+[[H:Seelachsfilet]], wahlweise mit einer hausgemachten [[S:Tartar-Sauce|Tartarsoße]] ;; kantinengeeignet
+
+@gang Dessert
+[[H:Gestockte Haselnuss-Creme]] ;; kantinengeeignet, Vegetarisch, -Vegan, -Laktose frei
+[[H:Schokoladenpudding]] mit [[S:Vanillesauce|Vanillesoße]] ;; kantinengeeignet, Vegetarisch
+
+@gang Beilagen
+@nur
+[[B:Knöpfle]] ;; kantinengeeignet
+[[G:Romanesco]] ;; kantinengeeignet

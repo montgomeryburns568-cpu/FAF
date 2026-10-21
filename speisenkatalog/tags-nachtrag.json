@@ -1,0 +1,301 @@
+{
+ "hinweis": "Zusatz-Tags für bereits vorhandene Gerichte (nach Name) und Komponenten (Rolle|Name); wird von build.js gelesen. Quelle: motherson-gerichte-katalog.csv",
+ "gerichte": {
+  "Gemischte Blattsalate, verschiedene Toppings, ein Dressing (vegan)": [
+   "kantinengeeignet"
+  ],
+  "Capresesalat": [
+   "kantinengeeignet"
+  ],
+  "Gegrilltes mediterranes Gemüse, frischen Kräutern (Aubergine, Zucchini, Paprika)": [
+   "kantinengeeignet"
+  ],
+  "Mediterraner Pasta-Salat, getrockneten Tomaten, gebratenen Oliven": [
+   "kantinengeeignet"
+  ],
+  "Kartoffelsalat in Essig-Öl-Marinade": [
+   "kantinengeeignet"
+  ],
+  "Gurkensalat in Sauerrahm-Dill-Dressing": [
+   "kantinengeeignet"
+  ],
+  "Arabischer Couscoussalat mit Kichererbsen und Koriander": [
+   "kantinengeeignet"
+  ],
+  "Sachsenhäuser Schneegestöber": [
+   "kantinengeeignet"
+  ],
+  "Spundekäs‘ auf Pumpernickel auf Deckel": [
+   "kantinengeeignet"
+  ],
+  "Handkäs´- Tartar mit Musik und Kümmel im Glas": [
+   "kantinengeeignet"
+  ],
+  "Gratinierte Mini-Quiche, gefüllt mit Spinat und Fetakäse auf Deckel": [
+   "kantinengeeignet"
+  ],
+  "Griechischer Bauernsalat": [
+   "kantinengeeignet"
+  ],
+  "Krautsalat in Essig-Öl-Marinade": [
+   "kantinengeeignet"
+  ],
+  "Italienische Hackfleischbällchen auf Tomatensauce": [
+   "kantinengeeignet"
+  ],
+  "Mediterraner Hähnchenbrustsalat mit getrockneten Tomaten und marinierten Oliven im Glas": [
+   "kantinengeeignet"
+  ],
+  "Frankfurter Nudelsalat": [
+   "kantinengeeignet"
+  ],
+  "Mediterrane Gemüselasagne": [
+   "kantinengeeignet"
+  ],
+  "Kartoffel-Waldpilzpfanne mit buntem Gemüse": [
+   "kantinengeeignet"
+  ],
+  "Linsen-Kokos-Curry, buntem Gemüse, gerösteten Cashews": [
+   "kantinengeeignet"
+  ],
+  "Zucchinischiffchen mit Gemüsefrischkäse auf Tomatensauce, dazu mediterraner Reis": [
+   "kantinengeeignet"
+  ],
+  "Panierter Hirtenkäse mit Tzatziki, Ofenkartoffeln und Griechischem Salat": [
+   "kantinengeeignet"
+  ],
+  "Orientalische Couscouspfanne mit Kichererbsen und frischem Koriander (vegan)": [
+   "kantinengeeignet"
+  ],
+  "Gefüllte Paprika mit Tomatensoße und Reis": [
+   "kantinengeeignet"
+  ],
+  "Schweinerücken in Balsamicosauce": [
+   "kantinengeeignet"
+  ],
+  "Schweinefilet in Champignonrahmsauce": [
+   "kantinengeeignet"
+  ],
+  "Schweinegulasch ungarischer Art": [
+   "kantinengeeignet"
+  ],
+  "Schweineragout nach italienischer Art in Tomatensauce": [
+   "kantinengeeignet"
+  ],
+  "Pulled Pork mit BBQ-Soße, Wedges und Krautsalat": [
+   "kantinengeeignet"
+  ],
+  "Coq au Vin": [
+   "kantinengeeignet"
+  ],
+  "Putenbrust in Orangen-Mandelsauce": [
+   "kantinengeeignet"
+  ],
+  "Putenschnitzel, Champignonrahmsauce": [
+   "kantinengeeignet"
+  ],
+  "Putengeschnetzeltes, Currysauce, Jasminreis, gemischtes Gemüse": [
+   "kantinengeeignet"
+  ],
+  "Butter Chicken mit Basmatireis und Spinat": [
+   "kantinengeeignet"
+  ],
+  "Tandoori Hähnchen mit Minz-Joghurt-Dip, Basmatireis und Gemüse-Curry": [
+   "kantinengeeignet"
+  ],
+  "Seehecht in Proseccosauce": [
+   "kantinengeeignet"
+  ],
+  "Pangasiusfilet in Weißweinsauce": [
+   "kantinengeeignet"
+  ],
+  "Tilapiafilet in Provinzialer Sauce mit Rosmarinkartoffeln und Paprikagemüse": [
+   "kantinengeeignet"
+  ],
+  "Pangasiusfilet in Tomaten-Weißweinsauce": [
+   "kantinengeeignet"
+  ],
+  "Pangasius mit Zitronensoße, Couscous und Gegrilltem Gemüse": [
+   "kantinengeeignet"
+  ],
+  "Wildlachsfilet in Senf-Dillsauce": [
+   "kantinengeeignet"
+  ],
+  "Bayrische Creme mit verschiedenen Kompotts bzw. Fruchtsaucen": [
+   "kantinengeeignet"
+  ],
+  "Tiramisu im Glas": [
+   "kantinengeeignet"
+  ],
+  "Schoko-Cookie Tiramisu": [
+   "kantinengeeignet"
+  ],
+  "Vanillecreme mit Erdbeeren": [
+   "kantinengeeignet"
+  ],
+  "Panna Cotta (Haselnuss, Karamell, Erdbeer)": [
+   "kantinengeeignet"
+  ],
+  "Karamellisierte Pfirsiche auf einem Grießflammerie": [
+   "kantinengeeignet"
+  ],
+  "Würzige Zimtkirschen auf einem Grießflammerie": [
+   "kantinengeeignet"
+  ],
+  "Lemon-Cheesecake-Creme mit Butterkeks": [
+   "kantinengeeignet"
+  ],
+  "Karamellisierte Pfirsiche auf pochierter Vanillecreme im Glas": [
+   "kantinengeeignet"
+  ],
+  "Schokoladenmousse mit gerösteten Mandeln": [
+   "kantinengeeignet"
+  ],
+  "Creme Brûlée (Passionsfrucht, Zimt, Karamell, Vanille, Schoko)": [
+   "kantinengeeignet"
+  ],
+  "Blueberry Cheesecakecreme mit Butterkeksen im Glas": [
+   "kantinengeeignet"
+  ],
+  "Vanillepudding mit Schokoladensauce": [
+   "kantinengeeignet"
+  ],
+  "Zimtpudding mit Vanillesauce": [
+   "kantinengeeignet"
+  ],
+  "Exotischer Fruchtsalat (vegan)": [
+   "kantinengeeignet"
+  ],
+  "Karamellpudding mit Cantuccini": [
+   "kantinengeeignet"
+  ],
+  "Vanille-Porridge mit Himbeeren": [
+   "kantinengeeignet"
+  ],
+  "Applecrumble mit Vanillesauce": [
+   "kantinengeeignet"
+  ],
+  "Mascarpone-Cheesecakecreme auf einem Applecrumble im Glas": [
+   "kantinengeeignet"
+  ],
+  "Limetten-Joghurtcreme auf roter Grütze im Glas": [
+   "kantinengeeignet"
+  ],
+  "Lockere Mascarponecreme auf mariniertem Erdbeer-Minz-Salat im Glas": [
+   "kantinengeeignet"
+  ],
+  "Brownie mit frischen Erdbeeren und einer lockeren Mascarponecreme im Glas": [
+   "kantinengeeignet"
+  ],
+  "Kokosnusscreme mit einem Ananas-Minz-Chutney im Glas": [
+   "kantinengeeignet"
+  ],
+  "Joghurtcreme mit einem Mango-Maracuja-Chutney": [
+   "kantinengeeignet"
+  ],
+  "American Cheesecakecreme, Crumble, Glas": [
+   "kantinengeeignet"
+  ],
+  "Kokoscreme mit Erdbeersauce und weißer Schokolade im Glas": [
+   "kantinengeeignet"
+  ]
+ },
+ "komponenten": {
+  "B|Rosmarinkartoffeln": [
+   "kantinengeeignet"
+  ],
+  "B|Salzkartoffeln": [
+   "kantinengeeignet"
+  ],
+  "B|Ofenkartoffeln": [
+   "kantinengeeignet"
+  ],
+  "B|Paprikakartoffeln": [
+   "kantinengeeignet"
+  ],
+  "B|Wedges": [
+   "kantinengeeignet"
+  ],
+  "B|Kartoffelpüree": [
+   "kantinengeeignet"
+  ],
+  "B|Kartoffelgratin": [
+   "kantinengeeignet"
+  ],
+  "B|Kartoffelklöße": [
+   "kantinengeeignet"
+  ],
+  "B|Herzoginkartoffeln": [
+   "kantinengeeignet"
+  ],
+  "B|Butternudeln": [
+   "kantinengeeignet"
+  ],
+  "B|Gnocchi": [
+   "kantinengeeignet"
+  ],
+  "B|Spätzle": [
+   "kantinengeeignet"
+  ],
+  "B|Serviettenknödel": [
+   "kantinengeeignet"
+  ],
+  "B|Basmatireis": [
+   "kantinengeeignet"
+  ],
+  "B|Jasminreis": [
+   "kantinengeeignet"
+  ],
+  "B|Butterreis": [
+   "kantinengeeignet"
+  ],
+  "B|Mediterraner Reis": [
+   "kantinengeeignet"
+  ],
+  "B|Schwarzer Reis": [
+   "kantinengeeignet"
+  ],
+  "G|Brokkoli": [
+   "kantinengeeignet"
+  ],
+  "G|Blumenkohl": [
+   "kantinengeeignet"
+  ],
+  "G|Karotten": [
+   "kantinengeeignet"
+  ],
+  "G|Honig-Karotten": [
+   "kantinengeeignet"
+  ],
+  "G|Blattspinat": [
+   "kantinengeeignet"
+  ],
+  "G|Grüne Bohnen": [
+   "kantinengeeignet"
+  ],
+  "G|Prinzessbohnen": [
+   "kantinengeeignet"
+  ],
+  "G|Gemischtes Gemüse": [
+   "kantinengeeignet"
+  ],
+  "G|Rosenkohl": [
+   "kantinengeeignet"
+  ],
+  "G|Rotkohl": [
+   "kantinengeeignet"
+  ],
+  "G|Erbsen": [
+   "kantinengeeignet"
+  ],
+  "G|Gegrillter Maiskolben": [
+   "kantinengeeignet"
+  ],
+  "G|Babykarotten-Kohlrabigemüse": [
+   "kantinengeeignet"
+  ],
+  "G|Wokgemüse": [
+   "kantinengeeignet"
+  ]
+ }
+}

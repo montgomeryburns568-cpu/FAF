@@ -47,18 +47,25 @@ function inferKueche(text) {
   if (/frankfurter|bayrisch|handkas|spundekas|schnitzel|bratwurst|tafelspitz|gulasch|rotkohl|kartoffelsuppe|grune sosse|grune sauce|schneegestober|rinderbraten|sauerbraten|spatzle|knodel|blechkuchen|grutze|griesflammerie|hafermilchreis|schweinenacken|sachsenhauser|kasespatzle|leberkase|aufschnitt|wurstplatte|brotchen|rindswurst|currywurst|gansebrust|gans/.test(n)) return 'Deutsch';
   return 'Klassisch';
 }
-const srcFiles = ['dishes.txt', ...fs.readdirSync(DIR).filter(f => /^buero-.*\.txt$/.test(f)).sort()];
+const srcFiles = ['dishes.txt', ...fs.readdirSync(DIR).filter(f => /^buero-.*\.txt$/.test(f)).sort(), ...fs.readdirSync(DIR).filter(f => /^kunde-.*\.txt$/.test(f)).sort()];
+const quelleVon = f => f === 'dishes.txt' ? 'Eigene Auswahl' : /^kunde-/.test(f) ? 'Kundenkatalog ' + cap(f.replace(/^kunde-|\.txt$/g, '')) : 'Büro-Katalog';
+// Nachträgliche Zusatz-Tags für bereits vorhandene Gerichte/Komponenten: tags-nachtrag.json { gerichte: { "Name": ["Tag"] }, komponenten: { "R|Name": ["Tag"] } }
+const NACHTRAG = fs.existsSync(path.join(DIR, 'tags-nachtrag.json')) ? JSON.parse(fs.readFileSync(path.join(DIR, 'tags-nachtrag.json'), 'utf8')) : { gerichte: {}, komponenten: {} };
 for (const file of srcFiles) {
   if (file !== 'dishes.txt') { gang = 'Hauptgang'; infer = false; nur = false; }
   lineNo = 0;
 for (const raw of fs.readFileSync(path.join(DIR, file), 'utf8').split(/\r?\n/)) {
   lineNo++;
-  const line = raw.trim();
+  let line = raw.trim();
   if (!line || line.startsWith('# ')) continue;
   if (line.startsWith('@gang ')) { gang = line.slice(6).trim(); continue; }
   if (line === '@infer') { infer = true; continue; }
   if (line === '@nur') { nur = true; continue; }
   if (line.startsWith('##')) { kueche = line.replace(/^##\s*/, '').trim(); continue; }
+  // Zusatz-Tags hinter " ;; " (z. B. kantinengeeignet)
+  let extraTags = [];
+  const ti = line.indexOf(' ;; ');
+  if (ti >= 0) { extraTags = line.slice(ti + 4).split(',').map(x => x.trim()).filter(Boolean); line = line.slice(0, ti).trim(); }
   const parts = [];
   const text = line.replace(/\[\[([HSBGE]):([^\]|]+)(?:\|([^\]]+))?\]\]/g, (m, role, shown, canon) => {
     const name = cap((canon || shown).trim());
@@ -69,10 +76,10 @@ for (const raw of fs.readFileSync(path.join(DIR, file), 'utf8').split(/\r?\n/)) 
     return shown;
   });
   if (!parts.length) { console.log(file, 'Zeile', lineNo, 'ohne Markierung:', line); continue; }
-  if (nur) { parts.forEach(p => { const c = [...comps.values()].find(x => x.id === p.comp); c.nurKomponente = true; }); continue; }
+  if (nur) { parts.forEach(p => { const c = [...comps.values()].find(x => x.id === p.comp); c.nurKomponente = true; if (extraTags.length) c.extraTags = [...new Set([...(c.extraTags || []), ...extraTags])]; }); continue; }
   const dk = infer ? inferKueche(text) : kueche;
   const dname = text.replace(/\s+/g, ' ').trim();
-  const d = { id: dishIdFor(dname, gang), name: dname, kueche: dk, gang, quelle: file === 'dishes.txt' ? 'Eigene Auswahl' : 'Büro-Katalog', parts };
+  const d = { id: dishIdFor(dname, gang), name: dname, kueche: dk, gang, quelle: quelleVon(file), parts, extraTags };
   dishes.push(d);
   parts.forEach(p => { const c = [...comps.values()].find(x => x.id === p.comp); c.kuechen.add(dk); c.dishIds.push(d.id); });
 }
@@ -119,7 +126,7 @@ function sosseGroup(n) {
 }
 function gemueseGroup(n) {
   if (has(n, /salat/)) return 'Salate';
-  if (has(n, /kohl|brokkoli|rosenkohl|wirsing|pak choi|sauerkraut|blaukraut|chinakohl/)) return 'Kohlgemüse';
+  if (has(n, /kohl|romanesco|brokkoli|rosenkohl|wirsing|pak choi|sauerkraut|blaukraut|chinakohl/)) return 'Kohlgemüse';
   if (has(n, /karotte|mohre|wurzel|rote bete|pastinake|sellerie|fenchel|gurken-dill|kurbis/)) return 'Wurzelgemüse & Kürbis';
   if (has(n, /erbsen|bohnen|spinat|spargel|mangold|edamame|kichererbsen|linsen/)) return 'Grünes & Hülsenfrüchte';
   return 'Ofen-, Pfannen- & Mittelmeergemüse';
@@ -147,17 +154,17 @@ for (const c of comps.values()) {
 }
 
 // ---------- 3. Tag-Ableitung (nur aus dem Namen, daher als "auto" markiert) ----------
-const MEAT = /hahnchen|huhn|chicken|pute|\bente|gans|rind|kalb|(?<!f)lamm|schwein|speck|schinken|kassler|rippchen|haxe|schaufele|leberkase|hackfleisch|hackbraten|wings|nuggets|poularde|backhendl|roastbeef|ossobuco|saltimbocca|kofta|kebab|souvlaki|gyros|klopse|pulled|ribs|brisket|bacon|porchetta|cordon bleu|coq au vin|rouladen|sauerbraten|bistecca|vitello|tafelspitz|chili con carne|beef|stroganoff|chorizo|cevapcici|salami|hackball|frikadell|geflugel|rindfleisch|entenbrust|gansebrust|lammrucken|serrano/;
+const MEAT = /salsiccia|lorraine|hahnchen|huhn|chicken|pute|\bente|gans|rind|kalb|(?<!f)lamm|schwein|speck|schinken|kassler|rippchen|haxe|schaufele|leberkase|hackfleisch|hackbraten|wings|nuggets|poularde|backhendl|roastbeef|ossobuco|saltimbocca|kofta|kebab|souvlaki|gyros|klopse|pulled|ribs|brisket|bacon|porchetta|cordon bleu|coq au vin|rouladen|sauerbraten|bistecca|vitello|tafelspitz|chili con carne|beef|stroganoff|chorizo|cevapcici|salami|hackball|frikadell|geflugel|rindfleisch|entenbrust|gansebrust|lammrucken|serrano/;
 const SOFT_MEAT = /schnitzel|wurst|frikadell|burger|steak|gulasch|ragout|aufschnitt|datteln im speck/;
 const VEGGIE_MARK = /sellerie|aubergine|blumenkohl|polenta|kohl|kurbis|vegan|veggie|gemuse|tofu|sin carne|linsen|kichererbsen|falafel|halloumi|paneer|ricotta|kasespatzle|kaiserschmarrn|reibekuchen|bohnen-chili/;
 const FISH = /fisch|lachs|zander|kabeljau|forelle|dorade|wolfsbarsch|thunfisch|seeteufel|matjes|pangasius|tilapia|garnele|scampi|gambas|shrimp|muschel|calamari|tintenfisch|meeresfruchte|vongole|paella|sardelle|poke|saint pierre|seehecht|crevette|krabbe|crabcake|kaviar/;
 const STOCK = /jus\b|bratensosse|rotwein|portwein|madeira|marsala|burgunder|jager|zwiebelsosse|rosinensosse/;
 const VEGAN_WORD = /vegan|tofu|falafel|linsen|kichererbsen|sin carne|hummus|pomodoro|arrabbiata|aglio e olio|glasnudeln|sushireis|edamame|sojasosse|erdnusssosse|sweet-chili|sweet chili/;
-const DAIRY = /skyr|kefir|panna cotta|cheesecake|brulee|tiramisu|mousse|pudding|bayrische creme|flammerie|milchreis(?!.*hafer)|quarkcreme|joghurtcreme|mascarponecreme|caprese|mozzarella|rollchen|involtini|schiffchen|gefullte champignons|parmigiana|butter|sahne|rahm|kase|joghurt|quark|schmand|parmesan|mozzarella|feta|halloumi|ricotta|mascarpone|gorgonzola|paneer|spiegelei|honig|bechamel|gratin|puree|stampf|hollandaise|aioli|remoulade|tzatziki|panier|nuggets|kaiserschmarrn|reibekuchen|pesto|cordon|stroganoff|fricassee|korma|masala|tikka|risotto|lasagne|cannelloni|ravioli|tortelloni|gnocchi|spatzle|tagliatelle|bandnudel|kroketten|burger|shakshuka|pizza|hirtenkase|schnitzel|backfisch|backhendl|wiener|klopse|frikadelle|hackbraten|knodel(?!.*kartoffel)|gyoza|kase|zwetschgenroster|apfelmus/;
-const PORK = /chorizo|rahmschnitzel|jagerschnitzel|zigeunerschnitzel|schwein|speck|schinken|bacon|kassler|rippchen|bratwurst|schaufele|leberkase|porchetta|pulled pork|spare ribs|salami|saltimbocca|cordon bleu|klopse|schweinehaxe/;
+const DAIRY = /knopfle|skyr|kefir|panna cotta|cheesecake|brulee|tiramisu|mousse|pudding|bayrische creme|flammerie|milchreis(?!.*hafer)|quarkcreme|joghurtcreme|mascarponecreme|caprese|mozzarella|rollchen|involtini|schiffchen|gefullte champignons|parmigiana|butter|sahne|rahm|kase|joghurt|quark|schmand|parmesan|mozzarella|feta|halloumi|ricotta|mascarpone|gorgonzola|paneer|spiegelei|honig|bechamel|gratin|puree|stampf|hollandaise|aioli|remoulade|tzatziki|panier|nuggets|kaiserschmarrn|reibekuchen|pesto|cordon|stroganoff|fricassee|korma|masala|tikka|risotto|lasagne|cannelloni|ravioli|tortelloni|gnocchi|spatzle|tagliatelle|bandnudel|kroketten|burger|shakshuka|pizza|hirtenkase|schnitzel|backfisch|backhendl|wiener|klopse|frikadelle|hackbraten|knodel(?!.*kartoffel)|gyoza|kase|zwetschgenroster|apfelmus/;
+const PORK = /salsiccia|lorraine|wurstsalat|chorizo|rahmschnitzel|jagerschnitzel|zigeunerschnitzel|schwein|speck|schinken|bacon|kassler|rippchen|bratwurst|schaufele|leberkase|porchetta|pulled pork|spare ribs|salami|saltimbocca|cordon bleu|klopse|schweinehaxe/;
 const ALC = /riesling|prosecco|sekt\b|(?<!sch)wein(?!blatt)|portwein|madeira|marsala|bier|whiskey|rum\b|likor|amaretto|grappa|cognac|kirsch|sherry|coq au vin|burgunder|vin\b/;
-const GLUTEN = /nudel|spatzle|panier|backfisch|backhendl|schnitzel|cordon|nugget|couscous|bulgur|ravioli|tortelloni|cannelloni|lasagne|gnocchi|schupfnudel|baguette|fladenbrot|semmel|serviettenknodel|pizza|croutons|blatterteig|frikadelle|hackbraten|hackfleischballchen|klopse|burger|wiener|spaghetti|penne|tagliatelle|pasta|tortilla|burrito|taco|fruhlingsroll|gyoza|kaiserschmarrn|reibekuchen|bechamel|teriyaki|sojasosse|hoisin|austern|kroketten|fischstabchen|rahmschnitzel|gemuseschnitzel|stroganoff|falafel|gulaschsuppe|leberkase|bratwurst|brot|pad thai|kung pao|suss-sauer|sweet-chili|chop suey|gebratene nudeln|knodel(?!.*kartoffel)|kartoffelknodel(?=.*semmel)/;
-const EI = /eiersalat|eier\b|^ei\b|bio-ei|ruhrei|bami goreng|spatzle|panier|backfisch|backhendl|schnitzel|nugget|cordon|kaiserschmarrn|reibekuchen|remoulade|aioli|hollandaise|frikadelle|hackbraten|klopse|semmelknodel|serviettenknodel|ravioli|tortelloni|cannelloni|lasagne|gnocchi|tagliatelle|bandnudel|spiegelei|kroketten|burger|shakshuka|nudeln(?!.*vegan)|spaghetti(?! aglio)|penne(?! arrabbiata)|pasta(?!.*vegan)|fruhlingsroll|gyoza|pad thai|hackfleischballchen|fricassee|wiener/;
+const GLUTEN = /knopfle|nudel|spatzle|panier|backfisch|backhendl|schnitzel|cordon|nugget|couscous|bulgur|ravioli|tortelloni|cannelloni|lasagne|gnocchi|schupfnudel|baguette|fladenbrot|semmel|serviettenknodel|pizza|croutons|blatterteig|frikadelle|hackbraten|hackfleischballchen|klopse|burger|wiener|spaghetti|penne|tagliatelle|pasta|tortilla|burrito|taco|fruhlingsroll|gyoza|kaiserschmarrn|reibekuchen|bechamel|teriyaki|sojasosse|hoisin|austern|kroketten|fischstabchen|rahmschnitzel|gemuseschnitzel|stroganoff|falafel|gulaschsuppe|leberkase|bratwurst|brot|pad thai|kung pao|suss-sauer|sweet-chili|chop suey|gebratene nudeln|knodel(?!.*kartoffel)|kartoffelknodel(?=.*semmel)/;
+const EI = /knopfle|eiersalat|eier\b|^ei\b|bio-ei|ruhrei|bami goreng|spatzle|panier|backfisch|backhendl|schnitzel|nugget|cordon|kaiserschmarrn|reibekuchen|remoulade|aioli|hollandaise|frikadelle|hackbraten|klopse|semmelknodel|serviettenknodel|ravioli|tortelloni|cannelloni|lasagne|gnocchi|tagliatelle|bandnudel|spiegelei|kroketten|burger|shakshuka|nudeln(?!.*vegan)|spaghetti(?! aglio)|penne(?! arrabbiata)|pasta(?!.*vegan)|fruhlingsroll|gyoza|pad thai|hackfleischballchen|fricassee|wiener/;
 
 function analyse(c) {
   const n = norm(c.name);
@@ -300,6 +307,8 @@ for (const [key, c] of comps) {
     c.todo = u.todo;
     c.quelle = 'Nutzer (Bild)';
   }
+  const zusatz = [...(c.extraTags || []), ...((NACHTRAG.komponenten || {})[c.role + '|' + c.name] || [])];
+  zusatz.forEach(t => { if (t[0] === '-') c.tags = c.tags.filter(x => x.t !== t.slice(1)); else if (!c.tags.some(x => x.t === t)) c.tags.push({ t, auto: false }); });
   c.anzahlGerichte = c.dishIds.length;
   c.kuechen = [...c.kuechen];
 }
@@ -406,6 +415,9 @@ for (const d of dishes) {
   });
   if (cs.some(c => c.tags.some(y => y.t === 'Zeitintensiv(-)'))) t.push({ t: 'Zeitintensiv(-)', auto: true });
   else if (cs.every(c => c.tags.some(y => y.t === 'Schnell') || c.role === 'E')) t.push({ t: 'Schnell', auto: true });
+  const zus = [...(d.extraTags || []), ...((NACHTRAG.gerichte || {})[d.name] || [])];
+  d.tagsPlus = zus.filter(x => x[0] !== '-'); d.tagsMinus = zus.filter(x => x[0] === '-').map(x => x.slice(1));   // die Katalogseite berechnet Gericht-Tags selbst und übernimmt diese Zusätze/Entfernungen
+  zus.forEach(x => { if (x[0] === '-') { const i = t.findIndex(y => y.t === x.slice(1)); if (i >= 0) t.splice(i, 1); } else if (!t.some(y => y.t === x)) t.push({ t: x, auto: false }); });
   d.tags = t;
   if (d.ff) d.sammlung = ffGroup(cs, d.name); else d.sammlung = hc ? hc.gruppe : (cs.some(c => c.role === 'G' && c.gruppe === 'Salate') ? 'Salate' : ({ Hauptgang: 'Vegetarisch & Vegan', Extras: 'Extras' }[d.gang] || 'Gemüse, Brot & Beilagen'));
   d.allergene = [...new Set(cs.flatMap(c => c.flags.allergene))];
@@ -426,7 +438,7 @@ const out = {
     veg: !!c.flags.vegetarisch, vegan: !!c.flags.vegan, fisch: FISH.test(norm(c.name)),
     quelle: c.quelle || 'auto', kuechen: c.kuechen, anzahlGerichte: c.anzahlGerichte,
   })),
-  gerichte: dishes.map(d => ({ id: d.id, name: d.name, kueche: d.kueche, gang: d.gang, ff: d.ff, gangBuero: d.gangBuero, quelle: d.quelle, sammlung: d.sammlung, teile: d.parts, tags: d.tags, allergene: d.allergene })),
+  gerichte: dishes.map(d => ({ id: d.id, name: d.name, kueche: d.kueche, gang: d.gang, ff: d.ff, gangBuero: d.gangBuero, quelle: d.quelle, sammlung: d.sammlung, teile: d.parts, tags: d.tags, tagsPlus: d.tagsPlus && d.tagsPlus.length ? d.tagsPlus : undefined, tagsMinus: d.tagsMinus && d.tagsMinus.length ? d.tagsMinus : undefined, allergene: d.allergene })),
 };
 fs.writeFileSync(path.join(DIR, 'speisendatenbank.json'), JSON.stringify(out, null, 1), 'utf8');
 fs.writeFileSync(IDS_FILE, JSON.stringify(REG, null, 0), 'utf8');
