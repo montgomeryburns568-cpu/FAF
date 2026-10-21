@@ -1,7 +1,6 @@
 // Empfang bestätigter Angebote aus der Office-App (Format "kuechen-angebot/1", siehe docs/integration/ANGEBOT-FORMAT.md).
 // Reine Logik ohne Netzwerk/Speicher: prüfen, in einen Auftrag des Generators umwandeln, Änderungen erkennen und
 // anhand des Bestellrhythmus entscheiden, ob eine Änderung automatisch durchgeht oder von der Küche bestätigt werden muss.
-const fs = require('fs'), path = require('path'), vm = require('vm');
 const B = require('./public/bestell-logik.js');
 const { CATEGORIES, DEFAULT_RULES } = require('./public/seed-data.js');
 
@@ -82,13 +81,7 @@ function kategorieAusGang(gang) {
 }
 
 // ---------- Aufteilung der Personen (gleiche Logik wie beim Einlesen eines Angebots: public/parser.js) ----------
-let splitFn = null;
-function autoSplit() {
-  if (splitFn) return splitFn;
-  const ctx = vm.createContext({ console, CATEGORIES, DEFAULT_RULES, state: { rules: DEFAULT_RULES }, uid: () => Math.random().toString(36).slice(2, 10), normalize: norm });
-  vm.runInContext(fs.readFileSync(path.join(__dirname, 'public', 'parser.js'), 'utf8') + '\n;this.__autoSplitDay = autoSplitDay;', ctx);
-  return (splitFn = ctx.__autoSplitDay);
-}
+const autoSplit = () => require('./public/parser.js').autoSplitDay;
 let katalogKomp = null;
 function komponentenInfo() {
   if (katalogKomp) return katalogKomp;

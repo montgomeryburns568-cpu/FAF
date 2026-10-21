@@ -765,3 +765,6 @@ function defaultPfanneComponents(mode, rules, dishName) {
     { id: uid(), name: saettigungName, role: 'saettigung', splitPercent: b, garMethod: 'garzuwachs' },
   ];
 }
+
+// Für den Server (Angebote aus der Office-App): Personenverteilung wie beim Einlesen eines Angebots. Im Browser gibt es kein "module".
+if (typeof module !== 'undefined' && module.exports) module.exports = { autoSplitDay };

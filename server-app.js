@@ -393,6 +393,7 @@ app.get('/api/buero-verbindung/readme', requireAuth, (req, res) => {
     ['BRIEFING-OFFICE-CLAUDE.md', lies('BRIEFING-OFFICE-CLAUDE.md')],
     ['ANGEBOT-FORMAT.md', lies('ANGEBOT-FORMAT.md')],
     ['KATALOG-EINBINDUNG.md', lies('KATALOG-EINBINDUNG.md')],
+    ['LAGER-SCHNITTSTELLE.md', lies('LAGER-SCHNITTSTELLE.md')],
   ].filter(t => t[1]);
   if (!teile.length) return res.status(404).json({ error: 'Unterlagen nicht gefunden.' });
   res.setHeader('Cache-Control', 'no-store');
@@ -511,7 +512,7 @@ async function angebotVerarbeiten(roh) {
 app.post('/api/integration/v1/angebote', angebotsNutzer, async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   try { const r = await angebotVerarbeiten(req.body); res.status(r.code).json(r.body); }
-  catch (err) { res.status(err.code || 500).json({ ok: false, fehler: [err.message] }); }
+  catch (err) { console.error('Angebot:', err.stack || err.message); res.status(Number.isInteger(err.code) && err.code >= 400 && err.code < 600 ? err.code : 500).json({ ok: false, fehler: ['Interner Fehler beim Verarbeiten: ' + err.message] }); }
 });
 // Stand eines Angebots in der Küche (für das Büro): übernommene Version, offene Änderung, Entscheidung der Küche
 app.get('/api/integration/v1/angebote/:officeEventId', angebotsNutzer, async (req, res) => {
