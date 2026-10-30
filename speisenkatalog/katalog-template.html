@@ -203,7 +203,9 @@ const HCOL = {
 };
 // Desserts: "Alle Desserts" (normale + Fingerfood-Desserts zusammen) und "FF Desserts" (nur Fingerfood) bekommen eigene Farben
 const DESSERT_SAMM = new Set(['Desserts', 'FF Desserts']);
-const SEC_FARBE = { 'Alle Desserts': '#a21caf', 'FF Desserts': '#e879f9' };
+const CANAPE_SAMM = new Set(['FF Canapés Vegetarisch', 'FF Canapés Vegan', 'FF Canapés Fleisch', 'FF Canapés Fisch & Meeresfrüchte']);
+const KOMBI = { 'Alle Desserts': DESSERT_SAMM, 'Alle Canapés': CANAPE_SAMM };   // Sammel-Abschnitte (Gerichte erscheinen dort zusätzlich zu ihrem Einzel-Abschnitt)
+const SEC_FARBE = { 'Alle Desserts': '#a21caf', 'FF Desserts': '#e879f9', 'Alle Canapés': '#be123c', 'FF Canapés Vegetarisch': '#9acd32', 'FF Canapés Vegan': '#16a34a', 'FF Canapés Fleisch': '#c2410c', 'FF Canapés Fisch & Meeresfrüchte': '#4aa3df' };
 const secFarbe = k => SEC_FARBE[k] || (HCOL[k] && HCOL[k][0]);
 const cstyle = c => { const x = c.rolle === 'H' && HCOL[c.gruppe]; return x ? ' style="background:' + x[0] + ';color:' + x[1] + '"' : ''; };
 const ROLE_LABEL = { H: 'Hauptkomponente', S: 'Soße', B: 'Beilage', G: 'Gemüse', E: 'Extra' };
@@ -453,6 +455,15 @@ function dishTags(kueche, cs) {
 const ROLE_DEFAULT_SAMMLUNG = { Hauptgang: 'Vegetarisch & Vegan', Extras: 'Extras' };
 function ffGroup(cs, name) {
   const hs = cs.filter(c => c.rolle === 'H');
+  // Canapés: eigene Unterkategorien nach Belag (gleiche Regeln wie in build.js)
+  if (/canap|kanap/.test(norm(name))) {
+    const n = norm(name).replace(/ß/g, 'ss');
+    if (/lachs|forelle|garnele|thunfisch|matjes|krabbe|crevette|fisch|meeresfruchte|muschel|scampi|gambas/.test(n)) return 'FF Canapés Fisch & Meeresfrüchte';
+    if (/roastbeef|schinken|serrano|parma|bresaola|entenbrust|\bente\b|hahnchen|huhn|\bpute|rind|schwein|\blamm|pulled|leber|speck|salami|wurst|pastete|fleisch|kalb|beef|bacon/.test(n)) return 'FF Canapés Fleisch';
+    const milch = /brie|camembert|kase|frischkase|mozzarella|ricotta|feta|halloumi|gorgonzola|parmesan|mascarpone|burrata|butter|quark|joghurt|honig|sauerrahm|rahm|blini|\bei\b|eier/.test(n);
+    if (!/ mit | und |,/.test(n)) return 'FF Canapés Vegetarisch';
+    return (/vegan/.test(n) || (!milch && cs.every(c => c.vegan))) ? 'FF Canapés Vegan' : 'FF Canapés Vegetarisch';
+  }
   if (hs.some(c => c.gruppe === 'Desserts')) return 'FF Desserts';
   const lead = cs[0];
   if (lead && (lead.gruppe === 'Salate' || (lead.rolle === 'H' && /salat/.test(norm(lead.name)) && !/obst|frucht/.test(norm(lead.name))))) return 'FF Salate';
@@ -575,7 +586,7 @@ function matchesDish(e) {
   const g = e.g;
   if (state.kueche && g.kueche !== state.kueche) return false;
   if (state.gang && g.gang !== state.gang) return false;
-  if (state.sammlung && !(state.sammlung === 'Alle Desserts' ? DESSERT_SAMM.has(e.sammlung) : e.sammlung === state.sammlung)) return false;
+  if (state.sammlung && !(KOMBI[state.sammlung] ? KOMBI[state.sammlung].has(e.sammlung) : e.sammlung === state.sammlung)) return false;
   if (state.tag && !e.tags.some(t => t.t === state.tag)) return false;
   if (state.comp && !e.ids.includes(state.comp)) return false;
   if (state.q) {
@@ -591,7 +602,7 @@ function matchesComp(c) {
   if (state.q && !norm(c.name).includes(norm(state.q))) return false;
   return true;
 }
-const ORDER = ['Hähnchen','Pute','Ente & Gans','Rind','Kalb','Lamm','Schwein','Fisch','Meeresfrüchte','Vegetarisch & Vegan','Pasta & Aufläufe','Suppen & Eintöpfe','Salate','Backwaren, Quiches & Wraps','Aufschnitt & Käse','Desserts','Gemüse, Brot & Beilagen','Extras','FF Fleisch','FF Fisch & Meeresfrüchte','FF Vegetarisch','FF Vegan','FF Salate','FF Desserts','FF Aufschnitt & Käse','FF Brötchen & Sandwiches'];
+const ORDER = ['Hähnchen','Pute','Ente & Gans','Rind','Kalb','Lamm','Schwein','Fisch','Meeresfrüchte','Vegetarisch & Vegan','Pasta & Aufläufe','Suppen & Eintöpfe','Salate','Backwaren, Quiches & Wraps','Aufschnitt & Käse','Desserts','Gemüse, Brot & Beilagen','Extras','FF Fleisch','FF Fisch & Meeresfrüchte','FF Vegetarisch','FF Vegan','FF Salate','FF Desserts','FF Aufschnitt & Käse','FF Canapés Vegetarisch','FF Canapés Vegan','FF Canapés Fleisch','FF Canapés Fisch & Meeresfrüchte','FF Brötchen & Sandwiches'];
 function refreshFilters(all) {
   const fill = (id, vals) => {
     const el = document.getElementById(id), cur = el.value;
@@ -602,7 +613,7 @@ function refreshFilters(all) {
   fill('fGang', [...new Set(allDishes().map(g => g.gang))]);
   const sam = [...new Set(all.map(e => e.sammlung))];
   const samListe = ORDER.filter(k => sam.includes(k)).concat(sam.filter(k => !ORDER.includes(k)).sort());
-  if (sam.some(k => DESSERT_SAMM.has(k))) samListe.splice(Math.max(0, samListe.indexOf('Desserts')), 0, 'Alle Desserts');
+  Object.entries(KOMBI).forEach(([n, set]) => { const i = samListe.findIndex(k => set.has(k)); if (i >= 0) samListe.splice(i, 0, n); });
   samListe.splice(Math.max(0, samListe.indexOf('Aufschnitt & Käse') + 1), 0, 'Sättigungsbeilagen', 'Gemüsebeilagen');
   fill('fSammlung', samListe);
   state.kueche = document.getElementById('fKueche').value; state.gang = document.getElementById('fGang').value; state.sammlung = document.getElementById('fSammlung').value;
@@ -667,14 +678,13 @@ function render() {
     list.forEach(e => (by[e.sammlung] = by[e.sammlung] || []).push(e));
     const keys = ORDER.filter(k => by[k]).concat(Object.keys(by).filter(k => !ORDER.includes(k)).sort());
     // Zusammenfassung: alle Desserts (normale + Fingerfood) in einem Abschnitt, davor die beiden einzelnen Abschnitte
-    const dess = [].concat(by['Desserts'] || [], by['FF Desserts'] || []);
-    if (dess.length) { by['Alle Desserts'] = dess; keys.splice(Math.max(0, keys.indexOf('Desserts') >= 0 ? keys.indexOf('Desserts') : keys.indexOf('FF Desserts')), 0, 'Alle Desserts'); }
+    Object.entries(KOMBI).forEach(([n, set]) => { const liste = [...set].flatMap(k => by[k] || []); if (liste.length) { by[n] = liste; keys.splice(Math.max(0, keys.findIndex(k => set.has(k))), 0, n); } });
     // "Beilagen" steht bei den Komponenten-Sammlungen (nach Aufschnitt & Käse, vor den Desserts)
     const bSek = {};
     BEILAGEN_ARTEN.forEach(art => { const h = beilagenSektion(active, art); if (h) bSek[art.name] = h; });
     const bNamen = BEILAGEN_ARTEN.map(a => a.name).filter(n => bSek[n]);
     if (bNamen.length) {
-      const ordPos = k => k === 'Alle Desserts' ? ORDER.indexOf('Desserts') - 0.25 : (ORDER.indexOf(k) < 0 ? 999 : ORDER.indexOf(k));
+      const ordPos = k => KOMBI[k] ? Math.min(...[...KOMBI[k]].map(m => ORDER.indexOf(m)).filter(i => i >= 0)) - 0.25 : (ORDER.indexOf(k) < 0 ? 999 : ORDER.indexOf(k));
       let at = keys.findIndex(k => ordPos(k) > ORDER.indexOf('Aufschnitt & Käse') + 0.5); if (at < 0) at = keys.length;
       keys.splice(at, 0, ...bNamen);
     }

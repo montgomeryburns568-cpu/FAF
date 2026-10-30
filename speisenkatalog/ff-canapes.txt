@@ -1,0 +1,53 @@
+# Canapés – klassische und leicht ausgefallene Varianten (Oktober 2026). Jedes Canapé ist eine Komponente (Boden + Belag) mit Standardrezept in rezepte-11-canapes.js.
+# Die Unterkategorien (vegetarisch, vegan, Fleisch, Fisch & Meeresfrüchte) ergeben sich aus dem Namen (siehe build.js, ffGroup).
+@gang Fingerfood Snacks
+@infer
+
+# ---- Vegetarisch ----
+[[H:Canapé mit Ziegenfrischkäse, Feigensenf und gerösteten Walnüssen|Ziegenkäse-Feigen-Canapé]]
+[[H:Pumpernickel-Canapé mit Rote-Bete-Frischkäse und Meerrettich|Rote-Bete-Frischkäse-Canapé]]
+[[H:Blätterteig-Canapé mit Ricotta, Preiselbeeren und Thymian|Ricotta-Preiselbeer-Canapé]]
+[[H:Caprese-Canapé mit Mozzarella, Kirschtomate und Basilikum|Caprese-Canapé]]
+[[H:Canapé mit Gorgonzola-Kapern-Creme und Birne|Gorgonzola-Birnen-Canapé]]
+[[H:Rösti-Canapé mit Sauerrahm und Schnittlauch|Rösti-Sauerrahm-Canapé]]
+[[H:Mini-Blini-Canapé mit Dill-Frischkäse und Gurke|Blini-Frischkäse-Canapé]]
+[[H:Canapé mit gegrilltem Halloumi, Wassermelone und Minze|Halloumi-Wassermelonen-Canapé]]
+[[H:Canapé mit Brie, Cranberry und gerösteten Mandeln|Brie-Cranberry-Canapé]]
+[[H:Canapé mit Datteln, Frischkäse und Pistazien|Dattel-Frischkäse-Canapé]]
+[[H:Kürbis-Canapé mit Ziegenkäse und Kürbiskernöl|Kürbis-Ziegenkäse-Canapé]]
+[[H:Crostini-Canapé mit Burrata und Tomatenconfit|Burrata-Tomaten-Canapé]]
+
+# ---- Vegan ----
+[[H:Canapé mit Hummus, gerösteter Paprika und Za'atar (vegan)|Hummus-Paprika-Canapé (vegan)]]
+[[H:Canapé mit Avocado-Creme, Radieschen und Kresse (vegan)|Avocado-Radieschen-Canapé (vegan)]]
+[[H:Canapé mit Rote-Bete-Hummus und gerösteten Kichererbsen (vegan)|Rote-Bete-Hummus-Canapé (vegan)]]
+[[H:Bruschetta-Canapé mit Tomaten und Basilikum (vegan)|Tomaten-Basilikum-Canapé (vegan)]]
+[[H:Canapé mit Oliventapenade, Tomate und veganem Feta (vegan)|Oliven-Tomaten-Canapé (vegan)]]
+[[H:Canapé mit Linsen-Walnuss-Aufstrich und Granatapfel (vegan)|Linsen-Walnuss-Canapé (vegan)]]
+[[H:Canapé mit Guacamole, Mais und Chili (vegan)|Guacamole-Mais-Canapé (vegan)]]
+[[H:Canapé mit Champignon-Duxelles und Thymian (vegan)|Champignon-Duxelles-Canapé (vegan)]]
+[[H:Pumpernickel-Canapé mit Süßkartoffelcreme und Kürbiskernen (vegan)|Süßkartoffel-Canapé (vegan)]]
+[[H:Sushireis-Canapé mit Avocado, eingelegtem Ingwer und Sesam (vegan)|Sushireis-Avocado-Canapé (vegan)]]
+[[H:Canapé mit Mango-Chutney, Kokosjoghurt und Koriander (vegan)|Mango-Kokos-Canapé (vegan)]]
+
+# ---- Fleisch ----
+[[H:Canapé mit Roastbeef, Remoulade und Röstzwiebeln|Roastbeef-Remoulade-Canapé]]
+[[H:Pumpernickel-Canapé mit Roastbeef, Meerrettichcreme und Preiselbeeren|Roastbeef-Meerrettich-Canapé]] ;; -Laktose frei
+[[H:Canapé mit Parmaschinken, Feige und Rucola|Parmaschinken-Feigen-Canapé]] ;; -Laktose frei
+[[H:Canapé mit Serranoschinken, Ziegenfrischkäse und Honig|Serrano-Ziegenkäse-Canapé]]
+[[H:Canapé mit Entenbrust, Orangenconfit und Pistazien|Entenbrust-Orangen-Canapé]]
+[[H:Canapé mit Hähnchenbrust, Currycreme und Mango|Curry-Hähnchen-Canapé]] ;; -Laktose frei
+[[H:Canapé mit Leberpastete und Zwiebelmarmelade|Leberpastete-Zwiebel-Canapé]] ;; -Laktose frei, -Helal
+[[H:Canapé mit Pulled Pork, Krautsalat und BBQ-Soße|Pulled-Pork-Canapé]] ;; -Laktose frei
+[[H:Canapé mit rosa Lammfilet, Minzjoghurt und Granatapfel|Lammfilet-Minz-Canapé]] ;; -Laktose frei
+[[H:Canapé mit Bresaola, Parmesan und Rucola|Bresaola-Parmesan-Canapé]]
+
+# ---- Fisch & Meeresfrüchte ----
+[[H:Canapé mit Räucherlachs, Meerrettich-Frischkäse und Dill|Räucherlachs-Meerrettich-Canapé]] ;; -Laktose frei
+[[H:Canapé mit Lachstatar, Avocado und Sesam|Lachstatar-Avocado-Canapé]]
+[[H:Canapé mit Garnele, Avocado und Limette|Garnelen-Avocado-Canapé]]
+[[H:Canapé mit Matjes, Apfel und roten Zwiebeln|Matjes-Apfel-Canapé]] ;; -Laktose frei
+[[H:Canapé mit Thunfischtatar und Wasabi-Creme|Thunfischtatar-Wasabi-Canapé]] ;; -Laktose frei
+[[H:Canapé mit Forellenmousse und Gurke|Forellenmousse-Canapé]]
+[[H:Canapé mit Krabbensalat und Dill|Krabbensalat-Canapé]] ;; -Laktose frei
+[[H:Canapé mit geräucherter Forelle, Apfel und Meerrettich|Räucherforellen-Canapé]] ;; -Laktose frei
