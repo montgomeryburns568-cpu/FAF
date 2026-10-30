@@ -377,18 +377,7 @@ function startVariant(g, ids, forcedId) {
   neueVariante = nid;
   return nid;
 }
-function migrateMods() {
-  let changed = false;
-  Object.keys(MODS).forEach(id => {
-    const g = DB.gerichte.find(x => x.id === id);
-    if (g) {   // feste ID, damit mehrere Geräte/Nutzer dieselbe Variante erzeugen (keine Dopplungen)
-      if (!CUSTOM['vm-' + id]) startVariant(g, MODS[id], 'vm-' + id);
-      neueVariante = null; delete MODS[id]; changed = true;
-    }
-  });
-  if (changed) migrationHappened = true;
-  return changed;
-}
+function migrateMods() { return false; }   // früher wurde jede Änderung an einem Originalgericht automatisch zur Kopie; jetzt entscheidet die Auswahl nach dem Ändern (commitIds)
 let migrationHappened = false;
 const migriert = migrateMods();
 migrationHappened = false;
@@ -519,7 +508,7 @@ function genSegs(g, ids) {
     if (H.length) out.push({ lit: ' ' + w + ' ' });
     S.forEach((i, k) => { if (k) out.push({ lit: ' und ' }); out.push({ i }); });
   }
-  if (R.length) { if (H.length || S.length) out.push({ lit: ' mit ' }); list(R); }
+  if (R.length) { if (S.length) out.push({ lit: ', ' }); else if (H.length) out.push({ lit: ' mit ' }); list(R); }   // nach der Soße als Aufzählung ("mit Soße, Beilage und Gemüse")
   return out;
 }
 // ---- Grammatik: Dativ für eingefügte Komponenten ("mit gebratenem Gemüse", "mit Kartoffelklößen") ----
@@ -740,7 +729,7 @@ function render() {
     const el = document.querySelector('[data-card="' + CSS.escape(id) + '"]');
     if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('flash'); }
     const g = dishOf(id);
-    if (g) toast('Neue Speise angelegt: „' + eff(g).name + '“ – die Originalspeise bleibt unverändert.');
+    if (g) toast('Neue Speise angelegt: „' + eff(g).name + '“ – ' + (REMOVED.has(g.basis) ? 'das Original wurde entfernt (Papierkorb-Symbol oben: wiederherstellen).' : 'die Originalspeise bleibt unverändert.'));
   }
 }
 let toastTimer = null;
@@ -934,14 +923,24 @@ function pkOpen(dish, idx, mode) {
   pkRender();
   document.getElementById('pkQ').focus();
 }
-function setIds(dish, ids) {
+// Neue Zusammensetzung eines Gerichts übernehmen. Eigene Varianten werden direkt geändert; bei einem Originalgericht wird erst gefragt:
+// Original ändern | neues Gericht (Original bleibt) | neues Gericht (Original wird entfernt) | Abbrechen (nichts wird geändert)
+function commitIds(dish, ids) {
+  if (EMB && EMB.readonly) { toast('Nur Lesezugriff.'); return; }
   const g = dishOf(dish);
   const gleich = ids.length === g.teile.length && ids.every((id, i) => id === g.teile[i].comp);
-  if (!g.variante) {            // Originalspeise bleibt unverändert, die Änderung wird eine neue Speise
-    if (!gleich) startVariant(g, ids);
-    return;
-  }
-  if (gleich) delete MODS[dish]; else MODS[dish] = ids;
+  if (g.variante || gleich) { mutate(() => { if (gleich) delete MODS[dish]; else MODS[dish] = ids.slice(); }); return; }
+  const alt = eff(g).name;
+  dlgOpen({
+    title: 'Wie soll die Änderung gespeichert werden?',
+    sub: '„' + alt + '“ wurde verändert. Bis zur Auswahl ist noch nichts gespeichert.',
+    buttons: [
+      { label: 'Neues Gericht anlegen, Original behalten', cls: 'primary', fn: () => mutate(() => { startVariant(g, ids); }) },
+      { label: 'Neues Gericht anlegen, Original entfernen', fn: () => mutate(() => { startVariant(g, ids); delete MODS[g.id]; REMOVED.add(g.id); }) },
+      { label: 'Original selbst ändern', fn: () => mutate(() => { MODS[g.id] = ids.slice(); }) },
+      { label: 'Abbrechen (nichts ändern)' }
+    ]
+  });
 }
 document.getElementById('pkQ').oninput = pkRender;
 document.getElementById('pk').addEventListener('click', ev => {
@@ -952,13 +951,11 @@ document.getElementById('pk').addEventListener('click', ev => {
     const id = o.dataset.opt;
     if (pk.mode === 'swap' && id === cur.ids[pk.idx]) { compEditDlg(id, pkRender); return; }
     const doIt = () => {
-      mutate(() => {
-        const ids = cur.ids.slice();
-        if (pk.mode === 'swap') ids[pk.idx] = id;
-        else { const r = ROLE_ORDER[C[id].rolle]; let at = 0; ids.forEach((x, i) => { if (ROLE_ORDER[C[x].rolle] <= r) at = i + 1; }); ids.splice(at, 0, id); }
-        setIds(pk.dish, ids);
-      });
+      const ids = cur.ids.slice();
+      if (pk.mode === 'swap') ids[pk.idx] = id;
+      else { const r = ROLE_ORDER[C[id].rolle]; let at = 0; ids.forEach((x, i) => { if (ROLE_ORDER[C[x].rolle] <= r) at = i + 1; }); ids.splice(at, 0, id); }
       pkClose();
+      commitIds(pk.dish, ids);
     };
     dlgOpen({
       title: C[id].name,
@@ -976,7 +973,7 @@ document.getElementById('pk').addEventListener('click', ev => {
   if (btn.id === 'pkClose') pkClose();
   else if (btn.id === 'pkEditCur') compEditDlg(cur.ids[pk.idx], pkRender);
   else if (btn.id === 'pkAdd') { pk.mode = 'add'; pk.role = 'S'; document.getElementById('pkQ').value = ''; pkRender(); }
-  else if (btn.id === 'pkDel' && cur.ids.length > 1) { mutate(() => { const ids = cur.ids.slice(); ids.splice(pk.idx, 1); setIds(pk.dish, ids); }); pkClose(); }
+  else if (btn.id === 'pkDel' && cur.ids.length > 1) { const ids = cur.ids.slice(); ids.splice(pk.idx, 1); pkClose(); commitIds(pk.dish, ids); }
   else if (btn.id === 'pkFilter') {
     const id = cur.ids[pk.idx];
     pkClose();
