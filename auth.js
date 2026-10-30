@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 
-const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 Tage
+const MAX_AGE_MS = 360 * 24 * 60 * 60 * 1000; // 360 Tage (Anmeldung bleibt fast ein Jahr pro Gerät erhalten; Abmelden oder neues SESSION_SECRET beendet sie)
 
 function sign(secret, value) {
   return crypto.createHmac('sha256', secret).update(value).digest('hex');
