@@ -1,9 +1,9 @@
 // Zusammenführen von Änderungen am Speisenkatalog-Stand, wenn mehrere Personen gleichzeitig arbeiten (Küche UND Büro).
-// Der Stand besteht aus sieben Schlüsseln: Zuordnungstabellen (id -> Wert) und einer Liste entfernter Gerichte (Menge).
+// Der Stand besteht aus acht Schlüsseln: Zuordnungstabellen (id -> Wert) und einer Liste entfernter Gerichte (Menge).
 //   aktuell: Stand auf dem Server    basis: Stand, den der Browser zuletzt vom Server bekommen hat    meins: Stand im Browser
 // Übernommen wird jede Änderung, die der Browser seit "basis" gemacht hat – je Eintrag (id), nicht als ganzer Stand.
 // Haben beide denselben Eintrag geändert, gewinnt die zuletzt gespeicherte Änderung (meins).
-const KEYS = ['speisen_names', 'speisen_mods', 'speisen_custom', 'speisen_removed', 'speisen_tagmods', 'speisen_todos', 'speisen_groups'];
+const KEYS = ['speisen_names', 'speisen_mods', 'speisen_custom', 'speisen_removed', 'speisen_tagmods', 'speisen_todos', 'speisen_groups', 'speisen_pakete'];
 const gleich = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 function mergeKatalogDaten(aktuell, basis, meins) {

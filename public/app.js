@@ -414,7 +414,7 @@ async function loadKatalog() {
         d.head.appendChild(s);
         // Wechselt der Katalog selbst die Ansicht (z. B. "Gerichte mit dieser zeigen"), zieht die Leiste oben nach
         const mo = new MutationObserver(() => { skLeisteAktualisieren(); if (typeof Navi !== 'undefined') Navi.merke(); });
-        ['tabD', 'tabK'].forEach(id => { const b = d.getElementById(id); if (b) mo.observe(b, { attributes: true, attributeFilter: ['class'] }); });
+        ['tabD', 'tabP', 'segK'].forEach(id => { const b = d.getElementById(id); if (b) mo.observe(b, { attributes: true, attributeFilter: ['class'] }); });
         katalogTab(skWunsch); skLeisteAktualisieren();
       } catch (e) { /* ignorieren */ }
     };
@@ -423,20 +423,24 @@ async function loadKatalog() {
     frame.srcdoc = '<p style="font-family:sans-serif;padding:20px">Der Speisenkatalog konnte nicht geladen werden (' + String(err.message).replace(/[<&]/g, '') + '). Bitte Seite neu laden.</p>';
   }
 }
-// Speisenkatalog-Reiter: eine Leiste mit "Gerichte", "Sammlungen (Komponenten + To-Do)" (beides im Katalog-Rahmen) und "Rezepte" (Rezept-Datenbank,
-// früher eigener Reiter). Die Leiste des Katalogs im Rahmen wird ausgeblendet; Gerichte/Sammlungen schalten die Ansicht im Rahmen um.
+// Speisenkatalog-Reiter: eine Leiste mit "Gerichte" und "Buffets & Menüs" (beides im Katalog-Rahmen), "Rezepte" (Rezept-Datenbank) und der Selgros-Zuordnung.
+// Die Reiterleiste des Katalogs im Rahmen wird ausgeblendet. Unter "Gerichte" schaltet der Katalog selbst zwischen Gerichten und Bausteinen (Komponenten + To-Do) um.
+// Ansichten: 'gerichte', 'sammlungen' (= Bausteine & To-Dos, gehört zum Reiter Gerichte), 'pakete'.
 let skWunsch = 'gerichte';
 const katalogDoc = () => { try { return document.getElementById('katalogFrame').contentDocument; } catch (e) { return null; } };
-function katalogTabAktiv() { const d = katalogDoc(), k = d && d.getElementById('tabK'); return k && k.classList.contains('active') ? 'sammlungen' : (d && d.getElementById('tabD') ? 'gerichte' : skWunsch); }
+function katalogTabAktiv() {
+  const d = katalogDoc(), p = d && d.getElementById('tabP'), k = d && d.getElementById('segK');
+  if (!p || !k) return skWunsch;
+  return p.classList.contains('active') ? 'pakete' : k.classList.contains('on') ? 'sammlungen' : 'gerichte';
+}
 function katalogTab(v) {   // Ansicht im Rahmen umschalten (Klick auf die verborgene Katalog-Leiste)
-  const d = katalogDoc(); if (!d) return;
-  const b = d.getElementById(v === 'sammlungen' ? 'tabK' : 'tabD');
-  if (b && !b.classList.contains('active')) b.click();
+  try { const w = document.getElementById('katalogFrame').contentWindow; if (w && typeof w.setSkView === 'function') w.setSkView(v === 'pakete' ? 'P' : v === 'sammlungen' ? 'K' : 'D'); } catch (e) { /* Seite noch nicht geladen */ }
 }
 function aktuelleSkAnsicht() { const r = document.getElementById('skRezepte'), s = document.getElementById('skSelgros'); return r && !r.hidden ? 'rezepte' : s && !s.hidden ? 'selgros' : katalogTabAktiv(); }
 function skLeisteAktualisieren() {
   const v = aktuelleSkAnsicht();
-  document.querySelectorAll('[data-skview]').forEach(b => b.classList.toggle('on', b.dataset.skview === v));
+  const bar = v === 'sammlungen' ? 'gerichte' : v;   // Bausteine gehören zum Reiter Gerichte
+  document.querySelectorAll('[data-skview]').forEach(b => b.classList.toggle('on', b.dataset.skview === bar));
 }
 function setSkAnsicht(v) {
   const rez = v === 'rezepte', sg = v === 'selgros';
@@ -444,7 +448,7 @@ function setSkAnsicht(v) {
   document.getElementById('skRezepte').hidden = !rez;
   document.getElementById('skSelgros').hidden = !sg;
   if (sg && typeof SelgrosZuordnung !== 'undefined') SelgrosZuordnung.render();
-  if (!rez && !sg) { skWunsch = v === 'sammlungen' ? 'sammlungen' : 'gerichte'; loadKatalog(); katalogTab(skWunsch); }
+  if (!rez && !sg) { skWunsch = v === 'sammlungen' ? 'sammlungen' : v === 'pakete' ? 'pakete' : 'gerichte'; loadKatalog(); katalogTab(skWunsch); }
   skLeisteAktualisieren();
   if (typeof Navi !== 'undefined') Navi.merke();
 }

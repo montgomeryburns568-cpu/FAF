@@ -433,6 +433,34 @@ for (const d of dishes) {
   d.allergene = [...new Set(cs.flatMap(c => c.flags.allergene))];
 }
 
+// ---------- 4b. Buffet-/Menü-Empfehlungen (pakete-daten.js) prüfen ----------
+// Jede Gericht-Kennung muss existieren; vegetarische/vegane Pakete dürfen keine Fleisch-/Fischgerichte enthalten (nach Namen und Tags der Gerichte).
+function pruefePakete(pakete) {
+  const byId = new Map(dishes.map(d => [d.id, d]));
+  const NIVEAUS = [1, 2, 3, 4], MAHLZEITEN = ['Lunch', 'Mittagessen', 'Abendessen', 'Snackbuffet'];
+  const FORMATE = ['Warmes Buffet', 'Kaltes Buffet', 'Fingerfood', 'Stehempfang', 'Menü'];
+  const ZIELGRUPPEN = ['Business & Büro', 'Privat & Feiern', 'Gesund & Nachhaltig', 'Vegetarisch & Vegan'];
+  const MEAT = /h[äa]hn|huhn|chicken|pute|\bente|gans|rind|beef|kalb|lamm|schwein|speck|schinken|salami|wurst|fleisch|lachs|forelle|thunfisch|garnele|shrimp|fisch|dorade|zander|kabeljau|wolfsbarsch|seeteufel|hack|frikadelle(?!.*gem)|nugget|wings|ribs|rippchen|matjes|hering|vitello/i;
+  const ids = new Set();
+  return pakete.map(p => {
+    const fehler = [];
+    if (ids.has(p.id)) fehler.push('Kennung doppelt'); ids.add(p.id);
+    if (!ZIELGRUPPEN.includes(p.zielgruppe)) fehler.push('Zielgruppe "' + p.zielgruppe + '"');
+    if (!MAHLZEITEN.includes(p.mahlzeit)) fehler.push('Mahlzeit "' + p.mahlzeit + '"');
+    if (!FORMATE.includes(p.format)) fehler.push('Format "' + p.format + '"');
+    if (!NIVEAUS.includes(p.niveau)) fehler.push('Niveau "' + p.niveau + '"');
+    if (!['mischkost', 'vegetarisch', 'vegan'].includes(p.ernaehrung)) fehler.push('Ernährung "' + p.ernaehrung + '"');
+    p.gaenge.forEach(ga => ga.gerichte.forEach(id => {
+      const d = byId.get(id);
+      if (!d) { fehler.push('Gericht ' + id + ' gibt es nicht'); return; }
+      if (p.ernaehrung !== 'mischkost' && MEAT.test(d.name) && !/vegan|veggie|sellerie|tofu|gem[üu]se-frikadelle/i.test(d.name)) fehler.push(p.ernaehrung + ' enthält "' + d.name + '"');
+    }));
+    if (fehler.length) { console.error('Paket "' + p.name + '" (' + p.id + '): ' + fehler.join('; ')); process.exitCode = 1; }
+    return p;
+  });
+}
+const PAKETE = pruefePakete(require('./pakete-daten.js'));
+
 // ---------- 5. Ausgabe ----------
 const out = {
   meta: {
@@ -449,12 +477,15 @@ const out = {
     quelle: c.quelle || 'auto', kuechen: c.kuechen, anzahlGerichte: c.anzahlGerichte,
   })),
   gerichte: dishes.map(d => ({ id: d.id, name: d.name, kueche: d.kueche, gang: d.gang, ff: d.ff, gangBuero: d.gangBuero, quelle: d.quelle, sammlung: d.sammlung, teile: d.parts, tags: d.tags, tagsPlus: d.tagsPlus && d.tagsPlus.length ? d.tagsPlus : undefined, tagsMinus: d.tagsMinus && d.tagsMinus.length ? d.tagsMinus : undefined, allergene: d.allergene })),
+  pakete: PAKETE,
 };
 fs.writeFileSync(path.join(DIR, 'speisendatenbank.json'), JSON.stringify(out, null, 1), 'utf8');
 fs.writeFileSync(IDS_FILE, JSON.stringify(REG, null, 0), 'utf8');
 
 const tpl = fs.readFileSync(path.join(DIR, 'katalog-template.html'), 'utf8');
-const html = tpl.replace('/*__DB__*/null', () => JSON.stringify(out));
+const html = tpl.replace('/*__PAKETE_CSS__*/', () => fs.readFileSync(path.join(DIR, 'katalog-pakete.css'), 'utf8'))
+  .replace('/*__PAKETE_JS__*/', () => fs.readFileSync(path.join(DIR, 'katalog-pakete.js'), 'utf8'))
+  .replace('/*__DB__*/null', () => JSON.stringify(out));
 fs.writeFileSync(path.join(DIR, 'speisenkatalog.html'), html, 'utf8');
 // Schlanke Komponentenliste für den Küchensheet-Generator (To-Do-Erkennung): Name, Art, Gruppe, Garmethode, To-Do-Text
 const slim = out.komponenten.map(c => ({ id: c.id, name: c.name, rolle: c.rolle, gruppe: c.gruppe, gar: c.garMethodVorschlag || null, todo: c.todo || '', quelle: c.todoQuelle || '', zutaten: c.zutaten || null, rezept: c.rezeptName || null }));

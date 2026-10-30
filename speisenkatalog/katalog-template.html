@@ -132,6 +132,7 @@
   .tagrow { display:flex; gap:6px; margin-top:6px; }
   .tagrow input { flex:1; }
   .tagrow button { font:inherit; padding:6px 12px; border:1px solid var(--border); border-radius:8px; background:var(--panel); color:var(--text); cursor:pointer; }
+/*__PAKETE_CSS__*/
 </style>
 <script>
   // Hell/Dunkel: im Küchensheet-Generator dem dortigen Schalter folgen, als einzelne Datei der Systemeinstellung
@@ -162,18 +163,30 @@
       <button class="ib" id="infoBtn" title="Hinweise" aria-label="Hinweise"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></button>
     </div>
   </div>
-  <div class="sub">Komponenten farbig markiert. <b>Klick auf ein Gericht = Details (Tags, Hinzufügen …) · Klick auf eine Komponente = Bearbeiten oder To-Dos ansehen.</b></div>
+  <div class="sub" id="hintP" style="display:none">Fertige Buffet- und Menü-Ideen für Kundenanfragen. <b>Klick auf ein Paket zeigt die Gerichte.</b> Ohne Preise: das Niveau (Budget bis Exklusiv) ist nur eine Einschätzung.</div>
+  <div class="sub" id="hintD">Komponenten farbig markiert. <b>Klick auf ein Gericht = Details (Tags, Hinzufügen …) · Klick auf eine Komponente = Bearbeiten oder To-Dos ansehen.</b></div>
   <details class="legend-box" id="legendBox"><summary>Farbcodes (Legende)</summary><div class="legend" id="legend"></div></details>
-  <div class="tabs"><button id="tabD" class="active">Gerichte</button><button id="tabK">Sammlungen (Komponenten + To-Do)</button></div>
-  <div class="toolbar">
+  <div class="tabs"><button id="tabD" class="active">Gerichte</button><button id="tabP">Buffets &amp; Menüs</button></div>
+  <div class="seg" id="seg"><button id="segD" class="on">Gerichte</button><button id="segK">Bausteine &amp; To-Dos</button></div>
+  <div class="toolbar" id="dtoolbar">
     <input id="q" placeholder="Suchen (Gericht oder Komponente)…">
     <select id="fKueche"><option value="">Alle Küchen</option></select>
     <select id="fGang"><option value="">Alle Gänge</option></select>
-    <select id="fSammlung"><option value="">Alle Sammlungen</option></select>
+    <select id="fSammlung"><option value="">Alle Kategorien</option></select>
     <button class="ib" id="clear" title="Filter zurücksetzen" aria-label="Filter zurücksetzen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></button>
     <button class="ib" id="secAll" title="Alle Kategorien aufklappen" aria-label="Alle Kategorien auf- oder zuklappen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg></button>
     <button class="ib" id="showRem" title="Entfernte Gerichte (0)" aria-label="Entfernte Gerichte"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span class="ib-n" id="remN"></span></button>
   </div>
+  <div class="toolbar" id="ptoolbar" style="display:none">
+    <input id="pq" placeholder="Suchen (Name, Anlass oder Gericht, z. B. gesund, Geburtstag, Abi) …">
+    <select id="pMahl" title="Mahlzeit"><option value="">Alle Mahlzeiten</option><option>Lunch</option><option>Mittagessen</option><option>Abendessen</option><option>Snackbuffet</option></select>
+    <select id="pFormat" title="Format"><option value="">Alle Formate</option><option>Warmes Buffet</option><option>Kaltes Buffet</option><option>Fingerfood</option><option>Stehempfang</option><option>Menü</option></select>
+    <select id="pNiveau" title="Niveau"><option value="">Alle Niveaus</option><option value="1">Budget</option><option value="2">Standard</option><option value="3">Hochwertig</option><option value="4">Exklusiv</option></select>
+    <select id="pErn" title="Ernährung"><option value="">Alle Ernährungsformen</option><option value="vegetarisch">Vegetarisch (inkl. vegan)</option><option value="vegan">Vegan</option></select>
+    <button class="ib" id="pClear" title="Filter zurücksetzen" aria-label="Filter zurücksetzen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></button>
+    <button class="zg" id="pNew" type="button">+ Neues Paket</button>
+  </div>
+  <div class="zgs" id="pzg" style="display:none"></div>
   <button id="exp" style="display:none"></button><button id="bkExp" style="display:none"></button><button id="bkImp" style="display:none"></button>
   <input type="file" id="bkFile" accept=".json,application/json" style="display:none">
 </header>
@@ -188,6 +201,11 @@
   <div class="pkhead"><h4 id="dlgTitle"></h4><div class="sub" id="dlgSub"></div></div>
   <div class="dlgbody" id="dlgBody"></div>
   <div class="pkfoot" id="dlgFoot"></div>
+</div></div>
+<div id="pe" class="ov"><div class="pkbox">
+  <div class="pkhead"><h4 id="peTitle">Paket</h4><div class="sub">Pakete enthalten keine Preise. Das Niveau (Budget bis Exklusiv) gibt nur die Einschätzung.</div></div>
+  <div class="dlgbody" id="peBody"></div>
+  <div class="pkfoot" id="peFoot"></div>
 </div></div>
 <script>
 const DB = /*__DB__*/null;
@@ -233,7 +251,8 @@ let REMOVED = new Set(loadJson('speisen_removed', []));
 let TAGMODS = loadJson('speisen_tagmods', {});    // { "d:<gericht>" | "c:<komp>": { add:[], del:[] } }
 let TODOS = loadJson('speisen_todos', {});        // { kompId: Text }
 let GROUPS = loadJson('speisen_groups', {});      // { kompId: { rolle, gruppe } }
-const KEYS = () => ({ speisen_names: NAMES, speisen_mods: MODS, speisen_custom: CUSTOM, speisen_removed: [...REMOVED], speisen_tagmods: TAGMODS, speisen_todos: TODOS, speisen_groups: GROUPS });
+let PAKETE = loadJson('speisen_pakete', {});      // { paketId: Paket | { removed: true } } – Änderungen an den Buffet-/Menü-Empfehlungen
+const KEYS = () => ({ speisen_names: NAMES, speisen_mods: MODS, speisen_custom: CUSTOM, speisen_removed: [...REMOVED], speisen_tagmods: TAGMODS, speisen_todos: TODOS, speisen_groups: GROUPS, speisen_pakete: PAKETE });
 const snapshot = () => JSON.stringify(KEYS());
 function applyCompOverrides() {
   DB.komponenten.forEach(c => {
@@ -246,7 +265,7 @@ function applyCompOverrides() {
 function restore(str) {
   const s = JSON.parse(str);
   NAMES = s.speisen_names || {}; MODS = s.speisen_mods || {}; CUSTOM = s.speisen_custom || {}; REMOVED = new Set(s.speisen_removed || []);
-  TAGMODS = s.speisen_tagmods || {}; TODOS = s.speisen_todos || {}; GROUPS = s.speisen_groups || {};
+  TAGMODS = s.speisen_tagmods || {}; TODOS = s.speisen_todos || {}; GROUPS = s.speisen_groups || {}; PAKETE = s.speisen_pakete || {};
   if (typeof migrateMods === 'function') migrateMods();
   applyCompOverrides();
 }
@@ -660,6 +679,8 @@ function beilagenSektion(active, art) {
   return secHtml('D:' + art.name, art.name, list.length + ' Beilagen', '<div class="sec-body">' + inner + '</div>', { farbe: art.farbe });
 }
 function render() {
+  syncToolbars();
+  if (state.view === 'P') { renderPakete(); updateUndoUi(); return; }
   const m = document.getElementById('main');
   const all = allDishes().map(eff);
   refreshFilters(all);
@@ -754,9 +775,9 @@ document.getElementById('dlgFoot').addEventListener('click', ev => {
 });
 document.getElementById('dlg').addEventListener('click', ev => { if (ev.target.id === 'dlg') dlgClose(); });
 const pkClose = () => document.getElementById('pk').classList.remove('open');
-const closeAll = () => { dlgClose(); pkClose(); };
+const closeAll = () => { dlgClose(); pkClose(); if (typeof peClose === 'function') peClose(); };
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { if (document.getElementById('dlg').classList.contains('open')) dlgClose(); else pkClose(); return; }
+  if (e.key === 'Escape') { if (document.getElementById('dlg').classList.contains('open')) dlgClose(); else if (document.getElementById('pe').classList.contains('open')) peClose(); else pkClose(); return; }
   const inField = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName || ''));
   if ((e.ctrlKey || e.metaKey) && !inField && !document.querySelector('.ov.open')) {
     if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); if (e.shiftKey) doRedo(); else doUndo(); }
@@ -956,22 +977,44 @@ document.getElementById('pk').addEventListener('click', ev => {
     const id = cur.ids[pk.idx];
     pkClose();
     Object.assign(state, { comp: id, view: 'D', showRemoved: false });
-    document.getElementById('tabD').classList.add('active'); document.getElementById('tabK').classList.remove('active');
-    render(); window.scrollTo(0, 0);
+    setTab('D'); window.scrollTo(0, 0);
   }
 });
 
+/*__PAKETE_JS__*/
+
 // ================= Bedienung =================
-const setTab = v => { state.view = v; document.getElementById('tabD').classList.toggle('active', v === 'D'); document.getElementById('tabK').classList.toggle('active', v === 'K'); render(); };
-document.getElementById('tabD').onclick = () => setTab('D');
-document.getElementById('tabK').onclick = () => setTab('K');
+let lastDK = 'D';   // zuletzt gesehene Ansicht von Gerichte/Bausteine (Rückkehr von Buffets & Menüs)
+function syncTabs() {
+  document.getElementById('tabD').classList.toggle('active', state.view !== 'P');
+  document.getElementById('tabP').classList.toggle('active', state.view === 'P');
+  document.getElementById('segD').classList.toggle('on', state.view === 'D');
+  document.getElementById('segK').classList.toggle('on', state.view === 'K');
+}
+function syncToolbars() {
+  const p = state.view === 'P';
+  document.getElementById('seg').style.display = p ? 'none' : '';
+  document.getElementById('dtoolbar').style.display = p ? 'none' : '';
+  document.getElementById('ptoolbar').style.display = p ? '' : 'none';
+  document.getElementById('pzg').style.display = p ? '' : 'none';
+  document.getElementById('hintD').style.display = p ? 'none' : '';
+  document.getElementById('legendBox').style.display = p ? 'none' : '';
+  document.getElementById('hintP').style.display = p ? '' : 'none';
+}
+const setTab = v => { if (v !== 'P') lastDK = v; state.view = v; syncTabs(); render(); };
+function setSkView(v) { setTab(v === 'P' ? 'P' : v === 'K' ? 'K' : 'D'); }   // vom Küchensheet-Generator genutzt
+document.getElementById('tabD').onclick = () => setTab(state.view === 'P' ? lastDK : state.view);
+document.getElementById('tabP').onclick = () => setTab('P');
+document.getElementById('segD').onclick = () => setTab('D');
+document.getElementById('segK').onclick = () => setTab('K');
 document.getElementById('q').oninput = e => { state.q = e.target.value; render(); };
 document.getElementById('fKueche').onchange = e => { state.kueche = e.target.value; render(); };
 document.getElementById('fGang').onchange = e => { state.gang = e.target.value; render(); };
 document.getElementById('fSammlung').onchange = e => { state.sammlung = e.target.value; render(); };
-document.getElementById('showRem').onclick = () => { state.showRemoved = !state.showRemoved; setTab('D'); };
+document.getElementById('showRem').onclick = () => { if (state.view === 'P') { pstate.hidden = !pstate.hidden; renderPakete(); return; } state.showRemoved = !state.showRemoved; setTab('D'); };
 document.getElementById('clear').onclick = () => { Object.assign(state, { q: '', kueche: '', gang: '', sammlung: '', tag: '', comp: '' }); document.getElementById('q').value = ''; ['fKueche', 'fGang', 'fSammlung'].forEach(i => document.getElementById(i).value = ''); render(); };
 document.getElementById('undo').onclick = doUndo;
+bindPaketBedienung();
 document.getElementById('disk').onclick = () => dlgOpen({
   title: 'Sicherung', sub: 'Alle Änderungen werden automatisch gespeichert. Hier kannst du zusätzlich eine Sicherungsdatei anlegen oder laden.',
   buttons: [
@@ -998,11 +1041,11 @@ document.getElementById('secAll').addEventListener('click', () => {
   sa.title = auf ? 'Alle Kategorien zuklappen' : 'Alle Kategorien aufklappen';
 });
 // Gericht mit Komponenten an die einbettende Anwendung melden ("zum Angebot hinzufügen"); auch per Nachricht von dort auslösbar
-function selectDish(id) {
+function selectDish(id, quiet) {
   const g = dishOf(id); if (!g) return false;
   const x = eff(g);
   tellParent({ type: 'ks-katalog:add-dish', version: remote.version, dish: { id: g.id, name: x.name, kueche: g.kueche, gang: g.gang, sammlung: x.sammlung, variante: !!g.variante, basisId: g.basis || null, tags: x.tags.map(t => t.t), allergene: x.allergene, komponenten: x.ids.map((cid, i) => ({ id: cid, name: C[cid].name, text: x.texts[i], rolle: C[cid].rolle, gruppe: C[cid].gruppe })) } });
-  toast('„' + x.name + '“ zum Angebot hinzugefügt.');
+  if (!quiet) toast('„' + x.name + '“ zum Angebot hinzugefügt.');
   return true;
 }
 window.addEventListener('message', e => {
@@ -1012,6 +1055,7 @@ window.addEventListener('message', e => {
   if (e.data && e.data.type === 'ks-katalog:token' && typeof e.data.token === 'string') { EMB.token = e.data.token; pollRemote(); }
 });
 document.getElementById('main').addEventListener('click', e => {
+  if (state.view === 'P') { paketKlick(e); return; }
   const sel = e.target.closest('[data-sel]');
   if (sel) { selectDish(sel.dataset.sel); return; }
   const td = e.target.closest('[data-tagdel]');

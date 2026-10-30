@@ -76,6 +76,7 @@ Beide Seiten prüfen `event.origin` – der Katalog sendet nur an die einbettend
 | `ks-katalog:ready` | `version`, `readonly`, `select` | Katalog geladen und mit dem Server verbunden |
 | `ks-katalog:changed` | `version` | die Küche (oder jemand anderes) hat den Katalog geändert, die Anzeige wurde aktualisiert |
 | `ks-katalog:add-dish` | `dish` (s. unten), `version` | Büro hat „+ Zum Angebot“ gedrückt |
+| `ks-katalog:add-package` | `paket` `{ id, name, niveau, gerichte: [Gericht-Kennungen] }` | Büro hat bei einem Buffet-/Menü-Paket „Alle Gerichte zum Angebot“ gedrückt. **Direkt davor** kommt für jedes Gericht des Pakets ein `add-dish` (Verarbeitung wie bisher); `add-package` ist nur die Zusatzinfo, welches Paket der Anlass war (z. B. für eine Überschrift). Pakete enthalten keine Preise. |
 | `ks-katalog:auth-expired` | – | Token abgelaufen → neues Token erzeugen und per `ks-katalog:token` senden (oder iframe neu laden) |
 
 `dish`:
@@ -113,9 +114,9 @@ Browser-Aufrufe von der Office-Herkunft sind per CORS erlaubt (`OFFICE_ORIGIN`),
 Der **Grundkatalog** (846 Gerichte, 1163 Komponenten) liegt als Datei im Generator-Repository (`speisenkatalog/speisendatenbank.json`) und ändert sich nur durch neue Versionen; **alles, was die Küche am Katalog ändert**, steht im Änderungsstand (§7).
 
 ## 7. Änderungsstand und gleichzeitiges Arbeiten
-Der Stand besteht aus sieben Schlüsseln:
+Der Stand besteht aus acht Schlüsseln:
 `speisen_names` (Komponenten umbenennen) · `speisen_mods` (Zusammensetzung eines Gerichts) · `speisen_custom` (eigene Varianten) · `speisen_removed` (entfernte Gerichte, Liste) ·
-`speisen_tagmods` (Tags) · `speisen_todos` (To-Do-Texte) · `speisen_groups` (Rolle/Gruppe einer Komponente).
+`speisen_tagmods` (Tags) · `speisen_todos` (To-Do-Texte) · `speisen_groups` (Rolle/Gruppe einer Komponente) · `speisen_pakete` (Änderungen an den Buffet-/Menü-Empfehlungen: eigenes Paket = Objekt, ausgeblendetes Paket = `{ "removed": true }`).
 
 **Speichern** (`PUT`): Body `{ "daten": <mein Stand>, "basis": <Stand, auf dem ich aufgebaut habe> }`. Der Server übernimmt **nur die Änderungen gegenüber `basis`, je Eintrag**, und führt sie mit dem aktuellen Serverstand zusammen. Haben zwei Personen denselben Eintrag geändert, gilt die zuletzt gespeicherte. Die Antwort enthält den zusammengeführten Stand (`daten`), `version` (zählt hoch) und `updated`.
 Ohne `basis` wird der Stand komplett ersetzt – **nur für die allererste Befüllung verwenden**.
@@ -148,3 +149,4 @@ Automatische Prüfungen: `node _test_extracts/integration_test.js` (Token, Zusam
 
 ## 11. Änderungsprotokoll
 - **v1** (Okt 2026): Erste Fassung. Einbetten per Token, Nachrichten (`ready`, `changed`, `add-dish`, `auth-expired`, `theme`, `select-dish`, `token`), Zusammenführen von Änderungen, Nur-Lese-Token.
+- **v1.1** (Okt 2026): Neuer Katalog-Reiter „Buffets & Menüs“ (fertige Pakete ohne Preise, Filter nach Zielgruppe, Mahlzeit, Format, Niveau, Ernährung). Neue Nachricht `add-package`; Stand um `speisen_pakete` erweitert. In der Katalog-Seite heißt „Sammlungen (Komponenten + To-Do)“ jetzt „Bausteine & To-Dos“.
