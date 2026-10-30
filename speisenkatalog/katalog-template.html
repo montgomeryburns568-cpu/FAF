@@ -729,7 +729,7 @@ function render() {
     const el = document.querySelector('[data-card="' + CSS.escape(id) + '"]');
     if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('flash'); }
     const g = dishOf(id);
-    if (g) toast('Neue Speise angelegt: „' + eff(g).name + '“ – ' + (REMOVED.has(g.basis) ? 'das Original wurde entfernt (Papierkorb-Symbol oben: wiederherstellen).' : 'die Originalspeise bleibt unverändert.'));
+    if (g) toast('Neue Speise angelegt: „' + eff(g).name + '“ – die Originalspeise bleibt unverändert.');
   }
 }
 let toastTimer = null;
@@ -924,7 +924,7 @@ function pkOpen(dish, idx, mode) {
   document.getElementById('pkQ').focus();
 }
 // Neue Zusammensetzung eines Gerichts übernehmen. Eigene Varianten werden direkt geändert; bei einem Originalgericht wird erst gefragt:
-// Original ändern | neues Gericht (Original bleibt) | neues Gericht (Original wird entfernt) | Abbrechen (nichts wird geändert)
+// Original ändern | Kopie erstellen (Original bleibt) | Verwerfen (nichts wird geändert)
 function commitIds(dish, ids) {
   if (EMB && EMB.readonly) { toast('Nur Lesezugriff.'); return; }
   const g = dishOf(dish);
@@ -935,10 +935,9 @@ function commitIds(dish, ids) {
     title: 'Wie soll die Änderung gespeichert werden?',
     sub: '„' + alt + '“ wurde verändert. Bis zur Auswahl ist noch nichts gespeichert.',
     buttons: [
-      { label: 'Neues Gericht anlegen, Original behalten', cls: 'primary', fn: () => mutate(() => { startVariant(g, ids); }) },
-      { label: 'Neues Gericht anlegen, Original entfernen', fn: () => mutate(() => { startVariant(g, ids); delete MODS[g.id]; REMOVED.add(g.id); }) },
-      { label: 'Original selbst ändern', fn: () => mutate(() => { MODS[g.id] = ids.slice(); }) },
-      { label: 'Abbrechen (nichts ändern)' }
+      { label: 'Original ändern', cls: 'primary', fn: () => mutate(() => { MODS[g.id] = ids.slice(); }) },
+      { label: 'Kopie erstellen (Original bleibt)', fn: () => mutate(() => { startVariant(g, ids); }) },
+      { label: 'Verwerfen' }
     ]
   });
 }
