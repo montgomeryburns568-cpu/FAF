@@ -55,7 +55,6 @@
   details.sec.sub .sbar { height:18px; width:5px; }
   .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(380px, 1fr)); gap:10px; }
   .card { position:relative; background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:10px 14px; }
-  .card.modded { border-color:#fdb02e; box-shadow:0 0 0 1px #fdb02e inset; }
   .card.rem { opacity:.75; background:var(--panel2); }
   .card.open { border-color:var(--muted); box-shadow:0 2px 10px rgba(0,0,0,.18); }
   .dish { line-height:2.05; font-size:15.5px; padding-right:22px; cursor:pointer; position:relative; }
@@ -923,13 +922,13 @@ function pkOpen(dish, idx, mode) {
   pkRender();
   document.getElementById('pkQ').focus();
 }
-// Neue Zusammensetzung eines Gerichts übernehmen. Eigene Varianten werden direkt geändert; bei einem Originalgericht wird erst gefragt:
+// Neue Zusammensetzung eines Gerichts übernehmen (Original und eigene Kopien gleichermaßen): erst wird gefragt:
 // Original ändern | Kopie erstellen (Original bleibt) | Verwerfen (nichts wird geändert)
 function commitIds(dish, ids) {
   if (EMB && EMB.readonly) { toast('Nur Lesezugriff.'); return; }
   const g = dishOf(dish);
   const gleich = ids.length === g.teile.length && ids.every((id, i) => id === g.teile[i].comp);
-  if (g.variante || gleich) { mutate(() => { if (gleich) delete MODS[dish]; else MODS[dish] = ids.slice(); }); return; }
+  if (gleich) { mutate(() => { delete MODS[dish]; }); return; }   // wieder identisch mit dem Ausgangsstand: Änderung zurücknehmen, keine Frage nötig
   const alt = eff(g).name;
   dlgOpen({
     title: 'Wie soll die Änderung gespeichert werden?',
