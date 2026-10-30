@@ -813,13 +813,27 @@ function groupsForRole(role) {
   if (role === 'H') Object.keys(HCOL).forEach(k => set.add(k));
   return [...set].sort((a, b) => a.localeCompare(b, 'de'));
 }
-function compEditDlg(id, after) {
+// ctx = { dish, idx }: Der Dialog wurde aus einem Gericht heraus geöffnet. Dort steht oft ein ausgeschriebener Text (z. B. "Canapé mit Roastbeef, Remoulade und Röstzwiebeln"),
+// während die Komponente kurz heißt ("Roastbeef-Remoulade-Canapé"). Gehört die Komponente nur zu diesem einen Gericht, zeigt das Namensfeld den Text, der im Gericht steht.
+function angezeigterText(id, ctx) {
+  if (!ctx) return null;
+  const g = dishOf(ctx.dish), c = C[id];
+  const teil = g && g.teile.find(p => p.comp === id);
+  if (!teil || NAMES[id]) return null;   // wurde schon umbenannt: der Komponentenname ist dann der angezeigte Text
+  const stamm = t => norm(t).replace(/(en|em|er|es|e)$/, '');
+  if (stamm(teil.text) === stamm(c.name)) return null;
+  const nutzung = allDishes().filter(x => eff(x).ids.includes(id)).length;
+  return { text: teil.text, einzigesGericht: nutzung <= 1 };
+}
+function compEditDlg(id, after, ctx) {
   const c = C[id];
+  const zeigt = angezeigterText(id, ctx);
+  const startName = zeigt && zeigt.einzigesGericht ? zeigt.text : c.name;
   const draft = { tags: ctags(c).map(t => t.t) };
   const NEW = '__neu__';
   const body = `
     <label>Name</label><input type="text" id="ceName" autocomplete="off">
-    <div class="hint">Gilt für diese Komponente in allen Gerichten.</div>
+    <div class="hint">${zeigt && zeigt.einzigesGericht ? 'So steht es im Gericht. Der Name der Komponente ist „' + esc(c.name) + '“; eine Änderung ersetzt ihn.' : zeigt ? 'Im Gericht steht „' + esc(zeigt.text) + '“ (angepasst an den Satz). Eine Änderung gilt für diese Komponente in allen Gerichten.' : 'Gilt für diese Komponente in allen Gerichten.'}</div>
     <label>Art</label><select id="ceRole">${Object.entries(ROLE_LABEL).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select>
     <label>Label / Gruppe</label><select id="ceGroup"></select>
     <input type="text" id="ceNew" placeholder="Name der neuen Gruppe …" style="display:none;margin-top:6px" autocomplete="off">
@@ -853,7 +867,8 @@ function compEditDlg(id, after) {
           const todo = document.getElementById('ceTodo').value;
           const tags = draft.tags.slice();
           mutate(() => {
-            if (name === c.origName) delete NAMES[id]; else NAMES[id] = name;
+            if (name === startName && startName !== c.name) { /* Name unverändert (nur der angezeigte Text war vorbelegt): Komponentenname nicht anfassen */ }
+            else if (name === c.origName) delete NAMES[id]; else NAMES[id] = name;
             if (rolle === c.origRolle && gruppe === c.origGruppe) delete GROUPS[id]; else GROUPS[id] = { rolle, gruppe };
             if (todo === (c.todo || '')) delete TODOS[id]; else TODOS[id] = todo;
             const base = c.tags.map(t => t.t);
@@ -865,7 +880,7 @@ function compEditDlg(id, after) {
         } }
     ],
     onOpen: () => {
-      document.getElementById('ceName').value = c.name;
+      document.getElementById('ceName').value = startName;
       document.getElementById('ceRole').value = c.rolle;
       fillGroups(c.rolle, c.gruppe);
       document.getElementById('ceTodo').value = todoOf(c);
@@ -947,7 +962,7 @@ document.getElementById('pk').addEventListener('click', ev => {
   const o = ev.target.closest('[data-opt]');
   if (o) {
     const id = o.dataset.opt;
-    if (pk.mode === 'swap' && id === cur.ids[pk.idx]) { compEditDlg(id, pkRender); return; }
+    if (pk.mode === 'swap' && id === cur.ids[pk.idx]) { compEditDlg(id, pkRender, { dish: pk.dish, idx: pk.idx }); return; }
     const doIt = () => {
       const ids = cur.ids.slice();
       if (pk.mode === 'swap') ids[pk.idx] = id;
@@ -969,7 +984,7 @@ document.getElementById('pk').addEventListener('click', ev => {
   const r = ev.target.closest('[data-role]'); if (r) { pk.role = r.dataset.role; pkRender(); return; }
   const btn = ev.target.closest('button'); if (!btn) return;
   if (btn.id === 'pkClose') pkClose();
-  else if (btn.id === 'pkEditCur') compEditDlg(cur.ids[pk.idx], pkRender);
+  else if (btn.id === 'pkEditCur') compEditDlg(cur.ids[pk.idx], pkRender, { dish: pk.dish, idx: pk.idx });
   else if (btn.id === 'pkAdd') { pk.mode = 'add'; pk.role = 'S'; document.getElementById('pkQ').value = ''; pkRender(); }
   else if (btn.id === 'pkDel' && cur.ids.length > 1) { const ids = cur.ids.slice(); ids.splice(pk.idx, 1); pkClose(); commitIds(pk.dish, ids); }
   else if (btn.id === 'pkFilter') {
