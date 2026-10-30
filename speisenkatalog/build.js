@@ -154,22 +154,22 @@ for (const c of comps.values()) {
 }
 
 // ---------- 3. Tag-Ableitung (nur aus dem Namen, daher als "auto" markiert) ----------
-const MEAT = /bresaola|leberpastete|salsiccia|lorraine|hahnchen|huhn|chicken|pute|\bente|gans|rind|kalb|(?<!f)lamm|schwein|speck|schinken|kassler|rippchen|haxe|schaufele|leberkase|hackfleisch|hackbraten|wings|nuggets|poularde|backhendl|roastbeef|ossobuco|saltimbocca|kofta|kebab|souvlaki|gyros|klopse|pulled|ribs|brisket|bacon|porchetta|cordon bleu|coq au vin|rouladen|sauerbraten|bistecca|vitello|tafelspitz|chili con carne|beef|stroganoff|chorizo|cevapcici|salami|hackball|frikadell|geflugel|rindfleisch|entenbrust|gansebrust|lammrucken|serrano/;
+const MEAT = /kiewer|schaschlik|scaloppine|polpette|pelmeni|golubzi|mortadella|prosciutto|cicchetti|currywurst|rindswurst|wurstchen|wiener|fleisch(?!los)|gefl[uü]gel|bresaola|leberpastete|salsiccia|lorraine|hahnchen|huhn|chicken|pute|\bente|gans|rind|kalb|(?<!f)lamm|schwein|speck|schinken|kassler|rippchen|haxe|schaufele|leberkase|hackfleisch|hackbraten|wings|nuggets|poularde|backhendl|roastbeef|ossobuco|saltimbocca|kofta|kebab|souvlaki|gyros|klopse|pulled|ribs|brisket|bacon|porchetta|cordon bleu|coq au vin|rouladen|sauerbraten|bistecca|vitello|tafelspitz|chili con carne|beef|stroganoff|chorizo|cevapcici|salami|hackball|frikadell|geflugel|rindfleisch|entenbrust|gansebrust|lammrucken|serrano/;
 const SOFT_MEAT = /schnitzel|wurst|frikadell|burger|steak|gulasch|ragout|aufschnitt|datteln im speck/;
 const VEGGIE_MARK = /sellerie|aubergine|blumenkohl|polenta|kohl|kurbis|vegan|veggie|gemuse|tofu|sin carne|linsen|kichererbsen|falafel|halloumi|paneer|ricotta|kasespatzle|kaiserschmarrn|reibekuchen|bohnen-chili/;
-const FISH = /fisch|lachs|zander|kabeljau|forelle|dorade|wolfsbarsch|thunfisch|seeteufel|matjes|pangasius|tilapia|garnele|scampi|gambas|shrimp|muschel|calamari|tintenfisch|meeresfruchte|vongole|paella|sardelle|poke|saint pierre|seehecht|crevette|krabbe|crabcake|kaviar/;
+const FISH = /hering|makrele|sardine|bismarck|fisch|lachs|zander|kabeljau|forelle|dorade|wolfsbarsch|thunfisch|seeteufel|matjes|pangasius|tilapia|garnele|scampi|gambas|shrimp|muschel|calamari|tintenfisch|meeresfruchte|vongole|paella|sardelle|poke|saint pierre|seehecht|crevette|krabbe|crabcake|kaviar/;
 const STOCK = /jus\b|bratensosse|rotwein|portwein|madeira|marsala|burgunder|jager|zwiebelsosse|rosinensosse/;
 const VEGAN_WORD = /vegan|tofu|falafel|linsen|kichererbsen|sin carne|hummus|pomodoro|arrabbiata|aglio e olio|glasnudeln|sushireis|edamame|sojasosse|erdnusssosse|sweet-chili|sweet chili/;
-const DAIRY = /brie|camembert|burrata|knopfle|skyr|kefir|panna cotta|cheesecake|brulee|tiramisu|mousse|pudding|bayrische creme|flammerie|milchreis(?!.*hafer)|quarkcreme|joghurtcreme|mascarponecreme|caprese|mozzarella|rollchen|involtini|schiffchen|gefullte champignons|parmigiana|butter|sahne|rahm|kase|joghurt|quark|schmand|parmesan|mozzarella|feta|halloumi|ricotta|mascarpone|gorgonzola|paneer|spiegelei|honig|bechamel|gratin|puree|stampf|hollandaise|aioli|remoulade|tzatziki|panier|nuggets|kaiserschmarrn|reibekuchen|pesto|cordon|stroganoff|fricassee|korma|masala|tikka|risotto|lasagne|cannelloni|ravioli|tortelloni|gnocchi|spatzle|tagliatelle|bandnudel|kroketten|burger|shakshuka|pizza|hirtenkase|schnitzel|backfisch|backhendl|wiener|klopse|frikadelle|hackbraten|knodel(?!.*kartoffel)|gyoza|kase|zwetschgenroster|apfelmus/;
-const PORK = /serrano|pulled-pork|pulled pork|salsiccia|lorraine|wurstsalat|chorizo|rahmschnitzel|jagerschnitzel|zigeunerschnitzel|schwein|speck|schinken|bacon|kassler|rippchen|bratwurst|schaufele|leberkase|porchetta|pulled pork|spare ribs|salami|saltimbocca|cordon bleu|klopse|schweinehaxe/;
-const ALC = /riesling|prosecco|sekt\b|(?<!sch)wein(?!blatt)|portwein|madeira|marsala|bier|whiskey|rum\b|likor|amaretto|grappa|cognac|kirsch|sherry|coq au vin|burgunder|vin\b/;
-const GLUTEN = /canap|kanap|knopfle|nudel|spatzle|panier|backfisch|backhendl|schnitzel|cordon|nugget|couscous|bulgur|ravioli|tortelloni|cannelloni|lasagne|gnocchi|schupfnudel|baguette|fladenbrot|semmel|serviettenknodel|pizza|croutons|blatterteig|frikadelle|hackbraten|hackfleischballchen|klopse|burger|wiener|spaghetti|penne|tagliatelle|pasta|tortilla|burrito|taco|fruhlingsroll|gyoza|kaiserschmarrn|reibekuchen|bechamel|teriyaki|sojasosse|hoisin|austern|kroketten|fischstabchen|rahmschnitzel|gemuseschnitzel|stroganoff|falafel|gulaschsuppe|leberkase|bratwurst|brot|pad thai|kung pao|suss-sauer|sweet-chili|chop suey|gebratene nudeln|knodel(?!.*kartoffel)|kartoffelknodel(?=.*semmel)/;
-const EI = /knopfle|eiersalat|eier\b|^ei\b|bio-ei|ruhrei|bami goreng|spatzle|panier|backfisch|backhendl|schnitzel|nugget|cordon|kaiserschmarrn|reibekuchen|remoulade|aioli|hollandaise|frikadelle|hackbraten|klopse|semmelknodel|serviettenknodel|ravioli|tortelloni|cannelloni|lasagne|gnocchi|tagliatelle|bandnudel|spiegelei|kroketten|burger|shakshuka|nudeln(?!.*vegan)|spaghetti(?! aglio)|penne(?! arrabbiata)|pasta(?!.*vegan)|fruhlingsroll|gyoza|pad thai|hackfleischballchen|fricassee|wiener/;
+const DAIRY = /cremesuppe|schokobrotchen|croissant|plunder|muffin|brownie|kuchen|windbeutel|spritz|berliner|schnecke|crumble|cookie|keks|cantuccini|medovik|syrniki|cannoli|catalana|waffel|lebkuchen|biskuit|brie|camembert|burrata|knopfle|skyr|kefir|panna cotta|cheesecake|brulee|tiramisu|mousse|pudding|bayrische creme|flammerie|milchreis(?!.*hafer)|quarkcreme|joghurtcreme|mascarponecreme|caprese|mozzarella|rollchen|involtini|schiffchen|gefullte champignons|parmigiana|butter|sahne|rahm|kase|joghurt|quark|schmand|parmesan|mozzarella|feta|halloumi|ricotta|mascarpone|gorgonzola|paneer|spiegelei|honig|bechamel|gratin|puree|stampf|hollandaise|aioli|remoulade|tzatziki|panier|nuggets|kaiserschmarrn|reibekuchen|pesto|cordon|stroganoff|fricassee|korma|masala|tikka|risotto|lasagne|cannelloni|ravioli|tortelloni|gnocchi|spatzle|tagliatelle|bandnudel|kroketten|burger|shakshuka|pizza|hirtenkase|schnitzel|backfisch|backhendl|wiener|klopse|frikadelle|hackbraten|knodel(?!.*kartoffel)|gyoza|kase|zwetschgenroster|apfelmus/;
+const PORK = /parma(?!san)|prosciutto|mortadella|cicchetti|serrano|pulled-pork|pulled pork|salsiccia|lorraine|wurstsalat|chorizo|rahmschnitzel|jagerschnitzel|zigeunerschnitzel|schwein|speck|schinken|bacon|kassler|rippchen|bratwurst|schaufele|leberkase|porchetta|pulled pork|spare ribs|salami|saltimbocca|cordon bleu|klopse|schweinehaxe/;
+const ALC = /riesling|prosecco|sekt\b|(?<!sch)wein(?!blatt)|portwein|madeira|marsala|bier|whiskey|rum\b|likor|amaretto|grappa|cognac|kirschwasser|kirschlikor|sherry|coq au vin|burgunder|vin\b/;
+const GLUTEN = /muffin|brownie|kuchen|windbeutel|spritz|berliner|croissant|plunder|schnecke|crumble|cookie|keks|cantuccini|quiche|wrap|tarte|borek|bao buns|focaccia|ciabatta|toast|pumpernickel|brezel|laugen|blini|crepe|empanada|pelmeni|wareniki|piroggen|piroschki|medovik|syrniki|cannoli|lebkuchen|tiramisu|cheesecake|butterkeks|panade|panko|canap|kanap|knopfle|nudel|spatzle|panier|backfisch|backhendl|schnitzel|cordon|nugget|couscous|bulgur|ravioli|tortelloni|cannelloni|lasagne|gnocchi|schupfnudel|baguette|fladenbrot|semmel|serviettenknodel|pizza|croutons|blatterteig|frikadelle|hackbraten|hackfleischballchen|klopse|burger|wiener|spaghetti|penne|tagliatelle|pasta|tortilla|burrito|taco|fruhlingsroll|gyoza|kaiserschmarrn|reibekuchen|bechamel|teriyaki|sojasosse|hoisin|austern|kroketten|fischstabchen|rahmschnitzel|gemuseschnitzel|stroganoff|falafel|gulaschsuppe|leberkase|bratwurst|brot|pad thai|kung pao|suss-sauer|sweet-chili|chop suey|gebratene nudeln|knodel(?!.*kartoffel)|kartoffelknodel(?=.*semmel)/;
+const EI = /muffin|brownie|kuchen|windbeutel|spritz|berliner|medovik|syrniki|cannoli|catalana|waffel|cookie|biskuit|quiche|blini|frittata|knopfle|eiersalat|eier\b|^ei\b|bio-ei|ruhrei|bami goreng|spatzle|panier|backfisch|backhendl|schnitzel|nugget|cordon|kaiserschmarrn|reibekuchen|remoulade|aioli|hollandaise|frikadelle|hackbraten|klopse|semmelknodel|serviettenknodel|ravioli|tortelloni|cannelloni|lasagne|gnocchi|tagliatelle|bandnudel|spiegelei|kroketten|burger|shakshuka|nudeln(?!.*vegan)|spaghetti(?! aglio)|penne(?! arrabbiata)|pasta(?!.*vegan)|fruhlingsroll|gyoza|pad thai|hackfleischballchen|fricassee|wiener/;
 
 function analyse(c) {
   const n = norm(c.name);
   const f = { allergene: [] };
-  const isMeat = (MEAT.test(n) && !/^vegan/.test(n)) || (SOFT_MEAT.test(n) && !VEGGIE_MARK.test(n)) || (c.role === 'S' && STOCK.test(n));
+  const isMeat = (MEAT.test(n) && !/^vegan|gemuse-frikadelle|veggie/.test(n)) || (SOFT_MEAT.test(n) && !VEGGIE_MARK.test(n)) || (c.role === 'S' && STOCK.test(n));
   const isFish = FISH.test(n.replace(/schweinelachs/g, ''));
   f.vegetarisch = !isMeat && !isFish && !(c.role === 'S' && /thunfisch|sardelle|austern/.test(n));
   const veganName = /vegan|alpro/.test(n) && !/^vegan.*(kase|joghurt)/.test(n);
@@ -258,11 +258,19 @@ function tagsFor(c) {
 
   // Ernährungsformen (aus dem Namen abgeleitet -> immer auto)
   if (f.vegan) add('Vegan'); else if (f.vegetarisch) add('Vegetarisch');
-  if (c.role !== 'E') {
-    if (f.helal) add('Helal');
-    if (!f.gluten) add('gluten frei');
-    if (!f.laktose) add('Laktose frei');
-  }
+  if (f.helal) add('Helal');
+  if (!f.gluten) add('gluten frei');
+  if (!f.laktose) add('Laktose frei');
+
+  // Ernährungsphysiologische Hinweise und Zielgruppen (grob nach Namen, daher immer auto – bitte mit der Rezeptur prüfen)
+  const verarbeitet = /wurst|leberkase|speck|salami|pastete|nugget|panier|backfisch|backhendl|cordon|fischstabchen|wiener|schlafrock|aufschnitt|schinken|mortadella|prosciutto|chorizo|wings/;
+  const pflanzProt = /tofu|tempeh|seitan|linsen|kichererbsen|falafel|kidney|schwarze bohnen|weisse bohnen|bohnen-chili|sin carne|halloumi|paneer|skyr|ruhrei|shakshuka|\beier\b|hummus/;
+  if (c.role !== 'S' && ((c.role === 'H' && !f.vegetarisch && !verarbeitet.test(n)) || pflanzProt.test(n) || (c.role === 'G' && /edamame|linsen|kichererbsen/.test(n)) || (c.role === 'E' && /\bei\b|rührei|ruhrei|quark/.test(n)))) add('proteinreich');
+  if ((c.role !== 'S' || /hummus|linsen/.test(n)) && /linsen|kichererbsen|kidney|schwarze bohnen|weisse bohnen|bohnen-chili|sin carne|erbsen|vollkorn|quinoa|bulgur|haferflocken|\boats\b|porridge|hafer(?!milch)|schwarzer reis|wildreis|pumpernickel|brokkoli|broccoli|rosenkohl|rotkohl|blaukraut|wirsing|sauerkraut|spitzkohl|grunkohl|artischocke|susskartoffel|avocado|acai|hummus|falafel|chia|leinsamen|ratatouille|pastinake/.test(n)) add('ballaststoffreich');
+  if (c.role === 'H' && /lachs|forelle|hering|matjes|makrele|sardine|thunfisch/.test(n) && !/backfisch|schweinelachs|fischstabchen|pangasius|tilapia/.test(n)) add('Omega-3-reich');
+  if ((c.role === 'H' && /(?<![a-z])rind|beef|kalb|(?<!f)lamm|leber|ossobuco|rouladen|bistecca|rumpsteak|roastbeef|tafelspitz|linsen|kichererbsen|cevapcici|kofta/.test(n) && !/wurst|leberkase|pastete/.test(n)) || (c.role === 'G' && /linsen/.test(n)) || (c.role === 'B' && /quinoa|hirse|linsen/.test(n))) add('eisenreich');
+  if (/gutburgerlich|haxe|schaufele|sauerbraten|rouladen|schweinebraten|rinderbraten|hackbraten|klopse|leberkase|kassler|bratwurst|backhendl|fricassee|tafelspitz|rahmwirsing|bratkartoffel|reibekuchen|eintopf|gulasch/.test(n) || T.some(x => x.t === 'gutbürgerlich' || x.t === 'bodenständig')) add('Hausmannskost');
+  if (c.role === 'H' && /haxe|schaufele|rippchen|spare ribs|schweinebraten|schweinenacken|nackensteak|rumpsteak|huftsteak|rindersteak|bistecca|burger|pulled|brisket|bratwurst|kassler|gulasch(?!suppe)|leberkase|sauerbraten|rouladen|hackbraten|currywurst|buffalo|wings|chili con carne|cevapcici|schweineschnitzel|rahmschnitzel|jagerschnitzel|gyros/.test(n) && !/vegan|veggie|gemuse|tofu|linsen/.test(n)) add('Male food');
   return T;
 }
 
@@ -413,20 +421,34 @@ for (const d of dishes) {
   const cs = d.parts.map(p => compById.get(p.comp));
   const all = cs.filter(c => c.role !== 'E' || true);
   const t = [{ t: d.kueche, auto: false }];
-  const noExtra = cs.filter(c => c.role !== 'E');
+  const noExtra = cs;   // Extras zählen mit: Ernährungs-/Allergenhinweise gelten nur, wenn ALLE Teile passen
   const everyHas = tag => noExtra.every(c => c.tags.some(x => x.t === tag));
   if (everyHas('Vegan')) t.push({ t: 'Vegan', auto: true });
-  else if (everyHas('Vegetarisch') || everyHas('Vegan')) t.push({ t: 'Vegetarisch', auto: true });
+  else if (noExtra.every(c => c.tags.some(x => x.t === 'Vegetarisch' || x.t === 'Vegan'))) t.push({ t: 'Vegetarisch', auto: true });   // gemischt aus veganen und vegetarischen Teilen = vegetarisch
   ['Helal', 'gluten frei', 'Laktose frei'].forEach(x => { if (everyHas(x)) t.push({ t: x, auto: true }); });
   const hc = cs.find(c => c.role === 'H');
-  ['Leicht', 'Sportlich', 'Female food', 'Kinderfreundlich', 'Festlich', 'würzig', 'scharf', 'deftig', 'Hohe Marge', 'Niedrige Marge(-)'].forEach(x => {
+  ['Leicht', 'Sportlich', 'Female food', 'Male food', 'Hausmannskost', 'Kinderfreundlich', 'Festlich', 'würzig', 'scharf', 'deftig', 'Hohe Marge', 'Niedrige Marge(-)'].forEach(x => {
     if (hc && hc.tags.some(y => y.t === x)) t.push({ t: x, auto: hc.tags.find(y => y.t === x).auto });
   });
+  const anzahl = x => cs.filter(c => c.tags.some(y => y.t === x)).length;
+  ['proteinreich', 'Omega-3-reich', 'eisenreich'].forEach(x => { if (anzahl(x)) t.push({ t: x, auto: true }); });
+  if ((hc && hc.tags.some(y => y.t === 'ballaststoffreich')) || anzahl('ballaststoffreich') >= 2) t.push({ t: 'ballaststoffreich', auto: true });
+  if (d.ff) t.push({ t: 'Stehen-Essen', auto: true });
   if (cs.some(c => c.tags.some(y => y.t === 'Zeitintensiv(-)'))) t.push({ t: 'Zeitintensiv(-)', auto: true });
   else if (cs.every(c => c.tags.some(y => y.t === 'Schnell') || c.role === 'E')) t.push({ t: 'Schnell', auto: true });
   const zus = [...(d.extraTags || []), ...((NACHTRAG.gerichte || {})[d.name] || [])];
   if (/canap|kanap/.test(norm(d.name))) zus.push('Canapé');
-  d.tagsPlus = zus.filter(x => x[0] !== '-'); d.tagsMinus = zus.filter(x => x[0] === '-').map(x => x.slice(1));   // die Katalogseite berechnet Gericht-Tags selbst und übernimmt diese Zusätze/Entfernungen
+  // Plausibilität am GANZEN Gerichtnamen (Teilnamen verraten nicht alles): zu Unrecht vergebene Tags werden entfernt, nie neue Ernährungsversprechen ergänzt
+  const fn = analyse({ name: d.name, role: 'H' });
+  const hat = x => t.some(y => y.t === x);
+  if (hat('Vegan') && !fn.vegetarisch) zus.push('-Vegan');
+  else if (hat('Vegan') && !fn.vegan) { zus.push('-Vegan'); zus.push('Vegetarisch'); }
+  if (cs.some(c => c.role === 'H' && c.gruppe === 'Desserts') && hat('Vegan') && !/vegan|alpro|veggie|obst|frucht|grutze(?!.*vanille)|sorbet|oats|porridge|spiess|acai|exotisch|hafer(?!milchreis)/.test(norm(d.name))) { zus.push('-Vegan'); zus.push('Vegetarisch'); }
+  if (hat('Vegetarisch') && !fn.vegetarisch) zus.push('-Vegetarisch');
+  if (hat('Helal') && !fn.helal) zus.push('-Helal');
+  if (hat('gluten frei') && fn.gluten) zus.push('-gluten frei');
+  if (hat('Laktose frei') && fn.laktose) zus.push('-Laktose frei');
+  d.tagsPlus = [...new Set(zus.filter(x => x[0] !== '-'))]; d.tagsMinus = [...new Set(zus.filter(x => x[0] === '-').map(x => x.slice(1)))];   // die Katalogseite berechnet Gericht-Tags selbst und übernimmt diese Zusätze/Entfernungen
   zus.forEach(x => { if (x[0] === '-') { const i = t.findIndex(y => y.t === x.slice(1)); if (i >= 0) t.splice(i, 1); } else if (!t.some(y => y.t === x)) t.push({ t: x, auto: false }); });
   d.tags = t;
   if (d.ff) d.sammlung = ffGroup(cs, d.name); else d.sammlung = hc ? hc.gruppe : (cs.some(c => c.role === 'G' && c.gruppe === 'Salate') ? 'Salate' : ({ Hauptgang: 'Vegetarisch & Vegan', Extras: 'Extras' }[d.gang] || 'Gemüse, Brot & Beilagen'));

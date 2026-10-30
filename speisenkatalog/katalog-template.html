@@ -455,18 +455,22 @@ function segs(g) {
   out.push({ lit: g.name.slice(pos) });
   return out;
 }
-function dishTags(kueche, cs) {
+function dishTags(kueche, cs, ff) {
   const t = [{ t: kueche, auto: false }];
-  const noExtra = cs.filter(c => c.rolle !== 'E');
+  const noExtra = cs;   // Extras zählen mit: Ernährungs-/Allergenhinweise gelten nur, wenn ALLE Teile passen
   const has = (c, x) => ctags(c).some(y => y.t === x);
   const every = x => noExtra.every(c => has(c, x));
   if (every('Vegan')) t.push({ t: 'Vegan', auto: true });
-  else if (every('Vegetarisch') || every('Vegan')) t.push({ t: 'Vegetarisch', auto: true });
+  else if (noExtra.every(c => has(c, 'Vegetarisch') || has(c, 'Vegan'))) t.push({ t: 'Vegetarisch', auto: true });   // gemischt aus veganen und vegetarischen Teilen = vegetarisch
   ['Helal', 'gluten frei', 'Laktose frei'].forEach(x => { if (every(x)) t.push({ t: x, auto: true }); });
   const hc = cs.find(c => c.rolle === 'H');
-  ['Leicht', 'Sportlich', 'Female food', 'Kinderfreundlich', 'Festlich', 'würzig', 'scharf', 'deftig', 'Hohe Marge', 'Niedrige Marge(-)'].forEach(x => {
+  ['Leicht', 'Sportlich', 'Female food', 'Male food', 'Hausmannskost', 'Kinderfreundlich', 'Festlich', 'würzig', 'scharf', 'deftig', 'Hohe Marge', 'Niedrige Marge(-)'].forEach(x => {
     if (hc && has(hc, x)) t.push({ t: x, auto: ctags(hc).find(y => y.t === x).auto });
   });
+  const anzahl = x => cs.filter(c => has(c, x)).length;
+  ['proteinreich', 'Omega-3-reich', 'eisenreich'].forEach(x => { if (anzahl(x)) t.push({ t: x, auto: true }); });
+  if ((hc && has(hc, 'ballaststoffreich')) || anzahl('ballaststoffreich') >= 2) t.push({ t: 'ballaststoffreich', auto: true });
+  if (ff) t.push({ t: 'Stehen-Essen', auto: true });
   if (cs.some(c => has(c, 'Zeitintensiv(-)'))) t.push({ t: 'Zeitintensiv(-)', auto: true });
   else if (cs.every(c => has(c, 'Schnell') || c.rolle === 'E')) t.push({ t: 'Schnell', auto: true });
   return t;
@@ -544,7 +548,7 @@ function dativPhrase(name, weak) {
   return out.join(' ') + paren;
 }
 // Zusatz-Tags/Entfernungen aus dem Datenbestand (z. B. "kantinengeeignet", Korrektur von Ernährungsformen) auf die berechneten Tags anwenden
-const buildTags = (g, basis) => basis.filter(x => !(g.tagsMinus || []).includes(x.t)).concat((g.tagsPlus || []).filter(p => !basis.some(x => x.t === p)).map(p => ({ t: p, auto: false })));
+const buildTags = (g, basis) => basis.filter(x => !(g.tagsMinus || []).includes(x.t)).concat([...new Set(g.tagsPlus || [])].filter(p => !basis.some(x => x.t === p)).map(p => ({ t: p, auto: false })));
 function eff(g) {
   const mod = !!MODS[g.id];
   const ids = MODS[g.id] || g.teile.map(p => p.comp);
@@ -566,7 +570,7 @@ function eff(g) {
   });
   const name = segList.map(s => s.lit !== undefined ? s.lit : texts[s.i]).join('');
   const cs = ids.map(id => C[id]);
-  return { g, mod, ids, name, texts, segList, tags: effTags('d:' + g.id, buildTags(g, dishTags(g.kueche, cs))), allergene: [...new Set(cs.flatMap(c => c.allergene))], sammlung: sammlungOf(g, cs, name), removed: REMOVED.has(g.id) };
+  return { g, mod, ids, name, texts, segList, tags: effTags('d:' + g.id, buildTags(g, dishTags(g.kueche, cs, g.ff))), allergene: [...new Set(cs.flatMap(c => c.allergene))], sammlung: sammlungOf(g, cs, name), removed: REMOVED.has(g.id) };
 }
 
 // ================= Darstellung =================
@@ -1024,7 +1028,7 @@ document.getElementById('disk').onclick = () => dlgOpen({
     { label: 'Abbrechen' }
   ]
 });
-document.getElementById('infoBtn').onclick = () => dlgOpen({ title: 'Hinweise', body: '<div class="note" style="margin:0">' + "Tags mit gestrichelter Kontur sind <b>automatisch aus den Namen abgeleitet</b> (v. a. Helal, vegan/vegetarisch, gluten frei, Laktose frei, Allergene) und müssen mit der echten Rezeptur geprüft werden. Rote Tags mit „(-)“ sind negative Merkmale. Alle Änderungen werden sofort gespeichert; über das Disketten-Symbol legst du zusätzlich eine Sicherungsdatei an oder lädst eine." + '</div>', buttons: [{ label: 'Schließen', cls: 'primary' }] });
+document.getElementById('infoBtn').onclick = () => dlgOpen({ title: 'Hinweise', body: '<div class="note" style="margin:0">' + "Tags mit gestrichelter Kontur sind <b>automatisch aus den Namen abgeleitet</b> (Helal, vegan/vegetarisch, gluten frei, Laktose frei, Allergene sowie Richtwerte wie proteinreich, ballaststoffreich, Omega-3-reich, eisenreich) und müssen mit der echten Rezeptur geprüft werden. „Male food“, „Female food“, „Hausmannskost“ und „Stehen-Essen“ sind Hinweise für die Beratung. Rote Tags mit „(-)“ sind negative Merkmale. Alle Änderungen werden sofort gespeichert; über das Disketten-Symbol legst du zusätzlich eine Sicherungsdatei an oder lädst eine." + '</div>', buttons: [{ label: 'Schließen', cls: 'primary' }] });
 document.getElementById('redo').onclick = doRedo;
 document.getElementById('main').addEventListener('click', e => {
   const sm = e.target.closest('summary');
