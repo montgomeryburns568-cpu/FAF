@@ -1640,6 +1640,8 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
       body: JSON.stringify({ password: pwInput.value }),
     });
     if (!r.ok) { errEl.textContent = (await r.json()).error || 'Login fehlgeschlagen.'; return; }
+    // Dem Browser anbieten, das Passwort in seinem Passwortmanager zu speichern (der Browser fragt dann selbst nach)
+    try { if (window.PasswordCredential && navigator.credentials) await navigator.credentials.store(new PasswordCredential({ id: 'kueche', password: pwInput.value, name: 'Küchen-App' })); } catch (e) { /* nicht unterstützt oder abgelehnt */ }
     pwInput.value = '';
     hideLogin();
     boot();

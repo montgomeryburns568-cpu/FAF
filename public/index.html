@@ -26,7 +26,9 @@
     </div>
     <h2>Küchensheet-Generator</h2>
     <p class="hint">Bitte Passwort eingeben.</p>
-    <input type="password" id="loginPassword" placeholder="Passwort" required autofocus>
+    <!-- Benutzername nur für den Passwortmanager des Browsers (damit er das Passwort speichern und automatisch einsetzen kann) -->
+    <input type="text" id="loginUser" name="username" value="kueche" autocomplete="username" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+    <input type="password" id="loginPassword" name="password" placeholder="Passwort" autocomplete="current-password" required autofocus>
     <div class="login-error" id="loginError"></div>
     <button type="submit" class="btn-primary">Anmelden</button>
   </form>
