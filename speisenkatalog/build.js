@@ -107,9 +107,24 @@ function proteinGroup(n) {
   if (has(n, /schinken|salami|aufschnitt|wurstplatte|kase|kas\b|speck|wurst|camembert|mortadella|prosciutto|cicchetti/)) return 'Aufschnitt & Käse';
   return 'Vegetarisch & Vegan';
 }
+// Beilagen nach Art getrennt (Kartoffeln, Knödel, Reis, Nudeln, Getreide, Brot); jede Gruppe bekommt im Katalog eine eigene Farbstufe (BCOL in katalog-template.html)
+const GARZUWACHS_GRUPPEN = new Set(['Reis', 'Nudeln, Spätzle & Gnocchi', 'Getreide, Couscous & Polenta']);
 function beilageGroup(n) {
   if (has(n, /brot|baguette|ciabatta|bagel|toast|pumpernickel|brotchen|laugenstange|taler/)) return 'Brot & Gebäck';
-  return has(n, /kartoffel|pommes|rosti|puree|gratin|stampf|wedges|knodel|klosse|kroketten|drillinge|pellkartoffel/) ? 'Kartoffeln & Knödel' : 'Reis, Nudeln & Getreide';
+  if (has(n, /knodel|klosse/)) return 'Knödel & Klöße';
+  if (has(n, /kartoffel|pommes|rosti|puree|gratin|stampf|wedges|kroketten|drillinge/)) return 'Kartoffeln';
+  if (has(n, /reis\b|risotto/)) return 'Reis';
+  if (has(n, /nudel|spatzle|knopfle|spaghetti|tagliatelle|penne|gnocchi/)) return 'Nudeln, Spätzle & Gnocchi';
+  return 'Getreide, Couscous & Polenta';
+}
+function dipGroup(n) {
+  if (has(n, /meerrettich|senf/)) return 'Meerrettich & Senf';
+  if (has(n, /aioli|remoulade|cocktail|knoblauchsosse|tonnato|thunfisch|mayo/)) return 'Aioli, Remoulade & Mayonnaisesoßen';
+  if (has(n, /pesto|chimichurri|salsa|basilikum|frankfurter|barlauch|rucola|grune/)) return 'Pesto, Kräuter- & Salsasoßen';
+  if (has(n, /hummus|tahini|bohnen/)) return 'Hummus, Tahini & Bohnencremes';
+  if (has(n, /joghurt|tzatziki|zaziki|schmand|sauerrahm|sourcreme|quark|mascarpone|burrata/)) return 'Joghurt-, Quark- & Schmand-Dips';
+  if (has(n, /mousse|creme|schaum/)) return 'Cremes & Mousse';
+  return 'Dips & kalte Soßen';
 }
 function sosseGroup(n) {
   if (has(n, /vanille|schoko|erdbeer|fruchtpuree|kompott|karamell|himbeer|schattenmorellen|zimtkirsche|ananasragout|rote grutze|portweinpflaume/)) return 'Dessertsoßen & Kompott';
@@ -118,18 +133,34 @@ function sosseGroup(n) {
   if (has(n, /bbq|burger|whiskey/)) return 'BBQ & Burger';
   if (has(n, /curry|kokos|erdnuss|teriyaki|hoisin|soja|sweet-chili|sweet chili|austern|korma|satay|chili-knoblauch/)) return 'Asiatisch & Curry';
   if (has(n, /tomat|pomodoro|arrabbiata|salsa(?! verde)/)) return 'Tomatensoßen';
-  if (has(n, /tzatziki|joghurt|minz|hummus|knoblauchsosse|aioli|remoulade|tahini|dip|creme(?!sosse)|schmand|mousse|schaum|sauerrahm|zaziki|tonnato|cocktail|chimichurri|pesto|guacamole|salsa verde|basilikum|frankfurter|grune|meerrettich|kraeterquark|kräuterquark|thunfischsosse|rucola/)) return 'Dips & kalte Soßen';
+  if (has(n, /tzatziki|joghurt|minz|hummus|knoblauchsosse|aioli|remoulade|tahini|dip|creme(?!sosse)|schmand|mousse|schaum|sauerrahm|zaziki|tonnato|cocktail|chimichurri|pesto|guacamole|salsa verde|basilikum|frankfurter|grune|meerrettich|kraeterquark|kräuterquark|thunfischsosse|rucola/)) return dipGroup(n);
   if (has(n, /jus|bratensosse|rotwein|portwein|madeira|marsala|burgunder|zwiebelsosse|jager|dunkelbier|rosinen|gremolata|balsamico/)) return 'Jus & Bratensoßen';
   if (has(n, /(?<!sch)wein|zitron|butter|safran|kapern|orange|salbei/)) return 'Butter- & Weißweinsoßen';
   if (has(n, /rahm|sahne|champignon|pilz|gorgonzola|senf|dill|kraut|bechamel|pfeffer|steinpilz|paprikarahm|knoblauch|apfel/)) return 'Rahm- & Cremesoßen';
   return 'Sonstige Soßen';
 }
+const SALAT_GRUPPEN = new Set(['Blattsalate', 'Rohkost- & Gemüsesalate', 'Nudel-, Couscous- & Getreidesalate', 'Kartoffelsalate', 'Bohnen- & Linsensalate', 'Obstsalate', 'Salate mit Fleisch, Fisch & Käse']);
 function gemueseGroup(n) {
-  if (has(n, /salat/)) return 'Salate';
-  if (has(n, /kohl|romanesco|brokkoli|rosenkohl|wirsing|pak choi|sauerkraut|blaukraut|chinakohl/)) return 'Kohlgemüse';
-  if (has(n, /karotte|mohre|wurzel|rote bete|pastinake|sellerie|fenchel|gurken-dill|kurbis/)) return 'Wurzelgemüse & Kürbis';
-  if (has(n, /erbsen|bohnen|spinat|spargel|mangold|edamame|kichererbsen|linsen/)) return 'Grünes & Hülsenfrüchte';
-  return 'Ofen-, Pfannen- & Mittelmeergemüse';
+  if (has(n, /salat/)) {
+    if (has(n, /melone|ananas/)) return 'Obstsalate';
+    if (has(n, /wurst|meeresfruchte|thunfisch|^speck|handkase|olivier|schafskase|hirtenkase/)) return 'Salate mit Fleisch, Fisch & Käse';
+    if (has(n, /nudel|pasta|couscous|quinoa|tabouleh/)) return 'Nudel-, Couscous- & Getreidesalate';
+    if (has(n, /kartoffel/)) return 'Kartoffelsalate';
+    if (has(n, /bohnen|linsen/)) return 'Bohnen- & Linsensalate';
+    if (has(n, /blatt|eisberg|feldsalat|rucola|krautersalat|wildkrauter|beilagensalat/)) return 'Blattsalate';
+    return 'Rohkost- & Gemüsesalate';
+  }
+  if (has(n, /pilz|champignon|shiitake/)) return 'Pilze';
+  if (has(n, /brokkoli|blumenkohl|romanesco|rosenkohl/)) return 'Brokkoli, Blumenkohl & Rosenkohl';
+  if (has(n, /kohl|kraut|wirsing|pak choi/)) return 'Kohl & Kraut';
+  if (has(n, /wurzel|rote[ -]bete|pastinake|sellerie|fenchel|kurbis|steckrube/)) return 'Wurzelgemüse, Rote Bete & Kürbis';
+  if (has(n, /karotte|mohre/)) return 'Karotten & Möhren';
+  if (has(n, /spinat|spargel|mangold/)) return 'Spinat & Spargel';
+  if (has(n, /erbsen|bohnen|edamame|linsen|kaiserschoten/)) return 'Bohnen, Erbsen & Hülsenfrüchte';
+  if (has(n, /ofen|grill|gebraten|wok|glasiert|curry|bunte|gemischt|marktgemuse|gemuseeinlage/)) return 'Ofen-, Grill- & Pfannengemüse';
+  if (has(n, /tomat|paprika|zucchini|aubergine|ratatouille/)) return 'Tomaten, Paprika, Zucchini & Aubergine';
+  if (has(n, /rohkost|sticks|^gurke$|^rucola$/)) return 'Rohkost & Sticks';
+  return 'Lauch, Mais & weitere Gemüse';
 }
 function extraGroup(n) {
   if (has(n, /zimtschnecke|brownie|croissant|plunder|rosinenschnecke|schokobrotchen|berliner|muffin|crumble|kekse|keks|cantuccini|schokolade/)) return 'Süßes & Gebäck';
@@ -283,7 +314,7 @@ function garVorschlag(c) {
     if (/risotto|pasta|nudeln|spaghetti|penne|tagliatelle|gnocchi|ravioli|tortelloni|spatzle|schupfnudel|lasagne|cannelloni|paella/.test(n)) return 'standard';
     return 'standard';
   }
-  if (c.role === 'B') return c.gruppe === 'Reis, Nudeln & Getreide' && !/baguette|fladenbrot|semmel|serviettenknodel/.test(n) ? 'garzuwachs' : 'standard';
+  if (c.role === 'B') return GARZUWACHS_GRUPPEN.has(c.gruppe) && !/baguette|fladenbrot|semmel|serviettenknodel/.test(n) ? 'garzuwachs' : 'standard';
   if (c.role === 'G') return 'standard';
   return null;
 }
@@ -358,7 +389,7 @@ for (const c of comps.values()) {
 function rezeptKategorie(c) {
   if (c.role === 'S') return 'sosse';
   if (c.role === 'B') return c.gruppe === 'Brot & Gebäck' ? 'brot' : 'beilage-saettigung';
-  if (c.role === 'G') return c.gruppe === 'Salate' ? 'vorspeise' : 'beilage-gemuese';
+  if (c.role === 'G') return SALAT_GRUPPEN.has(c.gruppe) ? 'vorspeise' : 'beilage-gemuese';
   if (c.role === 'E') return 'sonstiges';
   if (c.gruppe === 'Desserts') return 'dessert';
   if (c.gruppe === 'Suppen & Eintöpfe') return 'vorspeise';
@@ -403,7 +434,7 @@ function ffGroup(cs, name) {
   }
   if (hs.some(c => c.gruppe === 'Desserts')) return 'FF Desserts';
   const lead = cs[0];
-  if (lead && (lead.gruppe === 'Salate' || (lead.role === 'H' && /salat/.test(norm(lead.name)) && !/obst|frucht/.test(norm(lead.name))))) return 'FF Salate';
+  if (lead && (SALAT_GRUPPEN.has(lead.gruppe) || (lead.role === 'H' && /salat/.test(norm(lead.name)) && !/obst|frucht/.test(norm(lead.name))))) return 'FF Salate';
   if (hs.some(c => c.gruppe === 'Aufschnitt & Käse')) return 'FF Aufschnitt & Käse';
   if (hs.some(c => c.gruppe === 'Backwaren, Quiches & Wraps' && /brotchen|kanapee|toast|baguette|sandwich/.test(norm(c.name)))) return 'FF Brötchen & Sandwiches';
   const nonVeg = cs.filter(c => !c.flags.vegetarisch);
@@ -451,7 +482,7 @@ for (const d of dishes) {
   d.tagsPlus = [...new Set(zus.filter(x => x[0] !== '-'))]; d.tagsMinus = [...new Set(zus.filter(x => x[0] === '-').map(x => x.slice(1)))];   // die Katalogseite berechnet Gericht-Tags selbst und übernimmt diese Zusätze/Entfernungen
   zus.forEach(x => { if (x[0] === '-') { const i = t.findIndex(y => y.t === x.slice(1)); if (i >= 0) t.splice(i, 1); } else if (!t.some(y => y.t === x)) t.push({ t: x, auto: false }); });
   d.tags = t;
-  if (d.ff) d.sammlung = ffGroup(cs, d.name); else d.sammlung = hc ? hc.gruppe : (cs.some(c => c.role === 'G' && c.gruppe === 'Salate') ? 'Salate' : ({ Hauptgang: 'Vegetarisch & Vegan', Extras: 'Extras' }[d.gang] || 'Gemüse, Brot & Beilagen'));
+  if (d.ff) d.sammlung = ffGroup(cs, d.name); else d.sammlung = hc ? hc.gruppe : (cs.some(c => c.role === 'G' && SALAT_GRUPPEN.has(c.gruppe)) ? 'Salate' : ({ Hauptgang: 'Vegetarisch & Vegan', Extras: 'Extras' }[d.gang] || 'Gemüse, Brot & Beilagen'));
   d.allergene = [...new Set(cs.flatMap(c => c.flags.allergene))];
 }
 
@@ -489,7 +520,7 @@ const out = {
     titel: 'Speisendatenbank Forks & Friends / Licata',
     erstellt: new Date().toISOString().slice(0, 10),
     hinweis: 'Tags mit auto=true wurden automatisch aus den Namen abgeleitet (vor allem Ernährungsformen/Allergene) und müssen mit der echten Rezeptur geprüft werden. To-Do-Schritte sind noch leer und werden nach und nach ergänzt.',
-    legende: { H: 'Hauptkomponente (gelb)', S: 'Soße (türkis)', B1: 'Beilage Kartoffeln & Knödel (blau)', B2: 'Beilage Reis, Nudeln & Getreide (dunkelblau)', G: 'Gemüse (hellgrün)', E: 'Extra (dunkel)' },
+    legende: { H: 'Hauptkomponente (gelb)', S: 'Soße (türkis)', B: 'Beilagen (blau, je Art eine Farbstufe)', G: 'Gemüse und Salate (grün, je Gruppe eine Farbstufe)', E: 'Extra (dunkel)' },
   },
   komponenten: [...comps.values()].map(c => ({
     id: c.id, name: c.name, rolle: c.role, sammlung: c.sammlung, gruppe: c.gruppe,
