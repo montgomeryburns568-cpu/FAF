@@ -2,7 +2,7 @@
 // Die Pakete bestehen aus Gerichten des Speisenkatalogs (Kennung "g…", stabil über ids.json). build.js prüft beim Bauen,
 // dass alle Kennungen existieren und dass vegetarische/vegane Pakete keine Fleisch-/Fischgerichte enthalten.
 //
-//   zielgruppe : Business & Büro | Privat & Feiern | Gesund & Nachhaltig | Vegetarisch & Vegan
+//   zielgruppe : Business & Büro | Privat & Feiern | Gesund & Nachhaltig | Vegetarisch | Vegan
 //   mahlzeit   : Lunch (leicht, meist kalt) | Mittagessen (warm) | Abendessen | Snackbuffet
 //   format     : Warmes Buffet | Kaltes Buffet | Fingerfood | Stehempfang | Menü
 //   niveau     : 1 Budget | 2 Standard | 3 Hochwertig | 4 Exklusiv
@@ -233,15 +233,15 @@ module.exports = [
       { titel: 'Herzhaft', gerichte: ['g580', 'g611', 'g594', 'g546'] },
       { titel: 'Süßes', gerichte: ['g835', 'g859'] } ] },
 
-  // ================= Vegetarisch & Vegan =================
-  { id: 've-mittag-1', name: 'Veggie-Mittag', zielgruppe: 'Vegetarisch & Vegan', mahlzeit: 'Mittagessen', format: 'Warmes Buffet', niveau: 1, ernaehrung: 'vegetarisch',
+  // ================= Vegetarisch und Vegan (zwei getrennte Zielgruppen) =================
+  { id: 've-mittag-1', name: 'Veggie-Mittag', zielgruppe: 'Vegetarisch', mahlzeit: 'Mittagessen', format: 'Warmes Buffet', niveau: 1, ernaehrung: 'vegetarisch',
     text: 'Vegetarisch und günstig: Pasta Pomodoro, Gemüse-Frikadelle, Schupfnudeln mit Sauerkraut-Rahm, Salat und Milchreis.',
     anlass: ['Büro', 'Schulung', 'günstig', 'vegetarisch'],
     gaenge: [
       { titel: 'Salat', gerichte: ['g242'] },
       { titel: 'Hauptgang', hinweis: 'Drei Gerichte zur Wahl', gerichte: ['g189', 'g176', 'g179'] },
       { titel: 'Dessert', gerichte: ['g765'] } ] },
-  { id: 've-mittag-2', name: 'Veggie-Buffet', zielgruppe: 'Vegetarisch & Vegan', mahlzeit: 'Mittagessen', format: 'Warmes Buffet', niveau: 2, ernaehrung: 'vegetarisch',
+  { id: 've-mittag-2', name: 'Veggie-Buffet', zielgruppe: 'Vegetarisch', mahlzeit: 'Mittagessen', format: 'Warmes Buffet', niveau: 2, ernaehrung: 'vegetarisch',
     text: 'Abwechslungsreich ohne Fleisch: Minestrone, Gemüselasagne, Paneer Tikka Masala, Halloumi mit Bulgur, Shakshuka, griechischer Salat und Panna Cotta.',
     anlass: ['Büro', 'Team-Lunch', 'Kundentermin', 'vegetarisch'],
     gaenge: [
@@ -249,21 +249,21 @@ module.exports = [
       { titel: 'Hauptgang', hinweis: 'Vier Gerichte zur Wahl', gerichte: ['g185', 'g207', 'g196', 'g203'] },
       { titel: 'Salat', gerichte: ['g275'] },
       { titel: 'Dessert', gerichte: ['g465'] } ] },
-  { id: 've-abend-3', name: 'Veggie Hochwertig', zielgruppe: 'Vegetarisch & Vegan', mahlzeit: 'Abendessen', format: 'Warmes Buffet', niveau: 3, ernaehrung: 'vegetarisch',
+  { id: 've-abend-3', name: 'Veggie Hochwertig', zielgruppe: 'Vegetarisch', mahlzeit: 'Abendessen', format: 'Warmes Buffet', niveau: 3, ernaehrung: 'vegetarisch',
     text: 'Vegetarisch auf hohem Niveau: Rote-Bete-Carpaccio mit Ziegenkäse, Kürbis-Risotto, Zucchini-Involtini, grüner Spargel, Tiramisu und Crème Brûlée.',
     anlass: ['Geburtstag', 'Hochzeit', 'Geschäftsessen', 'festlich', 'vegetarisch'],
     gaenge: [
       { titel: 'Vorspeise', gerichte: ['g317', 'g252'] },
       { titel: 'Hauptgang', hinweis: 'Drei Gerichte zur Wahl', gerichte: ['g184', 'g451', 'g364'] },
       { titel: 'Dessert', gerichte: ['g473', 'g496'] } ] },
-  { id: 've-snack-2', name: 'Vegetarisches Fingerfood', zielgruppe: 'Vegetarisch & Vegan', mahlzeit: 'Snackbuffet', format: 'Fingerfood', niveau: 2, ernaehrung: 'vegetarisch',
+  { id: 've-snack-2', name: 'Vegetarisches Fingerfood', zielgruppe: 'Vegetarisch', mahlzeit: 'Snackbuffet', format: 'Fingerfood', niveau: 2, ernaehrung: 'vegetarisch',
     text: 'Vegetarische Häppchen: Capresespieße, Auberginenröllchen, gefüllte Champignons, Zucchiniröllchen, Mini-Quiche und drei Canapés.',
     anlass: ['Empfang', 'Geburtstag', 'Büro', 'vegetarisch', 'Stehen-Essen'],
     gaenge: [
       { titel: 'Fingerfood', gerichte: ['g564', 'g548', 'g566', 'g600', 'g589', 'g661'] },
       { titel: 'Canapés', gerichte: ['g946', 'g949', 'g953'] },
       { titel: 'Süßes', gerichte: ['g647', 'g835'] } ] },
-  { id: 've-lunch-2', name: 'Vegan Lunch', zielgruppe: 'Vegetarisch & Vegan', mahlzeit: 'Lunch', format: 'Kaltes Buffet', niveau: 2, ernaehrung: 'vegan',
+  { id: 've-lunch-2', name: 'Vegan Lunch', zielgruppe: 'Vegan', mahlzeit: 'Lunch', format: 'Kaltes Buffet', niveau: 2, ernaehrung: 'vegan',
     text: 'Komplett pflanzlich und leicht: Wraps mit Hummus, Avocado-Tartine, Bao Buns, drei Salate im Glas, Hummus, Obstsalat und vegane Muffins.',
     anlass: ['Büro', 'Team-Lunch', 'vegan', 'leicht'],
     gaenge: [
@@ -271,21 +271,21 @@ module.exports = [
       { titel: 'Salate im Glas', gerichte: ['g536', 'g646', 'g722'] },
       { titel: 'Dips', gerichte: ['g512'] },
       { titel: 'Dessert', gerichte: ['g482', 'g499'] } ] },
-  { id: 've-mittag-2b', name: 'Vegan Mittagessen', zielgruppe: 'Vegetarisch & Vegan', mahlzeit: 'Mittagessen', format: 'Warmes Buffet', niveau: 2, ernaehrung: 'vegan',
+  { id: 've-mittag-2b', name: 'Vegan Mittagessen', zielgruppe: 'Vegan', mahlzeit: 'Mittagessen', format: 'Warmes Buffet', niveau: 2, ernaehrung: 'vegan',
     text: 'Warm und sättigend ohne tierische Produkte: Kichererbsen-Curry, Linsen-Bolognese, Süßkartoffel-Curry, Chili sin Carne, veganer Salat und Schoko-Mousse.',
     anlass: ['Büro', 'Team-Lunch', 'vegan', 'Kantine'],
     gaenge: [
       { titel: 'Hauptgang', hinweis: 'Vier Gerichte zur Wahl', gerichte: ['g206', 'g217', 'g225', 'g218'] },
       { titel: 'Salat', gerichte: ['g268'] },
       { titel: 'Dessert', gerichte: ['g819'] } ] },
-  { id: 've-abend-3b', name: 'Vegan Hochwertig', zielgruppe: 'Vegetarisch & Vegan', mahlzeit: 'Abendessen', format: 'Warmes Buffet', niveau: 3, ernaehrung: 'vegan',
+  { id: 've-abend-3b', name: 'Vegan Hochwertig', zielgruppe: 'Vegan', mahlzeit: 'Abendessen', format: 'Warmes Buffet', niveau: 3, ernaehrung: 'vegan',
     text: 'Vegane Gastronomie auf Restaurantniveau: Miso-Spitzkohl, Kürbis-Risotto, gebackener Blumenkohl mit Tahini, Quinoasalat, Schoko-Mousse und Birnen-Crumble.',
     anlass: ['Feier', 'Geschäftsessen', 'vegan', 'festlich'],
     gaenge: [
       { titel: 'Hauptgang', hinweis: 'Drei Gerichte zur Wahl', gerichte: ['g360', 'g224', 'g221'] },
       { titel: 'Salat', gerichte: ['g248'] },
       { titel: 'Dessert', gerichte: ['g819', 'g826'] } ] },
-  { id: 've-menue-4', name: 'Vegan Menü Exklusiv', zielgruppe: 'Vegetarisch & Vegan', mahlzeit: 'Abendessen', format: 'Menü', niveau: 4, ernaehrung: 'vegan',
+  { id: 've-menue-4', name: 'Vegan Menü Exklusiv', zielgruppe: 'Vegan', mahlzeit: 'Abendessen', format: 'Menü', niveau: 4, ernaehrung: 'vegan',
     text: 'Das vegane Festmenü: ofengegarte Artischocke oder Blumenkohl auf Tahini-Crème, Kürbissuppe mit Kokos, Miso-Aubergine, veganes Schoko-Mousse.',
     anlass: ['Hochzeit', 'Gala', 'vegan', 'exklusiv'],
     gaenge: [
@@ -293,11 +293,35 @@ module.exports = [
       { titel: 'Suppe', gerichte: ['g298'] },
       { titel: 'Hauptgang', hinweis: 'Ein Hauptgang zur Wahl', gerichte: ['g394', 'g224'] },
       { titel: 'Dessert', gerichte: ['g819'] } ] },
-  { id: 've-snack-2b', name: 'Vegan Fingerfood', zielgruppe: 'Vegetarisch & Vegan', mahlzeit: 'Snackbuffet', format: 'Fingerfood', niveau: 2, ernaehrung: 'vegan',
+  { id: 've-snack-2b', name: 'Vegan Fingerfood', zielgruppe: 'Vegan', mahlzeit: 'Snackbuffet', format: 'Fingerfood', niveau: 2, ernaehrung: 'vegan',
     text: 'Vegane Häppchen: vier Canapés, Blumenkohl-Tacos, Falafel, Mini-Blätterteigpastete, Avocadocreme im Glas, Obstspieße und vegane Muffins.',
     anlass: ['Empfang', 'Büro', 'Geburtstag', 'vegan', 'Stehen-Essen'],
     gaenge: [
       { titel: 'Canapés', gerichte: ['g958', 'g959', 'g961', 'g964'] },
       { titel: 'Fingerfood', gerichte: ['g557', 'g580', 'g653', 'g507'] },
       { titel: 'Süßes', gerichte: ['g835', 'g499'] } ] },
+
+  // ---- ergänzt, damit beide Zielgruppen alle Niveaus abdecken ----
+  { id: 've-lunch-1v', name: 'Veggie Lunch', zielgruppe: 'Vegetarisch', mahlzeit: 'Lunch', format: 'Kaltes Buffet', niveau: 2, ernaehrung: 'vegetarisch',
+    text: 'Leichtes kaltes Buffet ohne Fleisch: Brötchen mit Frischkäse und Tomate, Baguette mit Mozzarella, Focaccia-Sandwich, Capresesalat, Wassermelonen-Hirtenkäse-Salat und Panna Cotta im Glas.',
+    anlass: ['Büro', 'Team-Lunch', 'Schulung', 'vegetarisch', 'leicht'],
+    gaenge: [
+      { titel: 'Belegtes', gerichte: ['g614', 'g721', 'g641'] },
+      { titel: 'Salate', gerichte: ['g249', 'g261'] },
+      { titel: 'Dessert', gerichte: ['g465'] } ] },
+  { id: 've-menue-4v', name: 'Veggie Menü Exklusiv', zielgruppe: 'Vegetarisch', mahlzeit: 'Abendessen', format: 'Menü', niveau: 4, ernaehrung: 'vegetarisch',
+    text: 'Das vegetarische Festmenü: Rote-Bete-Carpaccio mit Ziegenkäse, Kürbissuppe mit Kokos, Risotto Primavera, Zucchini-Involtini oder grüner Spargel, zum Abschluss Crème Brûlée oder Tiramisu.',
+    anlass: ['Hochzeit', 'Gala', 'vegetarisch', 'exklusiv'],
+    gaenge: [
+      { titel: 'Vorspeise', gerichte: ['g317'] },
+      { titel: 'Suppe', gerichte: ['g298'] },
+      { titel: 'Hauptgang', hinweis: 'Ein Hauptgang zur Wahl', gerichte: ['g422', 'g451', 'g364'] },
+      { titel: 'Dessert', hinweis: 'Ein Dessert zur Wahl', gerichte: ['g496', 'g473'] } ] },
+  { id: 've-mittag-1b', name: 'Vegan Kantinen-Mittag', zielgruppe: 'Vegan', mahlzeit: 'Mittagessen', format: 'Warmes Buffet', niveau: 1, ernaehrung: 'vegan',
+    text: 'Vegan und günstig: Gemüse-Pfanne mit Reis, Linsen-Dal, Kartoffelpfanne mit Gemüse, Blattsalat und vegane Schokomuffins.',
+    anlass: ['Büro', 'Schulung', 'günstig', 'vegan'],
+    gaenge: [
+      { titel: 'Hauptgang', hinweis: 'Drei Gerichte zur Wahl', gerichte: ['g227', 'g205', 'g383'] },
+      { titel: 'Salat', gerichte: ['g242'] },
+      { titel: 'Dessert', gerichte: ['g499'] } ] },
 ];

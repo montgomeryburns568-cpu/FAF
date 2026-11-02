@@ -214,7 +214,7 @@ const roleClass = c => c.rolle === 'B' ? (c.gruppe === 'Kartoffeln' ? 'rB1' : 'r
 const HCOL = {
   'Hähnchen': ['#fdb02e', '#10206b'], 'Pute': ['#ffe27a', '#3b3000'], 'Ente & Gans': ['#b5651d', '#ffffff'],
   'Rind': ['#d62839', '#ffffff'], 'Kalb': ['#f4a6a6', '#4a1410'], 'Lamm': ['#7b3fb0', '#ffffff'], 'Schwein': ['#ff6fa5', '#4a0a2a'],
-  'Fisch': ['#4aa3df', '#06263d'], 'Meeresfrüchte': ['#ff8c5a', '#4a1608'], 'Vegetarisch & Vegan': ['#9acd32', '#1f3300'],
+  'Fisch': ['#4aa3df', '#06263d'], 'Meeresfrüchte': ['#ff8c5a', '#4a1608'], 'Vegetarisch': ['#9acd32', '#1f3300'], 'Vegan': ['#2f9e44', '#ffffff'], 'Weitere Hauptgerichte': ['#b0b7c3', '#1f2937'],
   'Pasta & Aufläufe': ['#e8d3a2', '#4a3a10'], 'Suppen & Eintöpfe': ['#f2b48a', '#4a2200'], 'Backwaren, Quiches & Wraps': ['#b89b72', '#2d1f08'],
   'Aufschnitt & Käse': ['#cdb4f6', '#2b1a4d'], 'Desserts': ['#f7a1e8', '#4a0f40']
 };
@@ -275,7 +275,7 @@ function applyCompOverrides() {
     c.name = NAMES[c.id] || c.origName;
     const g = GROUPS[c.id];
     c.rolle = (g && g.rolle) || c.origRolle;
-    c.gruppe = (g && g.gruppe) || c.origGruppe;
+    c.gruppe = (g && g.gruppe && g.gruppe !== 'Vegetarisch & Vegan' && g.gruppe) || c.origGruppe;
   });
 }
 function restore(str) {
@@ -480,7 +480,8 @@ function dishTags(kueche, cs, ff) {
   else if (cs.every(c => has(c, 'Schnell') || c.rolle === 'E')) t.push({ t: 'Schnell', auto: true });
   return t;
 }
-const ROLE_DEFAULT_SAMMLUNG = { Hauptgang: 'Vegetarisch & Vegan', Extras: 'Extras' };
+const ROLE_DEFAULT_SAMMLUNG = { Extras: 'Extras' };
+const VEG_GRUPPEN = new Set(['Vegetarisch', 'Vegan']);
 function ffGroup(cs, name) {
   const hs = cs.filter(c => c.rolle === 'H');
   // Canapés: eigene Unterkategorien nach Belag (gleiche Regeln wie in build.js)
@@ -501,11 +502,14 @@ function ffGroup(cs, name) {
   if (nonVeg.length) return nonVeg.every(c => c.fisch) ? 'FF Fisch & Meeresfrüchte' : 'FF Fleisch';
   return (cs.every(c => c.vegan) || /\(vegan\)/.test(norm(name))) ? 'FF Vegan' : 'FF Vegetarisch';
 }
-function sammlungOf(g, cs, name) {
+// Vegetarisch und Vegan sind getrennte Abschnitte; maßgeblich sind die Tags des Gerichts (Vegan gewinnt, sonst Vegetarisch)
+function sammlungOf(g, cs, name, tags) {
   if (g.ff) return ffGroup(cs, name);
+  const vegG = (tags || []).some(t => t.t === 'Vegan') ? 'Vegan' : 'Vegetarisch';
   const hc = cs.find(c => c.rolle === 'H');
-  if (hc) return hc.gruppe;
+  if (hc) return VEG_GRUPPEN.has(hc.gruppe) ? vegG : hc.gruppe;
   if (cs.some(c => c.rolle === 'G' && SALAT_GRUPPEN.has(c.gruppe))) return 'Salate';
+  if (g.gang === 'Hauptgang') return (tags || []).some(t => t.t === 'Vegan' || t.t === 'Vegetarisch') ? vegG : 'Weitere Hauptgerichte';   // ohne Hauptkomponente und ohne vegetarisch/vegan-Tag (z. B. Fleischspieße)
   return ROLE_DEFAULT_SAMMLUNG[g.gang] || 'Gemüse, Brot & Beilagen';
 }
 // Satz neu bauen, wenn Komponenten hinzugefügt/entfernt wurden
@@ -575,7 +579,8 @@ function eff(g) {
   });
   const name = segList.map(s => s.lit !== undefined ? s.lit : texts[s.i]).join('');
   const cs = ids.map(id => C[id]);
-  return { g, mod, ids, name, texts, segList, tags: effTags('d:' + g.id, buildTags(g, dishTags(g.kueche, cs, g.ff))), allergene: [...new Set(cs.flatMap(c => c.allergene))], sammlung: sammlungOf(g, cs, name), removed: REMOVED.has(g.id) };
+  const tags = effTags('d:' + g.id, buildTags(g, dishTags(g.kueche, cs, g.ff)));
+  return { g, mod, ids, name, texts, segList, tags, allergene: [...new Set(cs.flatMap(c => c.allergene))], sammlung: sammlungOf(g, cs, name, tags), removed: REMOVED.has(g.id) };
 }
 
 // ================= Darstellung =================
@@ -630,7 +635,7 @@ function matchesComp(c) {
   if (state.q && !norm(c.name).includes(norm(state.q))) return false;
   return true;
 }
-const ORDER = ['Hähnchen','Pute','Ente & Gans','Rind','Kalb','Lamm','Schwein','Fisch','Meeresfrüchte','Vegetarisch & Vegan','Pasta & Aufläufe','Suppen & Eintöpfe','Salate','Backwaren, Quiches & Wraps','Aufschnitt & Käse','Desserts','Gemüse, Brot & Beilagen','Extras','FF Fleisch','FF Fisch & Meeresfrüchte','FF Vegetarisch','FF Vegan','FF Salate','FF Desserts','FF Aufschnitt & Käse','FF Canapés Vegetarisch','FF Canapés Vegan','FF Canapés Fleisch','FF Canapés Fisch & Meeresfrüchte','FF Brötchen & Sandwiches'];
+const ORDER = ['Hähnchen','Pute','Ente & Gans','Rind','Kalb','Lamm','Schwein','Fisch','Meeresfrüchte','Vegetarisch','Vegan','Pasta & Aufläufe','Suppen & Eintöpfe','Salate','Backwaren, Quiches & Wraps','Aufschnitt & Käse','Desserts','Weitere Hauptgerichte','Gemüse, Brot & Beilagen','Extras','FF Fleisch','FF Fisch & Meeresfrüchte','FF Vegetarisch','FF Vegan','FF Salate','FF Desserts','FF Aufschnitt & Käse','FF Canapés Vegetarisch','FF Canapés Vegan','FF Canapés Fleisch','FF Canapés Fisch & Meeresfrüchte','FF Brötchen & Sandwiches'];
 function refreshFilters(all) {
   const fill = (id, vals) => {
     const el = document.getElementById(id), cur = el.value;

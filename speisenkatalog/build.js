@@ -349,6 +349,8 @@ for (const [key, c] of comps) {
   const zusatz = [...(c.extraTags || []), ...((NACHTRAG.komponenten || {})[c.role + '|' + c.name] || [])];
   if (/canap|kanap/.test(norm(c.name))) zusatz.push('Canapé');
   zusatz.forEach(t => { if (t[0] === '-') c.tags = c.tags.filter(x => x.t !== t.slice(1)); else if (!c.tags.some(x => x.t === t)) c.tags.push({ t, auto: false }); });
+  // Vegetarisch und Vegan sind zwei getrennte Kategorien (proteinGroup läuft vor den Tag-Regeln und liefert noch den gemeinsamen Platzhalter); maßgeblich sind die fertigen Tags
+  if (c.role === 'H' && c.gruppe === 'Vegetarisch & Vegan') c.gruppe = c.tags.some(x => x.t === 'Vegan') ? 'Vegan' : (c.flags.vegetarisch || c.tags.some(x => x.t === 'Vegetarisch')) ? 'Vegetarisch' : 'Weitere Hauptgerichte';
   c.anzahlGerichte = c.dishIds.length;
   c.kuechen = [...c.kuechen];
 }
@@ -482,7 +484,10 @@ for (const d of dishes) {
   d.tagsPlus = [...new Set(zus.filter(x => x[0] !== '-'))]; d.tagsMinus = [...new Set(zus.filter(x => x[0] === '-').map(x => x.slice(1)))];   // die Katalogseite berechnet Gericht-Tags selbst und übernimmt diese Zusätze/Entfernungen
   zus.forEach(x => { if (x[0] === '-') { const i = t.findIndex(y => y.t === x.slice(1)); if (i >= 0) t.splice(i, 1); } else if (!t.some(y => y.t === x)) t.push({ t: x, auto: false }); });
   d.tags = t;
-  if (d.ff) d.sammlung = ffGroup(cs, d.name); else d.sammlung = hc ? hc.gruppe : (cs.some(c => c.role === 'G' && SALAT_GRUPPEN.has(c.gruppe)) ? 'Salate' : ({ Hauptgang: 'Vegetarisch & Vegan', Extras: 'Extras' }[d.gang] || 'Gemüse, Brot & Beilagen'));
+  if (d.ff) d.sammlung = ffGroup(cs, d.name); else {
+    const vegG = t.some(y => y.t === 'Vegan') ? 'Vegan' : 'Vegetarisch';
+    d.sammlung = hc ? (hc.gruppe === 'Vegetarisch' || hc.gruppe === 'Vegan' ? vegG : hc.gruppe) : (cs.some(c => c.role === 'G' && SALAT_GRUPPEN.has(c.gruppe)) ? 'Salate' : ({ Hauptgang: t.some(y => y.t === 'Vegan' || y.t === 'Vegetarisch') ? vegG : 'Weitere Hauptgerichte', Extras: 'Extras' }[d.gang] || 'Gemüse, Brot & Beilagen'));
+  }
   d.allergene = [...new Set(cs.flatMap(c => c.flags.allergene))];
 }
 
@@ -492,7 +497,7 @@ function pruefePakete(pakete) {
   const byId = new Map(dishes.map(d => [d.id, d]));
   const NIVEAUS = [1, 2, 3, 4], MAHLZEITEN = ['Lunch', 'Mittagessen', 'Abendessen', 'Snackbuffet'];
   const FORMATE = ['Warmes Buffet', 'Kaltes Buffet', 'Fingerfood', 'Stehempfang', 'Menü'];
-  const ZIELGRUPPEN = ['Business & Büro', 'Privat & Feiern', 'Gesund & Nachhaltig', 'Vegetarisch & Vegan'];
+  const ZIELGRUPPEN = ['Business & Büro', 'Privat & Feiern', 'Gesund & Nachhaltig', 'Vegetarisch', 'Vegan'];
   const MEAT = /h[äa]hn|huhn|chicken|pute|\bente|gans|rind|beef|kalb|lamm|schwein|speck|schinken|salami|wurst|fleisch|lachs|forelle|thunfisch|garnele|shrimp|fisch|dorade|zander|kabeljau|wolfsbarsch|seeteufel|hack|frikadelle(?!.*gem)|nugget|wings|ribs|rippchen|matjes|hering|vitello/i;
   const ids = new Set();
   return pakete.map(p => {

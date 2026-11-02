@@ -7,7 +7,8 @@ const ZIELGRUPPEN = [
   { name: 'Business & Büro', farbe: '#2563eb', icon: '💼', farbe2: '#1e3a8a' },
   { name: 'Privat & Feiern', farbe: '#db2777', icon: '🎉', farbe2: '#831843' },
   { name: 'Gesund & Nachhaltig', farbe: '#16a34a', icon: '🌿', farbe2: '#14532d' },
-  { name: 'Vegetarisch & Vegan', farbe: '#84a312', icon: '🥦', farbe2: '#3f6212' },
+  { name: 'Vegetarisch', farbe: '#84a312', icon: '🥕', farbe2: '#3f6212' },
+  { name: 'Vegan', farbe: '#15803d', icon: '🌱', farbe2: '#052e16' },
 ];
 const MAHLZEITEN = ['Lunch', 'Mittagessen', 'Abendessen', 'Snackbuffet'];
 const MAHLZEIT_INFO = { Lunch: 'leicht, meist kalt', Mittagessen: 'warmes Mittagessen', Abendessen: 'Abendessen und Feiern', Snackbuffet: 'kleine Häppchen' };
@@ -22,13 +23,15 @@ const bildOk = u => typeof u === 'string' && /^(https:\/\/|\/[^\/]|data:image\/(
 // Pakete des Grundbestands plus eigene; je Eintrag das wirksame Paket (p) und sein Zustand
 function allPaketeEff() {
   const seeds = DB.pakete || [], out = [];
+  // frühere gemeinsame Zielgruppe "Vegetarisch & Vegan" → je nach Ernährung getrennt
+  const zg = p => p.zielgruppe === 'Vegetarisch & Vegan' ? Object.assign({}, p, { zielgruppe: p.ernaehrung === 'vegan' ? 'Vegan' : 'Vegetarisch' }) : p;
   seeds.forEach(s => {
     const m = PAKETE[s.id];
     if (m && m.removed) out.push({ p: s, status: 'ausgeblendet' });
-    else if (m) out.push({ p: Object.assign({}, m, { id: s.id }), status: 'geaendert' });
+    else if (m) out.push({ p: zg(Object.assign({}, m, { id: s.id })), status: 'geaendert' });
     else out.push({ p: s, status: 'standard' });
   });
-  Object.entries(PAKETE).forEach(([id, m]) => { if (m && !m.removed && !seeds.some(s => s.id === id)) out.push({ p: Object.assign({}, m, { id }), status: 'eigen' }); });
+  Object.entries(PAKETE).forEach(([id, m]) => { if (m && !m.removed && !seeds.some(s => s.id === id)) out.push({ p: zg(Object.assign({}, m, { id })), status: 'eigen' }); });
   return out;
 }
 const paketDishIds = p => [...new Set((p.gaenge || []).flatMap(g => g.gerichte || []))];

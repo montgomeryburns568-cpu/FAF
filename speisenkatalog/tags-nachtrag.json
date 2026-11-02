@@ -222,6 +222,15 @@
   ],
   "Birnen-Hafer-Crumble mit einer veganen Vanillesauce": [
    "Vegan"
+  ],
+  "Gemüse-Paella mit Paprika und Zitrone": [
+   "Vegetarisch"
+  ],
+  "Gebratenes Sellerie-Steak mit Apfel, Haselnuss und kräftigem Kräuterjus": [
+   "Vegetarisch"
+  ],
+  "Pulled Plants": [
+   "Vegetarisch"
   ]
  },
  "komponenten": {
@@ -320,6 +329,12 @@
   ],
   "G|Wokgemüse": [
    "kantinengeeignet"
+  ],
+  "H|Gemüse-Paella": [
+   "Vegetarisch"
+  ],
+  "H|Pulled Plant": [
+   "Vegetarisch"
   ]
  }
 }
