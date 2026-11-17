@@ -55,7 +55,8 @@ Ohne Key läuft die App normal weiter, der "✨ KI-Vorschlag"-Button zeigt dann 
    anlegen/aktualisieren und Zeitstempel-Backups in `data/backups/` erzeugen
 3. Automatisch wiederholen lassen über die **Windows-Aufgabenplanung**:
    - Aufgabenplanung öffnen → "Aufgabe erstellen"
-   - Trigger: jede Minute (einmalig, "Wiederholen alle 1 Minute", "Unbegrenzt") sowie "Bei Anmeldung"
+   - Trigger: stündlich (einmalig, "Wiederholen alle 1 Stunde", "Unbegrenzt") sowie "Bei Anmeldung"
+     – gesichert wird ohnehin sofort in der App (Kontrollpunkte, s.u.); der Spiegel holt sie nur ab
    - Aktion: Programm `conhost.exe`, Argumente `--headless "<Projektordner>\tools\sync-mirror-task.cmd"`
      (läuft unsichtbar, ohne aufblitzendes Fenster; Ausgaben landen in `sync-mirror.log`)
 
