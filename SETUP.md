@@ -55,12 +55,21 @@ Ohne Key läuft die App normal weiter, der "✨ KI-Vorschlag"-Button zeigt dann 
    anlegen/aktualisieren und Zeitstempel-Backups in `data/backups/` erzeugen
 3. Automatisch wiederholen lassen über die **Windows-Aufgabenplanung**:
    - Aufgabenplanung öffnen → "Aufgabe erstellen"
-   - Trigger: z.B. stündlich
-   - Aktion: Programm `node.exe` (z.B. `C:\Program Files\nodejs\node.exe`), Argumente `sync-mirror.js`,
-     Starten in: der Projektordner (`C:\Users\forks\Documents\Küchensheet-App`)
+   - Trigger: jede Minute (einmalig, "Wiederholen alle 1 Minute", "Unbegrenzt") sowie "Bei Anmeldung"
+   - Aktion: Programm `conhost.exe`, Argumente `--headless "<Projektordner>\tools\sync-mirror-task.cmd"`
+     (läuft unsichtbar, ohne aufblitzendes Fenster; Ausgaben landen in `sync-mirror.log`)
 
-Damit liegt bei euch lokal immer eine maximal ein paar Stunden alte Kopie aller Daten – unabhängig
-davon, ob Vercel oder Upstash gerade erreichbar sind.
+**Kontrollpunkte wie in einem Spiel** (`verlauf.js`): Die App selbst legt bei jeder echten Änderung eines
+Datenbereichs (Rezepte, Angebote/Events, Archiv, Regeln, Kunden …) sofort einen Kontrollpunkt mit Zeitstempel
+in der Cloud-Datenbank an – die letzten 50 je Bereich, komprimiert. Schnell aufeinanderfolgende Speicherungen
+(innerhalb von 2 Minuten, höchstens 10 Minuten lang) werden zu einem Kontrollpunkt zusammengefasst; der neueste
+Stand ist also immer gesichert. Unverändertes Speichern erzeugt keinen Kontrollpunkt.
+
+Der Spiegel fragt dann nur einen kleinen Änderungszähler ab (`/api/verlauf/stand`). Hat sich nichts geändert,
+passiert nichts. Andernfalls holt er genau die neuen Kontrollpunkte: jeder landet als Backup in `data/backups/`
+(die letzten 200 je Bereich), der neueste als aktueller Stand in `data/<bereich>.json`. War der Rechner aus,
+werden beim nächsten Lauf alle verpassten Kontrollpunkte nachgeholt (solange es nicht mehr als 50 je Bereich
+waren). Der Zeitpunkt des letzten erfolgreichen Abgleichs steht in `data/letzte-spiegelung.txt`.
 
 ## 7. Lokale Entwicklung/Test ohne Vercel
 

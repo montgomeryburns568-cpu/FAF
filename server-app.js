@@ -753,4 +753,24 @@ app.get('/api/archiv/:id/pdf', requireAuth, async (req, res) => {
   await sendeAngebotPdf(req, res, entry.pathname, entry.filename);
 });
 
+// --- Kontrollpunkte (siehe verlauf.js) – werden vom lokalen Offline-Spiegel (sync-mirror.js) abgeholt ---
+// stand: nur der Änderungszähler (sehr kleiner Aufruf, für häufige Abfragen gedacht)
+app.get('/api/verlauf/stand', requireAuth, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ stand: await store.verlauf.stand() });
+});
+// Übersicht: alle Kontrollpunkte je Bereich (nur Metadaten) + Speicherbelegung der Datenbank, falls abrufbar
+app.get('/api/verlauf', requireAuth, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(await store.verlauf.uebersicht());
+});
+// Ein einzelner Kontrollpunkt (vollständiger Stand des Bereichs)
+app.get('/api/verlauf/:bereich/:slot', requireAuth, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!/^\d+$/.test(req.params.slot)) return res.status(400).json({ error: 'Ungültiger Kontrollpunkt.' });
+  const json = await store.verlauf.daten(req.params.bereich, req.params.slot);
+  if (json == null) return res.status(404).json({ error: 'Kontrollpunkt nicht gefunden.' });
+  res.type('application/json').send(json);
+});
+
 module.exports = app;

@@ -25,7 +25,18 @@ async function kvGetOrInit(key, fallback) {
 }
 async function kvSet(key, data) {
   const client = await getKV();
-  await client.set(key, JSON.stringify(data));
+  const json = JSON.stringify(data);
+  await client.set(key, json);
+  await kontrollpunkt(key, json);
+}
+
+// ---------- Kontrollpunkte (siehe verlauf.js) ----------
+// Bei jedem Speichern eines Datenbereichs wird sofort ein Kontrollpunkt angelegt. Ein Fehler dabei darf das eigentliche
+// Speichern nie verhindern – er wird nur protokolliert.
+const DATA_DIR_VERLAUF = process.env.DATA_DIR || path.join(__dirname, 'data');
+const verlauf = useKV ? require('./verlauf').redisVerlauf(getKV) : require('./verlauf').dateiVerlauf(DATA_DIR_VERLAUF);
+async function kontrollpunkt(name, json) {
+  try { await verlauf.kontrollpunkt(name, json); } catch (err) { console.error(`Kontrollpunkt ${name} fehlgeschlagen:`, err.message); }
 }
 
 // ---------- lokale JSON-Dateien (Dev-Fallback, falls keine KV konfiguriert) ----------
@@ -55,6 +66,8 @@ function writeJSON(file, data) {
   fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf-8');
   fs.renameSync(tmp, file);
   mirrorBackupLocal(file, data);
+  // Datei-Modus: Kontrollpunkt synchron anlegen (gleiches Format wie in Redis: kompaktes JSON)
+  try { verlauf.kontrollpunkt(path.basename(file, '.json'), JSON.stringify(data)); } catch (err) { console.error('Kontrollpunkt fehlgeschlagen:', err.message); }
 }
 function mirrorBackupLocal(file, data) {
   const name = path.basename(file, '.json');
@@ -132,6 +145,7 @@ async function seedStandardRezepte(force) {
 module.exports = {
   useKV,
   init,
+  verlauf,
   seedStandardRezepte,
   async getRecipes() { return useKV ? kvGetOrInit('recipes', SEED_RECIPES) : readJSON(FILES.recipes); },
   async setRecipes(data) { if (useKV) { await kvSet('recipes', data); } else { writeJSON(FILES.recipes, data); } },
